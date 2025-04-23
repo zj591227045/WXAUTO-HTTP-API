@@ -1,0 +1,412 @@
+from flask import Blueprint, jsonify, request, g
+from app.auth import require_api_key
+from app.logs import logger
+from app.wechat import wechat_manager
+import os
+import time
+
+api_bp = Blueprint('api', __name__)
+
+@api_bp.before_request
+def before_request():
+    g.start_time = time.time()
+    logger.info(f"收到请求: {request.method} {request.path}")
+    logger.debug(f"请求头: {dict(request.headers)}")
+    if request.is_json:
+        logger.debug(f"请求体: {request.get_json()}")
+
+@api_bp.after_request
+def after_request(response):
+    if hasattr(g, 'start_time'):
+        duration = time.time() - g.start_time
+        logger.info(f"请求处理完成: {request.method} {request.path} - 状态码: {response.status_code} - 耗时: {duration:.2f}秒")
+    return response
+
+@api_bp.errorhandler(Exception)
+def handle_error(error):
+    # 记录未捕获的异常
+    logger.error(f"未捕获的异常: {str(error)}", exc_info=True)
+    return jsonify({
+        'code': 5000,
+        'message': '服务器内部错误',
+        'data': None
+    }), 500
+
+# 初始化和验证相关接口
+@api_bp.route('/auth/verify', methods=['POST'])
+@require_api_key
+def verify_api_key():
+    return jsonify({
+        'code': 0,
+        'message': '验证成功',
+        'data': {'valid': True}
+    })
+
+@api_bp.route('/wechat/initialize', methods=['POST'])
+@require_api_key
+def initialize_wechat():
+    try:
+        success = wechat_manager.initialize()
+        if success:
+            return jsonify({
+                'code': 0,
+                'message': '初始化成功',
+                'data': {'status': 'connected'}
+            })
+        else:
+            return jsonify({
+                'code': 2001,
+                'message': '初始化失败',
+                'data': None
+            }), 500
+    except Exception as e:
+        logger.error(f"初始化异常: {str(e)}")
+        return jsonify({
+            'code': 2001,
+            'message': f'初始化失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/wechat/status', methods=['GET'])
+@require_api_key
+def get_wechat_status():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    is_connected = wechat_manager.check_connection()
+    return jsonify({
+        'code': 0,
+        'message': '获取成功',
+        'data': {
+            'status': 'online' if is_connected else 'offline'
+        }
+    })
+
+# 消息相关接口
+@api_bp.route('/message/send', methods=['POST'])
+@require_api_key
+def send_message():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    receiver = data.get('receiver')
+    message = data.get('message')
+    at_list = data.get('at_list', [])
+    clear = "1" if data.get('clear', True) else "0"
+    
+    if not receiver or not message:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        # 使用精确匹配模式查找联系人
+        chat_name = wx_instance.ChatWith(receiver, exact=True)
+        if not chat_name:
+            return jsonify({
+                'code': 3001,
+                'message': f'找不到联系人: {receiver}',
+                'data': None
+            }), 404
+            
+        # 确认切换到了正确的聊天窗口
+        if chat_name != receiver:
+            return jsonify({
+                'code': 3001,
+                'message': f'联系人匹配错误，期望: {receiver}, 实际: {chat_name}',
+                'data': None
+            }), 400
+            
+        if at_list:
+            wx_instance.SendMsg(message, clear=clear, at=at_list)
+        else:
+            wx_instance.SendMsg(message, clear=clear)
+            
+        return jsonify({
+            'code': 0,
+            'message': '发送成功',
+            'data': {'message_id': 'success'}
+        })
+    except Exception as e:
+        logger.error(f"发送消息失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'发送失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/message/send-typing', methods=['POST'])
+@require_api_key
+def send_typing_message():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    receiver = data.get('receiver')
+    message = data.get('message')
+    at_list = data.get('at_list', [])
+    clear = data.get('clear', True)
+    
+    if not receiver or not message:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        # 使用精确匹配模式查找联系人
+        chat_name = wx_instance.ChatWith(receiver, exact=True)
+        if not chat_name:
+            return jsonify({
+                'code': 3001,
+                'message': f'找不到联系人: {receiver}',
+                'data': None
+            }), 404
+            
+        # 确认切换到了正确的聊天窗口
+        if chat_name != receiver:
+            return jsonify({
+                'code': 3001,
+                'message': f'联系人匹配错误，期望: {receiver}, 实际: {chat_name}',
+                'data': None
+            }), 400
+            
+        # 使用正确的参数顺序调用 SendTypingText
+        if at_list:
+            wx_instance.SendTypingText(message, who=receiver, clear=clear, at=at_list)
+        else:
+            wx_instance.SendTypingText(message, who=receiver, clear=clear)
+            
+        return jsonify({
+            'code': 0,
+            'message': '发送成功',
+            'data': {'message_id': 'success'}
+        })
+    except Exception as e:
+        logger.error(f"发送消息失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'发送失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/message/send-file', methods=['POST'])
+@require_api_key
+def send_file():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    receiver = data.get('receiver')
+    file_paths = data.get('file_paths', [])
+    
+    if not receiver or not file_paths:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+    
+    failed_files = []
+    success_count = 0
+    
+    try:
+        # 使用精确匹配模式查找联系人
+        chat_name = wx_instance.ChatWith(receiver, exact=True)
+        if not chat_name:
+            return jsonify({
+                'code': 3001,
+                'message': f'找不到联系人: {receiver}',
+                'data': None
+            }), 404
+            
+        # 确认切换到了正确的聊天窗口
+        if chat_name != receiver:
+            return jsonify({
+                'code': 3001,
+                'message': f'联系人匹配错误，期望: {receiver}, 实际: {chat_name}',
+                'data': None
+            }), 400
+        
+        for file_path in file_paths:
+            if not os.path.exists(file_path):
+                failed_files.append({
+                    'path': file_path,
+                    'reason': '文件不存在'
+                })
+                continue
+                
+            try:
+                wx_instance.SendFiles(file_path)
+                success_count += 1
+            except Exception as e:
+                failed_files.append({
+                    'path': file_path,
+                    'reason': str(e)
+                })
+        
+        return jsonify({
+            'code': 0 if not failed_files else 3001,
+            'message': '发送完成' if not failed_files else '部分文件发送失败',
+            'data': {
+                'success_count': success_count,
+                'failed_files': failed_files
+            }
+        })
+    except Exception as e:
+        logger.error(f"发送文件失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'发送失败: {str(e)}',
+            'data': None
+        }), 500
+
+# 群组相关接口
+@api_bp.route('/group/list', methods=['GET'])
+@require_api_key
+def get_group_list():
+    global wx_instance
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    try:
+        groups = wx_instance.GetGroupList()
+        return jsonify({
+            'code': 0,
+            'message': '获取成功',
+            'data': {
+                'groups': [{'name': group} for group in groups]
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'code': 4001,
+            'message': f'获取群列表失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/group/manage', methods=['POST'])
+@require_api_key
+def manage_group():
+    global wx_instance
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    group_name = data.get('group_name')
+    action = data.get('action')
+    params = data.get('params', {})
+    
+    if not group_name or not action:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        if action == 'rename':
+            new_name = params.get('new_name')
+            if not new_name:
+                return jsonify({
+                    'code': 1002,
+                    'message': '缺少新群名称',
+                    'data': None
+                }), 400
+            # 执行重命名操作
+            wx_instance.ChatWith(group_name)
+            wx_instance.RenameGroup(new_name)
+        elif action == 'quit':
+            # 退出群聊
+            wx_instance.ChatWith(group_name)
+            wx_instance.QuitGroup()
+            
+        return jsonify({
+            'code': 0,
+            'message': '操作成功',
+            'data': {'success': True}
+        })
+    except Exception as e:
+        return jsonify({
+            'code': 4001,
+            'message': f'群操作失败: {str(e)}',
+            'data': None
+        }), 500
+
+# 联系人相关接口
+@api_bp.route('/contact/list', methods=['GET'])
+@require_api_key
+def get_contact_list():
+    global wx_instance
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    try:
+        contacts = wx_instance.GetFriendList()
+        return jsonify({
+            'code': 0,
+            'message': '获取成功',
+            'data': {
+                'friends': [{'nickname': contact} for contact in contacts]
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'code': 5001,
+            'message': f'获取好友列表失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/health', methods=['GET'])
+def health_check():
+    wx_instance = wechat_manager.get_instance()
+    wx_status = "not_initialized"
+    
+    if wx_instance:
+        wx_status = "connected" if wechat_manager.check_connection() else "disconnected"
+    
+    return jsonify({
+        'code': 0,
+        'message': '服务正常',
+        'data': {
+            'status': 'ok',
+            'wechat_status': wx_status,
+            'uptime': int(time.time() - g.start_time)
+        }
+    })
