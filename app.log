@@ -164,3 +164,66 @@
 2025-04-23 17:33:19,074 - wxauto-api - INFO - 收到请求: POST /api/message/send
 2025-04-23 17:33:19,076 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'e55ca651-8868-4c4e-8c56-17082e52cf93', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '105'}
 2025-04-23 17:33:19,077 - wxauto-api - DEBUG - 请求体: {'receiver': '测试test', 'message': '好的', 'at_list': ['张杰'], 'clear': True}
+2025-04-23 17:33:21,179 - wxauto-api - INFO - 请求处理完成: POST /api/message/send - 状态码: 200 - 耗时: 2.10秒
+2025-04-23 19:05:56,216 - wxauto-api - INFO - 收到请求: POST /api/wechat/initialize
+2025-04-23 19:05:56,217 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'bd76c333-834c-4b96-8c46-46434f042b14', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '0'}
+2025-04-23 19:05:56,219 - wxauto-api - INFO - 请求处理完成: POST /api/wechat/initialize - 状态码: 200 - 耗时: 0.00秒
+2025-04-23 19:11:45,222 - wxauto-api - ERROR - 启动失败: invalid syntax (routes.py, line 780)
+2025-04-23 19:15:28,362 - wxauto-api - INFO - 正在启动Flask应用...
+2025-04-23 19:15:28,362 - wxauto-api - INFO - 监听地址: 0.0.0.0:5000
+2025-04-23 19:15:32,936 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 19:15:32,938 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': '123456aA?!', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'b3f3ba5c-6103-423d-80b5-85125281cb46', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 19:15:32,940 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 401 - 耗时: 0.00秒
+2025-04-23 19:16:04,483 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 19:16:04,484 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'c15a52d8-3eb3-47cb-ae81-316b2801b883', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 19:16:04,486 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 400 - 耗时: 0.00秒
+2025-04-23 19:16:14,857 - wxauto-api - INFO - 收到请求: POST /api/wechat/initialize
+2025-04-23 19:16:14,858 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'f0c85cfb-78e8-4c20-916e-e60471f4bc23', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '0'}
+2025-04-23 19:16:15,542 - wxauto-api - INFO - 微信连接监控已启动
+2025-04-23 19:16:15,542 - wxauto-api - INFO - 请求处理完成: POST /api/wechat/initialize - 状态码: 200 - 耗时: 0.69秒
+2025-04-23 19:16:18,722 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 19:16:18,723 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '9ab90f55-ab51-462c-a2c5-f30f63350674', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 19:16:19,829 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 1.11秒
+2025-04-23 19:17:08,427 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 19:17:08,428 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '3bbc9a14-a291-40b2-a3f4-32142ec97730', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 19:17:09,070 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.64秒
+2025-04-23 19:17:22,157 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 19:17:22,157 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '2e832014-44f0-4151-9976-28e8854af695', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 19:17:22,813 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.66秒
+2025-04-23 19:17:36,997 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 19:17:36,998 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'a4823a11-9f4d-47af-8269-2fd7e658f861', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 19:17:38,023 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 1.03秒
+2025-04-23 19:17:42,148 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 19:17:42,149 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '353db5dc-5d5b-4fb1-bea4-837c17a32753', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 19:17:43,142 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.99秒
+2025-04-23 19:17:59,905 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 19:17:59,907 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'eb8f9433-7a77-4616-b496-0eceb1b533a2', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 19:18:00,212 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.31秒
+2025-04-23 19:19:40,918 - wxauto-api - INFO - 收到请求: POST /api/message/listen/add
+2025-04-23 19:19:40,919 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '71a6ed9b-d9e1-4a13-9ea8-4eb6b2629ec1', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '160'}
+2025-04-23 19:19:40,920 - wxauto-api - DEBUG - 请求体: {'who': '张杰', 'savepic': False, 'savevideo': False, 'savefile': True, 'savevoice': False, 'parseurl': False, 'exact': False}
+2025-04-23 19:19:44,164 - wxauto-api - INFO - 请求处理完成: POST /api/message/listen/add - 状态码: 200 - 耗时: 3.25秒
+2025-04-23 20:25:51,999 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 20:25:52,001 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'a66e20fc-b595-4b4f-9519-7c042d4ace8e', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 20:25:52,293 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.29秒
+2025-04-23 20:26:16,973 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 20:26:16,975 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '0a4b719e-07a4-4b6d-a86f-f42b71be3312', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 20:26:17,269 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.30秒
+2025-04-23 20:26:18,789 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 20:26:18,789 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'b2af3585-9992-4a82-b4cc-1222ca0336f8', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 20:26:19,165 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.38秒
+2025-04-23 20:26:20,278 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 20:26:20,283 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'a93028d0-ad5a-4367-85a1-402d141677ce', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 20:26:20,597 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.32秒
+2025-04-23 20:26:23,490 - wxauto-api - INFO - 收到请求: GET /api/message/get-next-new
+2025-04-23 20:26:23,492 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'db252c73-e41b-4311-bd8a-90015d72dcc5', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 20:26:23,834 - wxauto-api - INFO - 请求处理完成: GET /api/message/get-next-new - 状态码: 200 - 耗时: 0.34秒
+2025-04-23 20:27:30,398 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
+2025-04-23 20:27:30,399 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': '123456aA?!', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '8a044fbb-7627-4f45-b9a8-cdb0e28861bb', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 20:27:30,401 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 401 - 耗时: 0.00秒
+2025-04-23 20:27:39,890 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
+2025-04-23 20:27:39,891 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'a66ad274-af7e-41a5-9322-bcb4a85d15c6', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 20:27:39,893 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 200 - 耗时: 0.00秒
+2025-04-23 20:28:01,146 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
+2025-04-23 20:28:01,147 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'fbaf1828-9e2e-4902-a2d6-c903bd79be6f', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-23 20:28:01,150 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 200 - 耗时: 0.00秒

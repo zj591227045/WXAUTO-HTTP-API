@@ -285,6 +285,454 @@ def send_file():
             'data': None
         }), 500
 
+@api_bp.route('/message/get-next-new', methods=['GET'])
+@require_api_key
+def get_next_new_message():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    try:
+        # 修改参数获取方式，确保布尔值正确处理
+        savepic = request.args.get('savepic', '').lower() == 'true'
+        savevideo = request.args.get('savevideo', '').lower() == 'true'
+        savefile = request.args.get('savefile', '').lower() == 'true'
+        savevoice = request.args.get('savevoice', '').lower() == 'true'
+        parseurl = request.args.get('parseurl', '').lower() == 'true'
+
+        messages = wx_instance.GetNextNewMessage(
+            savepic=savepic,
+            savevideo=savevideo,
+            savefile=savefile,
+            savevoice=savevoice,
+            parseurl=parseurl
+        )
+        
+        if not messages:
+            return jsonify({
+                'code': 0,
+                'message': '没有新消息',
+                'data': {'messages': {}}
+            })
+            
+        formatted_messages = {}
+        for chat_name, msg_list in messages.items():
+            formatted_messages[chat_name] = [{
+                'type': msg.type,
+                'content': msg.content,
+                'sender': msg.sender,
+                'id': msg.id,
+                'mtype': getattr(msg, 'mtype', None),
+                'sender_remark': getattr(msg, 'sender_remark', None)
+            } for msg in msg_list]
+            
+        return jsonify({
+            'code': 0,
+            'message': '获取成功',
+            'data': {
+                'messages': formatted_messages
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取新消息失败: {str(e)}")
+        return jsonify({
+            'code': 3002,
+            'message': f'获取失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/message/listen/add', methods=['POST'])
+@require_api_key
+def add_listen_chat():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    who = data.get('who')
+    
+    if not who:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        wx_instance.AddListenChat(
+            who=who,
+            savepic=data.get('savepic', False),
+            savevideo=data.get('savevideo', False),
+            savefile=data.get('savefile', False),
+            savevoice=data.get('savevoice', False),
+            parseurl=data.get('parseurl', False),
+            exact=data.get('exact', False)
+        )
+        
+        return jsonify({
+            'code': 0,
+            'message': '添加监听成功',
+            'data': {'who': who}
+        })
+    except Exception as e:
+        logger.error(f"添加监听失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'添加监听失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/message/listen/get', methods=['GET'])
+@require_api_key
+def get_listen_messages():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    who = request.args.get('who')  # 可选参数
+        
+    try:
+        messages = wx_instance.GetListenMessage(who)
+        
+        if not messages:
+            return jsonify({
+                'code': 0,
+                'message': '没有新消息',
+                'data': {'messages': {}}
+            })
+            
+        formatted_messages = {}
+        for chat_wnd, msg_list in messages.items():
+            formatted_messages[chat_wnd.who] = [{
+                'type': msg.type,
+                'content': msg.content,
+                'sender': msg.sender,
+                'id': msg.id,
+                'mtype': getattr(msg, 'mtype', None),
+                'sender_remark': getattr(msg, 'sender_remark', None)
+            } for msg in msg_list]
+            
+        return jsonify({
+            'code': 0,
+            'message': '获取成功',
+            'data': {
+                'messages': formatted_messages
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取监听消息失败: {str(e)}")
+        return jsonify({
+            'code': 3002,
+            'message': f'获取失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/message/listen/remove', methods=['POST'])
+@require_api_key
+def remove_listen_chat():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    who = data.get('who')
+    
+    if not who:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        wx_instance.RemoveListenChat(who)
+        return jsonify({
+            'code': 0,
+            'message': '移除监听成功',
+            'data': {'who': who}
+        })
+    except Exception as e:
+        logger.error(f"移除监听失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'移除失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/chat-window/message/send', methods=['POST'])
+@require_api_key
+def chat_window_send_message():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    who = data.get('who')
+    message = data.get('message')
+    at_list = data.get('at_list', [])
+    clear = data.get('clear', True)
+    
+    if not who or not message:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        if who not in wx_instance.listen:
+            return jsonify({
+                'code': 3001,
+                'message': f'聊天窗口 {who} 未在监听列表中',
+                'data': None
+            }), 404
+            
+        chat_wnd = wx_instance.listen[who]
+        if at_list:
+            chat_wnd.SendMsg(message, clear=clear, at=at_list)
+        else:
+            chat_wnd.SendMsg(message, clear=clear)
+            
+        return jsonify({
+            'code': 0,
+            'message': '发送成功',
+            'data': {'message_id': 'success'}
+        })
+    except Exception as e:
+        logger.error(f"发送消息失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'发送失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/chat-window/message/send-typing', methods=['POST'])
+@require_api_key
+def chat_window_send_typing_message():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    who = data.get('who')
+    message = data.get('message')
+    at_list = data.get('at_list', [])
+    clear = data.get('clear', True)
+    
+    if not who or not message:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        if who not in wx_instance.listen:
+            return jsonify({
+                'code': 3001,
+                'message': f'聊天窗口 {who} 未在监听列表中',
+                'data': None
+            }), 404
+            
+        chat_wnd = wx_instance.listen[who]
+        if at_list:
+            chat_wnd.SendTypingText(message, clear=clear, at=at_list)
+        else:
+            chat_wnd.SendTypingText(message, clear=clear)
+            
+        return jsonify({
+            'code': 0,
+            'message': '发送成功',
+            'data': {'message_id': 'success'}
+        })
+    except Exception as e:
+        logger.error(f"发送消息失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'发送失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/chat-window/message/send-file', methods=['POST'])
+@require_api_key
+def chat_window_send_file():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    who = data.get('who')
+    file_paths = data.get('file_paths', [])
+    
+    if not who or not file_paths:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        if who not in wx_instance.listen:
+            return jsonify({
+                'code': 3001,
+                'message': f'聊天窗口 {who} 未在监听列表中',
+                'data': None
+            }), 404
+            
+        chat_wnd = wx_instance.listen[who]
+        success_count = 0
+        failed_files = []
+        
+        for file_path in file_paths:
+            if not os.path.exists(file_path):
+                failed_files.append({
+                    'path': file_path,
+                    'reason': '文件不存在'
+                })
+                continue
+                
+            try:
+                chat_wnd.SendFiles(file_path)
+                success_count += 1
+            except Exception as e:
+                failed_files.append({
+                    'path': file_path,
+                    'reason': str(e)
+                })
+        
+        return jsonify({
+            'code': 0 if not failed_files else 3001,
+            'message': '发送完成' if not failed_files else '部分文件发送失败',
+            'data': {
+                'success_count': success_count,
+                'failed_files': failed_files
+            }
+        })
+    except Exception as e:
+        logger.error(f"发送文件失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'发送失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/chat-window/message/at-all', methods=['POST'])
+@require_api_key
+def chat_window_at_all():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    data = request.get_json()
+    who = data.get('who')
+    message = data.get('message')
+    
+    if not who:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        if who not in wx_instance.listen:
+            return jsonify({
+                'code': 3001,
+                'message': f'聊天窗口 {who} 未在监听列表中',
+                'data': None
+            }), 404
+            
+        chat_wnd = wx_instance.listen[who]
+        chat_wnd.AtAll(message)
+            
+        return jsonify({
+            'code': 0,
+            'message': '发送成功',
+            'data': {'message_id': 'success'}
+        })
+    except Exception as e:
+        logger.error(f"发送@所有人消息失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'发送失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/chat-window/info', methods=['GET'])
+@require_api_key
+def get_chat_window_info():
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    who = request.args.get('who')
+    if not who:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+        
+    try:
+        if who not in wx_instance.listen:
+            return jsonify({
+                'code': 3001,
+                'message': f'聊天窗口 {who} 未在监听列表中',
+                'data': None
+            }), 404
+            
+        chat_wnd = wx_instance.listen[who]
+        info = chat_wnd.ChatInfo()
+            
+        return jsonify({
+            'code': 0,
+            'message': '获取成功',
+            'data': info
+        })
+    except Exception as e:
+        logger.error(f"获取聊天窗口信息失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'获取失败: {str(e)}',
+            'data': None
+        }), 500
+
 # 群组相关接口
 @api_bp.route('/group/list', methods=['GET'])
 @require_api_key
