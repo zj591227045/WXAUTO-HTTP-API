@@ -227,3 +227,155 @@
 2025-04-23 20:28:01,146 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
 2025-04-23 20:28:01,147 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'fbaf1828-9e2e-4902-a2d6-c903bd79be6f', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
 2025-04-23 20:28:01,150 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 21:45:54,109 - wxauto-api - INFO - 正在启动Flask应用...
+2025-04-24 21:45:54,110 - wxauto-api - INFO - 监听地址: 0.0.0.0:5000
+2025-04-24 21:48:39,559 - wxauto-api - INFO - 收到请求: POST /api/wechat/initialize
+2025-04-24 21:48:39,561 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'c610d286-c23f-4979-b1d3-8c406896b203', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '0'}
+2025-04-24 21:48:40,601 - wxauto-api - INFO - 微信连接监控已启动
+2025-04-24 21:48:40,602 - wxauto-api - INFO - 请求处理完成: POST /api/wechat/initialize - 状态码: 200 - 耗时: 1.04秒
+2025-04-24 21:49:53,374 - wxauto-api - INFO - 收到请求: GET /api/wechat/status
+2025-04-24 21:49:53,375 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '7d00db85-aaca-4cf5-860d-c17776f76594', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 21:49:53,452 - wxauto-api - INFO - 请求处理完成: GET /api/wechat/status - 状态码: 200 - 耗时: 0.08秒
+2025-04-24 21:52:07,662 - wxauto-api - INFO - 收到请求: POST /api/wechat/initialize
+2025-04-24 21:52:07,663 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '18688257-9608-4870-b260-643efaa41490', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '0'}
+2025-04-24 21:52:07,664 - wxauto-api - INFO - 请求处理完成: POST /api/wechat/initialize - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 21:52:21,416 - wxauto-api - INFO - 收到请求: GET /api/wechat/status
+2025-04-24 21:52:21,416 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'b0e2d2d6-1785-4de4-9642-9636c0d4f469', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 21:52:21,497 - wxauto-api - INFO - 请求处理完成: GET /api/wechat/status - 状态码: 200 - 耗时: 0.08秒
+2025-04-24 21:56:50,410 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
+2025-04-24 21:56:50,412 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '65d0b990-3e67-48fd-a5e0-62166b9c1256', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 21:56:50,415 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 21:57:22,087 - wxauto-api - INFO - 收到请求: POST /api/message/listen/add
+2025-04-24 21:57:22,088 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '00e0ecde-297b-44e3-9a6c-1032d04f8aba', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '160'}
+2025-04-24 21:57:22,090 - wxauto-api - DEBUG - 请求体: {'who': '张杰', 'savepic': False, 'savevideo': False, 'savefile': True, 'savevoice': False, 'parseurl': False, 'exact': False}
+2025-04-24 21:57:25,410 - wxauto-api - INFO - 请求处理完成: POST /api/message/listen/add - 状态码: 200 - 耗时: 3.32秒
+2025-04-24 21:57:30,836 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
+2025-04-24 21:57:30,838 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'f238feec-491e-4b97-bb47-398aa4a39f4b', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 21:57:30,838 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 21:58:10,569 - wxauto-api - INFO - 收到请求: POST /api/message/listen/remove
+2025-04-24 21:58:10,571 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'b8bb0727-11ac-456e-8f98-bdb2ae1259ea', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '25'}
+2025-04-24 21:58:10,572 - wxauto-api - DEBUG - 请求体: {'who': '张杰'}
+2025-04-24 21:58:10,726 - wxauto-api - INFO - 请求处理完成: POST /api/message/listen/remove - 状态码: 200 - 耗时: 0.16秒
+2025-04-24 21:59:01,606 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
+2025-04-24 21:59:01,607 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'f3d1e645-08d9-43f4-8fd5-c85521f0c99e', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 21:59:01,608 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 22:00:34,498 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:00:34,499 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'b6f60171-92ca-4bae-a115-0e1411c842db', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '143'}
+2025-04-24 22:00:34,501 - wxauto-api - DEBUG - 请求体: {'who': '张杰', 'message': '这是一条测试消息/n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:00:34,501 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 404 - 耗时: 0.00秒
+2025-04-24 22:00:52,280 - wxauto-api - INFO - 收到请求: POST /api/message/listen/add
+2025-04-24 22:00:52,281 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '7a3469d2-ebb4-49e7-9698-447054fe2ed3', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '160'}
+2025-04-24 22:00:52,283 - wxauto-api - DEBUG - 请求体: {'who': '张杰', 'savepic': False, 'savevideo': False, 'savefile': True, 'savevoice': False, 'parseurl': False, 'exact': False}
+2025-04-24 22:00:55,801 - wxauto-api - INFO - 请求处理完成: POST /api/message/listen/add - 状态码: 200 - 耗时: 3.52秒
+2025-04-24 22:01:03,954 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:01:03,955 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '64dacb03-41d7-4ada-b249-0bbd4d46b03f', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '143'}
+2025-04-24 22:01:03,956 - wxauto-api - DEBUG - 请求体: {'who': '张杰', 'message': '这是一条测试消息/n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:01:03,956 - wxauto-api - ERROR - 发送消息失败: ChatWnd.SendTypingText() got an unexpected keyword argument 'at'
+2025-04-24 22:01:03,957 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 500 - 耗时: 0.00秒
+2025-04-24 22:01:26,302 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:01:26,302 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'ff26e2dd-5bc2-4c81-ae54-9c903d1235d3', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '102'}
+2025-04-24 22:01:26,303 - wxauto-api - DEBUG - 请求体: {'who': '张杰', 'message': '这是一条测试消息/n这是第二行', 'clear': True}
+2025-04-24 22:01:27,666 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 200 - 耗时: 1.36秒
+2025-04-24 22:01:35,702 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:01:35,704 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'e309ea27-ef3d-454d-b7d2-f95173b36813', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '102'}
+2025-04-24 22:01:35,705 - wxauto-api - DEBUG - 请求体: {'who': '张杰', 'message': '这是一条测试消息\n这是第二行', 'clear': True}
+2025-04-24 22:01:36,729 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 200 - 耗时: 1.03秒
+2025-04-24 22:03:46,957 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:03:46,958 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '635baa46-e1e8-4e0f-a914-d6a3036a0be9', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:03:46,960 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:03:46,962 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 404 - 耗时: 0.00秒
+2025-04-24 22:04:03,001 - wxauto-api - INFO - 收到请求: POST /api/message/listen/add
+2025-04-24 22:04:03,001 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'fb980947-e758-4d45-a152-57ae3452a52c', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '164'}
+2025-04-24 22:04:03,002 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'savepic': False, 'savevideo': False, 'savefile': True, 'savevoice': False, 'parseurl': False, 'exact': False}
+2025-04-24 22:04:06,542 - wxauto-api - INFO - 请求处理完成: POST /api/message/listen/add - 状态码: 200 - 耗时: 3.54秒
+2025-04-24 22:04:12,583 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:04:12,584 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '83585b4b-893f-4022-b1aa-a01c3476f1de', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:04:12,585 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:04:12,586 - wxauto-api - ERROR - 发送消息失败: ChatWnd.SendTypingText() got an unexpected keyword argument 'at'
+2025-04-24 22:04:12,587 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 500 - 耗时: 0.00秒
+2025-04-24 22:06:53,784 - wxauto-api - INFO - 正在启动Flask应用...
+2025-04-24 22:06:53,785 - wxauto-api - INFO - 监听地址: 0.0.0.0:5000
+2025-04-24 22:06:57,438 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:06:57,439 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '610730db-dd4e-4a8f-b351-2877f26f4482', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:06:57,441 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:06:57,441 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 400 - 耗时: 0.00秒
+2025-04-24 22:07:01,802 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:07:01,802 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '3f0788e5-10b7-41e5-afd6-9c17a030d8c5', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:07:01,803 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:07:01,803 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 400 - 耗时: 0.00秒
+2025-04-24 22:07:05,575 - wxauto-api - INFO - 收到请求: POST /api/wechat/initialize
+2025-04-24 22:07:05,576 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '806ae0ff-381a-4fcf-9f24-7c71b9f25c80', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '0'}
+2025-04-24 22:07:06,155 - wxauto-api - INFO - 微信连接监控已启动
+2025-04-24 22:07:06,156 - wxauto-api - INFO - 请求处理完成: POST /api/wechat/initialize - 状态码: 200 - 耗时: 0.58秒
+2025-04-24 22:07:08,802 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:07:08,803 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'fde35eab-e6c3-459c-a231-d6abb72d2a94', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:07:08,804 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:07:08,804 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 404 - 耗时: 0.00秒
+2025-04-24 22:07:14,118 - wxauto-api - INFO - 收到请求: POST /api/message/listen/add
+2025-04-24 22:07:14,118 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '0a49f041-3e92-4fac-a155-c29f991ccd29', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '164'}
+2025-04-24 22:07:14,120 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'savepic': False, 'savevideo': False, 'savefile': True, 'savevoice': False, 'parseurl': False, 'exact': False}
+2025-04-24 22:07:14,121 - wxauto-api - INFO - 请求处理完成: POST /api/message/listen/add - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 22:07:17,727 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:07:17,728 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '3a7351ce-ab91-45e6-8318-c6954c4d008b', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:07:17,730 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:07:17,731 - wxauto-api - ERROR - 发送消息失败: ChatWnd.SendTypingText() got an unexpected keyword argument 'at'
+2025-04-24 22:07:17,732 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 500 - 耗时: 0.01秒
+2025-04-24 22:07:29,351 - wxauto-api - INFO - 收到请求: POST /api/message/send
+2025-04-24 22:07:29,353 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '66806198-bb0e-4215-8e5f-481cbabdfe82', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '105'}
+2025-04-24 22:07:29,354 - wxauto-api - DEBUG - 请求体: {'receiver': '测试test', 'message': '好的', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:07:40,493 - wxauto-api - ERROR - 发送消息失败: Find Control Timeout: {ControlType: EditControl}
+2025-04-24 22:07:40,494 - wxauto-api - INFO - 请求处理完成: POST /api/message/send - 状态码: 500 - 耗时: 11.14秒
+2025-04-24 22:07:50,532 - wxauto-api - INFO - 收到请求: POST /api/message/send
+2025-04-24 22:07:50,533 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'd361b6f7-21bb-4a5a-8652-6c6303ceb23b', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '105'}
+2025-04-24 22:07:50,534 - wxauto-api - DEBUG - 请求体: {'receiver': '测试test', 'message': '好的', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:08:01,649 - wxauto-api - ERROR - 发送消息失败: Find Control Timeout: {ControlType: EditControl}
+2025-04-24 22:08:01,650 - wxauto-api - INFO - 请求处理完成: POST /api/message/send - 状态码: 500 - 耗时: 11.12秒
+2025-04-24 22:08:05,434 - wxauto-api - INFO - 收到请求: POST /api/message/send
+2025-04-24 22:08:05,435 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'f234f7fc-afe0-4874-9840-a0c03e2aa11d', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '105'}
+2025-04-24 22:08:05,436 - wxauto-api - DEBUG - 请求体: {'receiver': '测试test', 'message': '好的', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:08:07,722 - wxauto-api - INFO - 请求处理完成: POST /api/message/send - 状态码: 200 - 耗时: 2.29秒
+2025-04-24 22:08:18,589 - wxauto-api - INFO - 收到请求: POST /api/message/listen/add
+2025-04-24 22:08:18,590 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'c5e5b12c-f359-4e49-a3bb-5ecccbd29d6b', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '164'}
+2025-04-24 22:08:18,591 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'savepic': False, 'savevideo': False, 'savefile': True, 'savevoice': False, 'parseurl': False, 'exact': False}
+2025-04-24 22:08:21,792 - wxauto-api - INFO - 请求处理完成: POST /api/message/listen/add - 状态码: 200 - 耗时: 3.20秒
+2025-04-24 22:08:38,257 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:08:38,260 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '8734dd66-27aa-4e13-8c84-e9e94bdfcbd9', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:08:38,261 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:08:38,263 - wxauto-api - ERROR - 发送消息失败: ChatWnd.SendTypingText() got an unexpected keyword argument 'at'
+2025-04-24 22:08:38,264 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 500 - 耗时: 0.01秒
+2025-04-24 22:11:55,793 - wxauto-api - INFO - 正在启动Flask应用...
+2025-04-24 22:11:55,794 - wxauto-api - INFO - 监听地址: 0.0.0.0:5000
+2025-04-24 22:12:05,022 - wxauto-api - INFO - 收到请求: POST /api/wechat/initialize
+2025-04-24 22:12:05,022 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'f3e89956-ee81-4f2f-8601-2afd32a21ab5', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '0'}
+2025-04-24 22:12:05,611 - wxauto-api - INFO - 微信连接监控已启动
+2025-04-24 22:12:05,612 - wxauto-api - INFO - 请求处理完成: POST /api/wechat/initialize - 状态码: 200 - 耗时: 0.59秒
+2025-04-24 22:12:10,680 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:12:10,681 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '50b154c6-1dba-4b2e-80df-3d11262c9833', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:12:10,682 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:12:10,682 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 404 - 耗时: 0.00秒
+2025-04-24 22:12:15,654 - wxauto-api - INFO - 收到请求: POST /api/message/listen/add
+2025-04-24 22:12:15,654 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'a8c0e836-b173-402c-96d7-05709e578819', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '164'}
+2025-04-24 22:12:15,655 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'savepic': False, 'savevideo': False, 'savefile': True, 'savevoice': False, 'parseurl': False, 'exact': False}
+2025-04-24 22:12:15,657 - wxauto-api - INFO - 请求处理完成: POST /api/message/listen/add - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 22:12:18,870 - wxauto-api - INFO - 收到请求: POST /api/chat-window/message/send-typing
+2025-04-24 22:12:18,872 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'fe0b633a-7ff0-4e0c-b56a-b03ecd6e0936', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'Content-Length': '135'}
+2025-04-24 22:12:18,874 - wxauto-api - DEBUG - 请求体: {'who': '测试test', 'message': '这是一条测试消息\n这是第二行', 'at_list': ['张杰'], 'clear': True}
+2025-04-24 22:12:20,375 - wxauto-api - INFO - 请求处理完成: POST /api/chat-window/message/send-typing - 状态码: 200 - 耗时: 1.50秒
+2025-04-24 22:13:26,852 - wxauto-api - INFO - 收到请求: GET /api/chat-window/info
+2025-04-24 22:13:26,853 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '60ff95ca-f01e-4a44-b6c1-152a00c609a0', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 22:13:26,966 - wxauto-api - INFO - 请求处理完成: GET /api/chat-window/info - 状态码: 200 - 耗时: 0.11秒
+2025-04-24 22:13:38,432 - wxauto-api - INFO - 收到请求: GET /api/chat-window/info
+2025-04-24 22:13:38,432 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '675bf69d-6144-421f-b84a-406d8e9b5bae', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 22:13:38,438 - wxauto-api - INFO - 请求处理完成: GET /api/chat-window/info - 状态码: 200 - 耗时: 0.01秒
+2025-04-24 22:13:39,446 - wxauto-api - INFO - 收到请求: GET /api/chat-window/info
+2025-04-24 22:13:39,448 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '7eedcb38-1221-4bfb-9083-2d1862118228', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 22:13:39,453 - wxauto-api - INFO - 请求处理完成: GET /api/chat-window/info - 状态码: 200 - 耗时: 0.01秒
+2025-04-24 22:14:01,912 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
+2025-04-24 22:14:01,913 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': 'e837aea1-f3c6-45de-a72a-e33f632dbfd6', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 22:14:01,915 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 22:14:46,809 - wxauto-api - INFO - 收到请求: GET /api/message/listen/get
+2025-04-24 22:14:46,809 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '9922a171-4aa2-47bb-8530-25c5f0317872', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 22:14:46,810 - wxauto-api - INFO - 请求处理完成: GET /api/message/listen/get - 状态码: 200 - 耗时: 0.00秒
+2025-04-24 22:16:20,074 - wxauto-api - INFO - 收到请求: GET /api/health
+2025-04-24 22:16:20,075 - wxauto-api - DEBUG - 请求头: {'X-Api-Key': 'test-key-2', 'User-Agent': 'PostmanRuntime/7.43.3', 'Accept': '*/*', 'Postman-Token': '9fe64c5f-4a12-4182-9601-2f9ecf3eb618', 'Host': '10.255.0.90:5000', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive'}
+2025-04-24 22:16:20,161 - wxauto-api - INFO - 请求处理完成: GET /api/health - 状态码: 200 - 耗时: 0.09秒

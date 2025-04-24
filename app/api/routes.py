@@ -4,6 +4,7 @@ from app.logs import logger
 from app.wechat import wechat_manager
 import os
 import time
+from typing import Optional, List
 
 api_bp = Blueprint('api', __name__)
 
@@ -87,6 +88,20 @@ def get_wechat_status():
         }
     })
 
+def format_at_message(message: str, at_list: Optional[List[str]] = None) -> str:
+    if not at_list:
+        return message
+    
+    result = message
+    if result and not result.endswith('\n'):
+        result += '\n'
+    
+    for user in at_list:
+        result += f"{{@{user}}}"
+        if user != at_list[-1]:
+            result += '\n'
+    return result
+
 # 消息相关接口
 @api_bp.route('/message/send', methods=['POST'])
 @require_api_key
@@ -113,6 +128,8 @@ def send_message():
         }), 400
         
     try:
+        formatted_message = format_at_message(message, at_list)
+        
         # 使用精确匹配模式查找联系人
         chat_name = wx_instance.ChatWith(receiver, exact=True)
         if not chat_name:
@@ -131,6 +148,7 @@ def send_message():
             }), 400
             
         if at_list:
+            wx_instance.SendMsg(formatted_message, clear=clear, at=at_list)
             wx_instance.SendMsg(message, clear=clear, at=at_list)
         else:
             wx_instance.SendMsg(message, clear=clear)
@@ -190,11 +208,15 @@ def send_typing_message():
                 'data': None
             }), 400
             
-        # 使用正确的参数顺序调用 SendTypingText
+        # 使用正确的参数调用 SendTypingText
         if at_list:
-            wx_instance.SendTypingText(message, who=receiver, clear=clear, at=at_list)
-        else:
-            wx_instance.SendTypingText(message, who=receiver, clear=clear)
+            if message and not message.endswith('\n'):
+                message += '\n'
+            for user in at_list:
+                message += f"{{@{user}}}"
+                if user != at_list[-1]:
+                    message += '\n'
+        chat_name.SendTypingText(message, clear=clear)
             
         return jsonify({
             'code': 0,
@@ -560,9 +582,13 @@ def chat_window_send_typing_message():
             
         chat_wnd = wx_instance.listen[who]
         if at_list:
-            chat_wnd.SendTypingText(message, clear=clear, at=at_list)
-        else:
-            chat_wnd.SendTypingText(message, clear=clear)
+            if message and not message.endswith('\n'):
+                message += '\n'
+            for user in at_list:
+                message += f"{{@{user}}}"
+                if user != at_list[-1]:
+                    message += '\n'
+        chat_wnd.SendTypingText(message, clear=clear)
             
         return jsonify({
             'code': 0,
