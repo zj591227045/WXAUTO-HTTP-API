@@ -2,18 +2,22 @@ from flask import Blueprint, jsonify, request, g
 from app.auth import require_api_key
 from app.logs import logger
 from app.wechat import wechat_manager
+from app.system_monitor import get_system_resources
 import os
 import time
 from typing import Optional, List
 
 api_bp = Blueprint('api', __name__)
 
+# 记录程序启动时间
+start_time = time.time()
+
 @api_bp.before_request
 def before_request():
     g.start_time = time.time()
     logger.info(f"收到请求: {request.method} {request.path}")
     logger.debug(f"请求头: {dict(request.headers)}")
-    if request.is_json:
+    if request.method in ['POST', 'PUT', 'PATCH'] and request.is_json:
         logger.debug(f"请求体: {request.get_json()}")
 
 @api_bp.after_request
@@ -312,6 +316,7 @@ def send_file():
 def get_next_new_message():
     wx_instance = wechat_manager.get_instance()
     if not wx_instance:
+        logger.error("微信未初始化")
         return jsonify({
             'code': 2001,
             'message': '微信未初始化',
@@ -319,12 +324,26 @@ def get_next_new_message():
         }), 400
     
     try:
-        # 修改参数获取方式，确保布尔值正确处理
-        savepic = request.args.get('savepic', '').lower() == 'true'
-        savevideo = request.args.get('savevideo', '').lower() == 'true'
-        savefile = request.args.get('savefile', '').lower() == 'true'
-        savevoice = request.args.get('savevoice', '').lower() == 'true'
-        parseurl = request.args.get('parseurl', '').lower() == 'true'
+        # 更灵活的布尔值处理
+        def parse_bool(value):
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                value = value.lower()
+                if value in ('true', '1', 'yes', 'y', 'on'):
+                    return True
+                if value in ('false', '0', 'no', 'n', 'off'):
+                    return False
+            return False
+
+        # 获取参数并设置默认值
+        savepic = parse_bool(request.args.get('savepic', 'false'))
+        savevideo = parse_bool(request.args.get('savevideo', 'false'))
+        savefile = parse_bool(request.args.get('savefile', 'false'))
+        savevoice = parse_bool(request.args.get('savevoice', 'false'))
+        parseurl = parse_bool(request.args.get('parseurl', 'false'))
+
+        logger.debug(f"处理参数: savepic={savepic}, savevideo={savevideo}, savefile={savefile}, savevoice={savevoice}, parseurl={parseurl}")
 
         messages = wx_instance.GetNextNewMessage(
             savepic=savepic,
@@ -360,7 +379,7 @@ def get_next_new_message():
             }
         })
     except Exception as e:
-        logger.error(f"获取新消息失败: {str(e)}")
+        logger.error(f"获取新消息失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3002,
             'message': f'获取失败: {str(e)}',
@@ -881,6 +900,113 @@ def health_check():
         'data': {
             'status': 'ok',
             'wechat_status': wx_status,
-            'uptime': int(time.time() - g.start_time)
+            'uptime': int(time.time() - start_time)
         }
     })
+
+@api_bp.route('/system/resources', methods=['GET'])
+@require_api_key
+def get_resources():
+    """获取系统资源使用情况"""
+    try:
+        resources = get_system_resources()
+        return jsonify({
+            'code': 0,
+            'message': '获取成功',
+            'data': resources
+        })
+    except Exception as e:
+        logger.error(f"获取系统资源信息失败: {str(e)}")
+        return jsonify({
+            'code': 5000,
+            'message': f'获取系统资源信息失败: {str(e)}',
+            'data': None
+        }), 500
+
+@api_bp.route('/message/listen/add-current', methods=['POST'])
+@require_api_key
+def add_current_chat_to_listen():
+    """将当前打开的聊天窗口添加到监听列表"""
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        logger.error("微信未初始化")
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+    
+    try:
+        data = request.get_json() or {}
+        
+        # 更灵活的布尔值处理
+        def parse_bool(value, default=False):
+            if value is None:
+                return default
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                value = value.lower()
+                if value in ('true', '1', 'yes', 'y', 'on'):
+                    return True
+                if value in ('false', '0', 'no', 'n', 'off'):
+                    return False
+            return default
+
+        # 获取参数并设置默认值
+        savepic = parse_bool(data.get('savepic'), False)
+        savevideo = parse_bool(data.get('savevideo'), False)
+        savefile = parse_bool(data.get('savefile'), False)
+        savevoice = parse_bool(data.get('savevoice'), False)
+        parseurl = parse_bool(data.get('parseurl'), False)
+
+        logger.debug(f"处理参数: savepic={savepic}, savevideo={savevideo}, savefile={savefile}, savevoice={savevoice}, parseurl={parseurl}")
+
+        # 获取当前聊天窗口
+        current_chat = wx_instance.GetCurrentWindowName()
+        if not current_chat:
+            return jsonify({
+                'code': 3001,
+                'message': '未找到当前聊天窗口',
+                'data': None
+            }), 404
+            
+        # 如果窗口名称以 "微信" 开头，说明不是聊天窗口
+        if current_chat.startswith('微信'):
+            return jsonify({
+                'code': 3001,
+                'message': '当前窗口不是聊天窗口',
+                'data': None
+            }), 400
+
+        # 添加到监听列表
+        wx_instance.AddListenChat(
+            who=current_chat,
+            savepic=savepic,
+            savevideo=savevideo,
+            savefile=savefile,
+            savevoice=savevoice,
+            parseurl=parseurl
+        )
+        
+        return jsonify({
+            'code': 0,
+            'message': '添加监听成功',
+            'data': {
+                'who': current_chat,
+                'options': {
+                    'savepic': savepic,
+                    'savevideo': savevideo,
+                    'savefile': savefile,
+                    'savevoice': savevoice,
+                    'parseurl': parseurl
+                }
+            }
+        })
+    except Exception as e:
+        logger.error(f"添加当前聊天窗口到监听列表失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 3001,
+            'message': f'添加监听失败: {str(e)}',
+            'data': None
+        }), 500

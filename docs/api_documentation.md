@@ -355,6 +355,66 @@ curl -X POST http://10.255.0.90:5000/api/message/listen/add \
 }
 ```
 
+#### 添加当前聊天窗口到监听列表
+```http
+POST /api/message/listen/add-current
+```
+
+CURL 示例:
+```bash
+curl -X POST http://10.255.0.90:5000/api/message/listen/add-current \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "savepic": false,
+    "savevideo": false,
+    "savefile": false,
+    "savevoice": false,
+    "parseurl": false
+  }'
+```
+
+请求体：
+```json
+{
+    "savepic": false,      // 可选，是否保存图片
+    "savevideo": false,    // 可选，是否保存视频 
+    "savefile": false,     // 可选，是否保存文件
+    "savevoice": false,    // 可选，是否保存语音
+    "parseurl": false      // 可选，是否解析URL
+}
+```
+
+响应示例：
+```json
+{
+    "code": 0,
+    "message": "添加监听成功",
+    "data": {
+        "who": "测试群",
+        "options": {
+            "savepic": false,
+            "savevideo": false,
+            "savefile": false,
+            "savevoice": false,
+            "parseurl": false
+        }
+    }
+}
+```
+
+错误码：
+- 2001: 微信未初始化
+- 3001: 添加监听失败，可能的原因：
+  - 未找到当前聊天窗口
+  - 当前窗口不是聊天窗口（例如：主窗口）
+  - 其他添加监听失败的情况
+
+注意事项：
+1. 使用此API前，请确保已打开要监听的聊天窗口
+2. 如果当前窗口是微信主窗口而不是聊天窗口，API将返回错误
+3. 所有选项参数都是可选的，默认值为false
+
 #### 获取监听消息
 ```http
 GET /api/message/listen/get?who=测试群
@@ -764,6 +824,53 @@ curl -X GET http://10.255.0.90:5000/api/health \
     }
 }
 ```
+
+### 9. 系统监控接口
+
+获取当前系统的CPU和内存使用情况。
+
+```http
+GET /api/system/resources
+```
+
+CURL 示例:
+```bash
+curl -X GET http://10.255.0.90:5000/api/system/resources \
+  -H "X-API-Key: test-key-2"
+```
+
+响应示例：
+```json
+{
+    "code": 0,
+    "message": "获取成功",
+    "data": {
+        "cpu": {
+            "usage_percent": 45.2,
+            "core_count": 8
+        },
+        "memory": {
+            "total": 16384,          // 单位：MB
+            "used": 8192,            // 单位：MB
+            "free": 8192,            // 单位：MB
+            "usage_percent": 50.0
+        }
+    }
+}
+```
+
+响应说明：
+- cpu.usage_percent: CPU总体使用率（百分比）
+- cpu.core_count: CPU核心数
+- memory.total: 总内存大小（MB）
+- memory.used: 已使用内存（MB）
+- memory.free: 空闲内存（MB）
+- memory.usage_percent: 内存使用率（百分比）
+
+注意事项：
+1. 此接口返回的是系统级别的资源使用情况
+2. CPU使用率为所有核心的平均值
+3. 内存数据包含系统缓存
 
 ## 注意事项
 
