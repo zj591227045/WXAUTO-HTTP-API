@@ -234,6 +234,54 @@ curl -X POST http://10.255.0.90:5000/api/message/send-file \
 }
 ```
 
+#### 下载文件
+```http
+POST /api/file/download
+```
+
+CURL 示例:
+```bash
+curl -X POST http://10.255.0.90:5000/api/file/download \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_path": "C:\\Code\\wxauto-ui\\wxauto文件\\部门信息表(1).xlsx"
+  }'
+```
+
+请求体：
+```json
+{
+    "file_path": "C:\\Code\\wxauto-ui\\wxauto文件\\部门信息表(1).xlsx"
+}
+```
+
+响应说明：
+- 成功时返回文件内容，Content-Type 为 application/octet-stream
+- 失败时返回错误信息，格式如下：
+
+```json
+{
+    "code": 3003,
+    "message": "文件下载失败",
+    "data": {
+        "error": "文件不存在或无法访问"
+    }
+}
+```
+
+错误码：
+- 3003: 文件下载失败，可能的原因：
+  - 文件不存在
+  - 文件路径无效
+  - 文件访问权限不足
+  - 其他文件系统错误
+
+注意事项：
+1. 文件路径必须使用双反斜杠(\\)作为分隔符
+2. 确保文件路径有访问权限
+3. 文件大小限制为100MB
+
 #### 获取聊天记录
 ```http
 POST /api/message/get-history

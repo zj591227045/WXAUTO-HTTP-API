@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, g
+from flask import Blueprint, jsonify, request, g, Response, send_file
 from app.auth import require_api_key
 from app.logs import logger
 from app.wechat import wechat_manager
@@ -6,6 +6,7 @@ from app.system_monitor import get_system_resources
 import os
 import time
 from typing import Optional, List
+from urllib.parse import quote
 
 api_bp = Blueprint('api', __name__)
 
@@ -345,12 +346,26 @@ def get_next_new_message():
 
         logger.debug(f"处理参数: savepic={savepic}, savevideo={savevideo}, savefile={savefile}, savevoice={savevoice}, parseurl={parseurl}")
 
-        messages = wx_instance.GetNextNewMessage(
-            savepic=savepic,
-            savevideo=savevideo,
-            savefile=savefile,
-            savevoice=savevoice,
-            parseurl=parseurl
+        # 定义重试函数
+        def retry_download(func, max_retries=3, delay=1):
+            for attempt in range(max_retries):
+                try:
+                    return func()
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        raise e
+                    logger.warning(f"下载失败，第{attempt + 1}次重试: {str(e)}")
+                    time.sleep(delay)
+
+        # 获取消息
+        messages = retry_download(
+            lambda: wx_instance.GetNextNewMessage(
+                savepic=savepic,
+                savevideo=savevideo,
+                savefile=savefile,
+                savevoice=savevoice,
+                parseurl=parseurl
+            )
         )
         
         if not messages:
@@ -362,14 +377,37 @@ def get_next_new_message():
             
         formatted_messages = {}
         for chat_name, msg_list in messages.items():
-            formatted_messages[chat_name] = [{
-                'type': msg.type,
-                'content': msg.content,
-                'sender': msg.sender,
-                'id': msg.id,
-                'mtype': getattr(msg, 'mtype', None),
-                'sender_remark': getattr(msg, 'sender_remark', None)
-            } for msg in msg_list]
+            formatted_messages[chat_name] = []
+            for msg in msg_list:
+                # 检查消息类型
+                if msg.type in ['image', 'file', 'video', 'voice']:
+                    # 检查文件是否存在且大小大于0
+                    if hasattr(msg, 'file_path') and msg.file_path:
+                        try:
+                            if not os.path.exists(msg.file_path) or os.path.getsize(msg.file_path) == 0:
+                                logger.warning(f"文件不存在或大小为0: {msg.file_path}")
+                                # 尝试重新下载
+                                retry_download(
+                                    lambda: wx_instance.GetNextNewMessage(
+                                        savepic=savepic,
+                                        savevideo=savevideo,
+                                        savefile=savefile,
+                                        savevoice=savevoice,
+                                        parseurl=parseurl
+                                    )
+                                )
+                        except Exception as e:
+                            logger.error(f"检查文件失败: {str(e)}")
+                
+                formatted_messages[chat_name].append({
+                    'type': msg.type,
+                    'content': msg.content,
+                    'sender': msg.sender,
+                    'id': msg.id,
+                    'mtype': getattr(msg, 'mtype', None),
+                    'sender_remark': getattr(msg, 'sender_remark', None),
+                    'file_path': getattr(msg, 'file_path', None)
+                })
             
         return jsonify({
             'code': 0,
@@ -1009,4 +1047,65 @@ def add_current_chat_to_listen():
             'code': 3001,
             'message': f'添加监听失败: {str(e)}',
             'data': None
+        }), 500
+
+@api_bp.route('/file/download', methods=['POST'])
+@require_api_key
+def download_file():
+    """下载文件接口"""
+    try:
+        data = request.get_json()
+        if not data or 'file_path' not in data:
+            return jsonify({
+                'code': 1002,
+                'message': '参数错误',
+                'data': {'error': '缺少file_path参数'}
+            }), 400
+
+        file_path = data['file_path']
+        if not os.path.exists(file_path):
+            return jsonify({
+                'code': 3003,
+                'message': '文件下载失败',
+                'data': {'error': '文件不存在'}
+            }), 404
+
+        # 检查文件大小
+        file_size = os.path.getsize(file_path)
+        if file_size > 100 * 1024 * 1024:  # 100MB限制
+            return jsonify({
+                'code': 3003,
+                'message': '文件下载失败',
+                'data': {'error': '文件大小超过100MB限制'}
+            }), 400
+
+        # 获取文件名
+        filename = os.path.basename(file_path)
+        
+        # 读取文件内容
+        with open(file_path, 'rb') as f:
+            file_content = f.read()
+
+        # 设置响应头
+        response = Response(
+            file_content,
+            mimetype='application/octet-stream',
+            headers={
+                'Content-Disposition': 'attachment; filename="file"'
+            }
+        )
+        return response
+
+    except PermissionError:
+        return jsonify({
+            'code': 3003,
+            'message': '文件下载失败',
+            'data': {'error': '文件访问权限不足'}
+        }), 403
+    except Exception as e:
+        logger.error(f"文件下载失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 3003,
+            'message': '文件下载失败',
+            'data': {'error': str(e)}
         }), 500
