@@ -2,8 +2,14 @@ from flask import Flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from app.config import Config
+import logging
 
 def create_app():
+    # 配置 Werkzeug 日志
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.setLevel(logging.ERROR)  # 只显示错误级别的日志
+
+    # 创建 Flask 应用
     app = Flask(__name__)
     app.config.from_object(Config)
 

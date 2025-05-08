@@ -84,10 +84,42 @@ class APILogHandler(logging.Handler):
     def emit(self, record):
         """发送日志记录到队列"""
         try:
-            msg = self.format(record)
-            self.log_queue.put(msg)
+            # 只包含日志级别和消息，不包含时间戳（时间戳会在UI中添加）
+            # 检查消息中是否已经包含时间戳格式的内容，如果有则移除
+            message = record.getMessage()
+
+            # 移除消息开头可能存在的时间戳格式 (yyyy-mm-dd HH:MM:SS)
+            message = self._remove_timestamp(message)
+
+            # 只保留日志级别和消息内容
+            formatted_msg = f"{record.levelname} - {message}"
+            self.log_queue.put(formatted_msg)
         except Exception:
             pass
+
+    def _remove_timestamp(self, message):
+        """移除消息中可能存在的时间戳格式"""
+        # 尝试移除常见的时间戳格式
+        import re
+
+        # 移除类似 "2025-05-08 11:50:17,850" 这样的时间戳
+        message = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(,\d{3})? - ', '', message)
+
+        # 移除类似 "[2025-05-08 11:50:17]" 这样的时间戳
+        message = re.sub(r'^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] ', '', message)
+
+        # 移除类似 "2025-05-08 12:04:46" 这样的时间戳（Flask日志格式）
+        message = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} - ', '', message)
+
+        # 移除类似 "127.0.0.1 - - [08/May/2025 12:04:46]" 这样的Werkzeug日志格式
+        if ' - - [' in message and '] "' in message:
+            parts = message.split('] "', 1)
+            if len(parts) > 1:
+                ip_part = parts[0].split(' - - [')[0]
+                request_part = parts[1]
+                message = f"{ip_part} - {request_part}"
+
+        return message
 
 class WxAutoHttpUI:
     """wxauto_http_api 管理界面"""
@@ -499,7 +531,7 @@ class WxAutoHttpUI:
 
         # 添加队列处理器到logger
         self.log_handler = APILogHandler(LOG_QUEUE)
-        self.log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        # 不需要设置格式化器，因为在emit方法中已经处理了格式
         logger.addHandler(self.log_handler)
 
         # 添加文件处理器，将日志保存到文件
@@ -508,9 +540,11 @@ class WxAutoHttpUI:
             timestamp = datetime.now().strftime("%Y%m%d")
             log_file = config_manager.LOGS_DIR / f"api_{timestamp}.log"
 
-            # 创建文件处理器
+            # 创建文件处理器 - 文件中使用完整时间戳格式
             file_handler = logging.FileHandler(log_file, encoding='utf-8')
-            file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            # 使用与UI相同的时间戳格式
+            file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                                       '%Y-%m-%d %H:%M:%S'))
             logger.addHandler(file_handler)
 
             self.add_log(f"日志将保存到: {log_file}")
@@ -551,8 +585,20 @@ class WxAutoHttpUI:
 
                 # 应用过滤器
                 if not self.should_filter_log(msg):
-                    self.log_text.insert(tk.END, msg + "\n")
+                    # 添加统一格式的时间戳
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    formatted_msg = f"[{timestamp}] {msg}"
+                    self.log_text.insert(tk.END, formatted_msg + "\n")
                     has_new_visible_logs = True
+
+            # 限制日志显示数量为最新的200条
+            log_content = self.log_text.get(1.0, tk.END)
+            log_lines = log_content.split('\n')
+            if len(log_lines) > 201:  # 加1是因为split后最后一个元素是空字符串
+                # 计算需要删除的行数
+                lines_to_delete = len(log_lines) - 201
+                # 删除多余的行
+                self.log_text.delete(1.0, f"{lines_to_delete + 1}.0")
 
             # 只有当用户当前在查看最新内容或启用了自动滚动时，才自动滚动到底部
             if at_bottom and has_new_visible_logs:
@@ -1320,7 +1366,31 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
         for line in iter(API_PROCESS.stdout.readline, ''):
             if line:
-                self.add_log(line.strip())
+                # 处理行内容，移除可能存在的时间戳
+                line_content = line.strip()
+
+                # 移除常见的时间戳格式
+                # 使用与APILogHandler._remove_timestamp相同的逻辑
+                import re
+
+                # 移除类似 "2025-05-08 11:50:17,850" 这样的时间戳
+                line_content = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(,\d{3})? - ', '', line_content)
+
+                # 移除类似 "[2025-05-08 11:50:17]" 这样的时间戳
+                line_content = re.sub(r'^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] ', '', line_content)
+
+                # 移除类似 "2025-05-08 12:04:46" 这样的时间戳（Flask日志格式）
+                line_content = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} - ', '', line_content)
+
+                # 移除类似 "127.0.0.1 - - [08/May/2025 12:04:46]" 这样的Werkzeug日志格式
+                if ' - - [' in line_content and '] "' in line_content:
+                    parts = line_content.split('] "', 1)
+                    if len(parts) > 1:
+                        ip_part = parts[0].split(' - - [')[0]
+                        request_part = parts[1]
+                        line_content = f"{ip_part} - {request_part}"
+
+                self.add_log(line_content)
 
             # 检查进程是否还在运行
             if API_PROCESS:
@@ -1411,6 +1481,7 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
     def add_log(self, message):
         """添加日志到日志区域"""
+        # 使用完整的时间戳格式，精确到秒
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_message = f"[{timestamp}] {message}"
 
@@ -1439,6 +1510,15 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
         self.log_text.config(state=tk.NORMAL)
         self.log_text.insert(tk.END, log_message + "\n")
+
+        # 限制日志显示数量为最新的200条
+        log_content = self.log_text.get(1.0, tk.END)
+        log_lines = log_content.split('\n')
+        if len(log_lines) > 201:  # 加1是因为split后最后一个元素是空字符串
+            # 计算需要删除的行数
+            lines_to_delete = len(log_lines) - 201
+            # 删除多余的行
+            self.log_text.delete(1.0, f"{lines_to_delete + 1}.0")
 
         # 只有当用户当前在查看最新内容或启用了自动滚动时，才自动滚动到底部
         if at_bottom:

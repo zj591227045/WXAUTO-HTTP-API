@@ -20,7 +20,8 @@ class Config:
 
     # 日志配置
     LOG_LEVEL = logging.DEBUG  # 设置为DEBUG级别
-    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
+    LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # 统一的时间戳格式
     LOG_FILE = 'app.log'
 
     # 微信监控配置

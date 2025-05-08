@@ -22,26 +22,65 @@ def install_package(package):
 def install_wxauto():
     """安装wxauto库"""
     print("正在安装wxauto库...")
+
+    # 安装尝试顺序：PyPI -> GitHub -> 本地文件夹
+
+    # 1. 尝试从PyPI安装
     try:
-        # 尝试从PyPI安装
         result = install_package("wxauto")
         if result:
+            print("wxauto库从PyPI安装成功")
             return True
+    except Exception as e:
+        print(f"从PyPI安装wxauto库失败: {e}")
 
-        # 如果从PyPI安装失败，尝试从GitHub克隆并安装
-        print("从PyPI安装失败，尝试从GitHub克隆并安装...")
-        if not os.path.exists("wxauto_temp"):
-            subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", "wxauto_temp"])
+    # 2. 如果PyPI安装失败，尝试从GitHub克隆并安装
+    print("从PyPI安装失败，尝试从GitHub克隆并安装...")
+    try:
+        # 使用临时目录
+        temp_dir = "wxauto_temp"
+        if os.path.exists(temp_dir):
+            # 如果临时目录已存在，先尝试更新
+            try:
+                cwd = os.getcwd()
+                os.chdir(temp_dir)
+                subprocess.check_call(["git", "pull"])
+                os.chdir(cwd)
+            except Exception:
+                # 如果更新失败，删除目录重新克隆
+                import shutil
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", temp_dir])
+        else:
+            # 克隆仓库到临时目录
+            subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", temp_dir])
 
         # 进入目录并安装
         cwd = os.getcwd()
-        os.chdir("wxauto_temp")
+        os.chdir(temp_dir)
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
         os.chdir(cwd)
-        print("wxauto库安装成功")
+        print("wxauto库从GitHub安装成功")
         return True
     except Exception as e:
-        print(f"wxauto库安装失败: {e}")
+        print(f"从GitHub安装wxauto库失败: {e}")
+
+    # 3. 如果PyPI和GitHub安装都失败，尝试从本地wxauto文件夹安装
+    print("从GitHub安装失败，尝试从本地wxauto文件夹安装...")
+    try:
+        if os.path.exists("wxauto") and os.path.isdir("wxauto"):
+            # 进入目录并安装
+            cwd = os.getcwd()
+            os.chdir("wxauto")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
+            os.chdir(cwd)
+            print("wxauto库从本地文件夹安装成功")
+            return True
+        else:
+            print("本地wxauto文件夹不存在")
+            return False
+    except Exception as e:
+        print(f"从本地文件夹安装wxauto库失败: {e}")
         return False
 
 def install_wxautox():

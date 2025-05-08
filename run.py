@@ -4,10 +4,33 @@ import os
 import subprocess
 import atexit
 import signal
+import logging
 from app import create_app
 from app.logs import logger
 from app.config import Config
 from app.api_queue import start_queue_processors, stop_queue_processors
+
+# 配置 Werkzeug 日志
+werkzeug_logger = logging.getLogger('werkzeug')
+werkzeug_logger.setLevel(logging.ERROR)  # 只显示错误级别的日志
+
+# 自定义 Werkzeug 日志格式处理器
+class WerkzeugLogFilter(logging.Filter):
+    def filter(self, record):
+        # 移除 Werkzeug 日志中的时间戳
+        if hasattr(record, 'msg') and isinstance(record.msg, str):
+            # 移除类似 "127.0.0.1 - - [08/May/2025 12:04:46]" 这样的时间戳
+            if '] "' in record.msg and ' - - [' in record.msg:
+                parts = record.msg.split('] "', 1)
+                if len(parts) > 1:
+                    ip_part = parts[0].split(' - - [')[0]
+                    request_part = parts[1]
+                    record.msg = f"{ip_part} - {request_part}"
+        return True
+
+# 添加过滤器到 Werkzeug 日志处理器
+for handler in werkzeug_logger.handlers:
+    handler.addFilter(WerkzeugLogFilter())
 
 def check_dependencies():
     """检查依赖是否已安装"""
@@ -23,25 +46,68 @@ def check_dependencies():
             logger.info("wxauto库已安装")
         except ImportError:
             logger.warning("wxauto库未安装，尝试安装...")
+
+            # 安装尝试顺序：PyPI -> GitHub -> 本地文件夹
+            pypi_success = False
+            github_success = False
+
+            # 1. 尝试从PyPI安装
             try:
-                # 尝试从PyPI安装
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "wxauto"])
-                logger.info("wxauto库安装成功")
+                logger.info("wxauto库从PyPI安装成功")
+                pypi_success = True
             except Exception as e:
-                logger.error(f"wxauto库安装失败: {e}")
+                logger.error(f"从PyPI安装wxauto库失败: {e}")
+
+            # 2. 如果PyPI安装失败，尝试从GitHub安装
+            if not pypi_success:
                 logger.warning("尝试从GitHub克隆并安装wxauto...")
                 try:
-                    if not os.path.exists("wxauto_temp"):
-                        subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", "wxauto_temp"])
+                    # 使用临时目录
+                    temp_dir = "wxauto_temp"
+                    if os.path.exists(temp_dir):
+                        # 如果临时目录已存在，先尝试更新
+                        try:
+                            cwd = os.getcwd()
+                            os.chdir(temp_dir)
+                            subprocess.check_call(["git", "pull"])
+                            os.chdir(cwd)
+                        except Exception:
+                            # 如果更新失败，删除目录重新克隆
+                            import shutil
+                            shutil.rmtree(temp_dir, ignore_errors=True)
+                            subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", temp_dir])
+                    else:
+                        # 克隆仓库到临时目录
+                        subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", temp_dir])
 
                     # 进入目录并安装
                     cwd = os.getcwd()
-                    os.chdir("wxauto_temp")
+                    os.chdir(temp_dir)
                     subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
                     os.chdir(cwd)
                     logger.info("wxauto库从GitHub安装成功")
+                    github_success = True
                 except Exception as e:
                     logger.error(f"wxauto库从GitHub安装失败: {e}")
+
+            # 3. 如果PyPI和GitHub安装都失败，尝试从本地wxauto文件夹安装
+            if not pypi_success and not github_success:
+                logger.warning("尝试从本地wxauto文件夹安装...")
+                try:
+                    if os.path.exists("wxauto") and os.path.isdir("wxauto"):
+                        # 进入目录并安装
+                        cwd = os.getcwd()
+                        os.chdir("wxauto")
+                        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
+                        os.chdir(cwd)
+                        logger.info("wxauto库从本地文件夹安装成功")
+                    else:
+                        logger.error("本地wxauto文件夹不存在")
+                        logger.error("无法安装wxauto库，程序无法继续运行")
+                        sys.exit(1)
+                except Exception as e:
+                    logger.error(f"wxauto库从本地文件夹安装失败: {e}")
                     logger.error("无法安装wxauto库，程序无法继续运行")
                     sys.exit(1)
 

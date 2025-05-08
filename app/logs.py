@@ -18,8 +18,8 @@ def setup_logger():
     if logger.handlers:
         logger.handlers.clear()
 
-    # 创建格式化器
-    formatter = logging.Formatter(Config.LOG_FORMAT)
+    # 创建格式化器，使用统一的时间戳格式
+    formatter = logging.Formatter(Config.LOG_FORMAT, Config.LOG_DATE_FORMAT)
 
     # 添加文件处理器
     file_handler = RotatingFileHandler(

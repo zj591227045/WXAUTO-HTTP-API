@@ -1,0 +1,17 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python files
+*.py text diff=python
+
+# Exclude __pycache__ directories
+__pycache__/ export-ignore
+*/__pycache__/ export-ignore
+*/*/__pycache__/ export-ignore
+*/*/*/__pycache__/ export-ignore
+*/*/*/*/__pycache__/ export-ignore
+
+# Exclude .pyc files
+*.pyc export-ignore
+*.pyo export-ignore
+*.pyd export-ignore
