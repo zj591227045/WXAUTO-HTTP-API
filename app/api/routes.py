@@ -499,7 +499,21 @@ def get_next_new_message():
             }
             logger.debug(f"使用wxauto参数: {params}")
 
-        # 直接调用GetNextNewMessage方法，不需要重试
+        # 确保保存路径设置正确
+        try:
+            import config_manager
+            from wxauto.elements import WxParam
+            temp_dir = str(config_manager.TEMP_DIR.absolute())
+            # 记录原始保存路径
+            original_path = WxParam.DEFALUT_SAVEPATH
+            logger.debug(f"原始wxauto保存路径: {original_path}")
+            # 修改为新的保存路径
+            WxParam.DEFALUT_SAVEPATH = temp_dir
+            logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
+        except Exception as path_e:
+            logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
+
+        # 调用GetNextNewMessage方法
         try:
             messages = wx_instance.GetNextNewMessage(**params)
         except Exception as e:

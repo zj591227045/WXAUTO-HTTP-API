@@ -9,6 +9,10 @@ def create_app():
     werkzeug_logger = logging.getLogger('werkzeug')
     werkzeug_logger.setLevel(logging.ERROR)  # 只显示错误级别的日志
 
+    # 初始化微信相关配置
+    from app.wechat_init import initialize as init_wechat
+    init_wechat()
+
     # 创建 Flask 应用
     app = Flask(__name__)
     app.config.from_object(Config)

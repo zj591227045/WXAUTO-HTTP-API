@@ -207,6 +207,28 @@ class WeChatAdapter:
         if not self._instance:
             raise AttributeError("微信实例未初始化")
 
+        # 确保使用正确的保存路径
+        try:
+            # 导入配置管理器
+            import config_manager
+            from wxauto.elements import WxParam
+
+            # 确保目录存在
+            config_manager.ensure_dirs()
+
+            # 获取临时目录路径
+            temp_dir = str(config_manager.TEMP_DIR.absolute())
+
+            # 记录原始保存路径
+            original_path = WxParam.DEFALUT_SAVEPATH
+            logger.debug(f"原始wxauto保存路径: {original_path}")
+
+            # 修改为新的保存路径
+            WxParam.DEFALUT_SAVEPATH = temp_dir
+            logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
+        except Exception as path_e:
+            logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
+
         # wxauto不支持savevideo和parseurl参数
         if self._lib_name == "wxauto":
             # 从kwargs中移除不支持的参数
@@ -241,7 +263,17 @@ class WeChatAdapter:
                         import time
                         time.sleep(1)
                         # 重试获取消息
-                        logger.info("重试获取消息")
+                        logger.info(f"重试获取消息，使用参数: {kwargs}")
+                        # 确保保存路径设置正确
+                        try:
+                            import config_manager
+                            from wxauto.elements import WxParam
+                            temp_dir = str(config_manager.TEMP_DIR.absolute())
+                            WxParam.DEFALUT_SAVEPATH = temp_dir
+                            logger.debug(f"重试前再次确认wxauto保存路径: {temp_dir}")
+                        except Exception as path_e:
+                            logger.error(f"重试时设置wxauto保存路径失败: {str(path_e)}")
+
                         return self._instance.GetNextNewMessage(*args, **kwargs)
                     else:
                         logger.warning("会话列表为空，无法打开聊天窗口")
@@ -320,6 +352,28 @@ class WeChatAdapter:
         if not self._instance:
             raise AttributeError("微信实例未初始化")
 
+        # 确保使用正确的保存路径
+        try:
+            # 导入配置管理器
+            import config_manager
+            from wxauto.elements import WxParam
+
+            # 确保目录存在
+            config_manager.ensure_dirs()
+
+            # 获取临时目录路径
+            temp_dir = str(config_manager.TEMP_DIR.absolute())
+
+            # 记录原始保存路径
+            original_path = WxParam.DEFALUT_SAVEPATH
+            logger.debug(f"原始wxauto保存路径: {original_path}")
+
+            # 修改为新的保存路径
+            WxParam.DEFALUT_SAVEPATH = temp_dir
+            logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
+        except Exception as path_e:
+            logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
+
         # 根据不同的库使用不同的处理方法
         if self._lib_name == "wxautox":
             # 对于wxautox库，直接调用原始方法
@@ -338,8 +392,13 @@ class WeChatAdapter:
         else:
             # 对于wxauto库，使用更健壮的处理方法
             try:
-                # 调用原始方法，但添加额外的异常处理
-                result = self._instance.GetListenMessage(*args, **kwargs)
+                # wxauto的GetListenMessage只接受who参数，移除其他参数
+                who = args[0] if args else kwargs.get('who')
+                # 调用原始方法，只传递who参数
+                if who:
+                    result = self._instance.GetListenMessage(who)
+                else:
+                    result = self._instance.GetListenMessage()
 
                 # 记录返回类型，帮助调试
                 logger.debug(f"wxauto GetListenMessage返回类型: {type(result)}")

@@ -21,7 +21,7 @@ class Config:
     RATELIMIT_STORAGE_URL = "memory://"
 
     # 日志配置
-    LOG_LEVEL = logging.DEBUG  # 设置为DEBUG级别
+    LOG_LEVEL = logging.INFO  # 设置为INFO级别，减少DEBUG日志
     LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
     LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # 统一的时间戳格式
 

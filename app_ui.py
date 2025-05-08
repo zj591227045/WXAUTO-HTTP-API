@@ -514,6 +514,16 @@ class WxAutoHttpUI:
             if " - DEBUG - " in log_line:
                 return True
 
+        # 过滤掉HTTP服务器处理请求的堆栈日志
+        if any(pattern in log_line for pattern in [
+            "BaseHTTPRequestHandler.handle",
+            "handle_one_request",
+            "self.run_wsgi",
+            "execute(self.server.app)",
+            "File \"C:\\Users\\jackson\\AppData\\Local\\miniconda3\\envs\\wxauto-api"
+        ]):
+            return True
+
         # 检查自定义过滤关键词
         custom_filters = self.filter_settings['custom_filter'].get().strip()
         if custom_filters:
@@ -1779,4 +1789,18 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
-    main()
+    # 确保当前目录在Python路径中
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
+
+    try:
+        # 导入项目模块
+        from app.config import Config
+        from app.logs import logger
+
+        # 启动UI
+        main()
+    except ImportError as e:
+        print(f"导入模块失败: {e}")
+        print("请使用 start_ui.py 启动UI")
