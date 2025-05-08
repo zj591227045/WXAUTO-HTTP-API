@@ -7,8 +7,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-wxauto文件\
-wxauto文件/
+# wxauto文件\
+# wxauto文件/
 tests\
 app.log
 data\
