@@ -4,6 +4,7 @@ from app.logs import logger
 from app.wechat import wechat_manager
 from app.system_monitor import get_system_resources
 from app.api_queue import queue_task, get_queue_stats
+from app.config import Config
 import os
 import time
 from typing import Optional, List
@@ -18,10 +19,10 @@ start_time = time.time()
 @api_bp.before_request
 def before_request():
     g.start_time = time.time()
-    # 修改日志格式，确保API计数器能够正确识别
+    # 记录请求信息，但不记录详细的请求头和请求体
     logger.info(f"收到请求: {request.method} {request.path}")
-    logger.debug(f"请求头: {dict(request.headers)}")
-    if request.method in ['POST', 'PUT', 'PATCH'] and request.is_json:
+    # 只在开发环境下记录请求体，且不记录请求头
+    if Config.DEBUG and request.method in ['POST', 'PUT', 'PATCH'] and request.is_json:
         logger.debug(f"请求体: {request.get_json()}")
 
 @api_bp.after_request
@@ -614,6 +615,7 @@ def get_listen_messages():
     who = request.args.get('who')  # 可选参数
 
     try:
+        # 调用GetListenMessage方法，现在已经在适配器中添加了异常处理
         messages = wx_instance.GetListenMessage(who)
 
         if not messages:
@@ -623,16 +625,101 @@ def get_listen_messages():
                 'data': {'messages': {}}
             })
 
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+
+        # 初始化格式化消息字典
         formatted_messages = {}
-        for chat_wnd, msg_list in messages.items():
-            formatted_messages[chat_wnd.who] = [{
-                'type': msg.type,
-                'content': msg.content,
-                'sender': msg.sender,
-                'id': msg.id,
-                'mtype': getattr(msg, 'mtype', None),
-                'sender_remark': getattr(msg, 'sender_remark', None)
-            } for msg in msg_list]
+
+        # 检查messages的类型，处理不同的返回格式
+        if isinstance(messages, list):
+            # 如果返回的是列表（指定了who参数时可能发生）
+            logger.debug(f"GetListenMessage返回了列表，长度: {len(messages)}")
+
+            if who:
+                # 如果指定了who参数，将消息列表添加到该聊天对象下
+                try:
+                    formatted_messages[who] = []
+                    for msg in messages:
+                        try:
+                            # 格式化单条消息
+                            formatted_msg = {
+                                'type': getattr(msg, 'type', 'unknown'),
+                                'content': getattr(msg, 'content', ''),
+                                'sender': getattr(msg, 'sender', ''),
+                                'id': getattr(msg, 'id', ''),
+                                'mtype': getattr(msg, 'mtype', None),
+                                'sender_remark': getattr(msg, 'sender_remark', None)
+                            }
+                            formatted_messages[who].append(formatted_msg)
+                        except Exception as msg_e:
+                            logger.error(f"格式化消息失败: {str(msg_e)}")
+                            # 继续处理下一条消息
+                            continue
+                except Exception as e:
+                    logger.error(f"处理消息列表失败: {str(e)}")
+            else:
+                # 如果没有指定who参数但返回了列表，这是一种异常情况
+                logger.warning("GetListenMessage返回了列表，但未指定who参数")
+        elif isinstance(messages, dict):
+            # 如果返回的是字典（未指定who参数时应该发生）
+            logger.debug(f"GetListenMessage返回了字典，键数量: {len(messages)}")
+
+            # 根据不同的库使用不同的格式化方法
+            if lib_name == 'wxautox':
+                # 对于wxautox库，使用原有的格式化方法
+                for chat_wnd, msg_list in messages.items():
+                    try:
+                        chat_name = getattr(chat_wnd, 'who', str(chat_wnd))
+                        formatted_messages[chat_name] = [{
+                            'type': msg.type,
+                            'content': msg.content,
+                            'sender': msg.sender,
+                            'id': msg.id,
+                            'mtype': getattr(msg, 'mtype', None),
+                            'sender_remark': getattr(msg, 'sender_remark', None)
+                        } for msg in msg_list]
+                    except Exception as e:
+                        logger.error(f"格式化wxautox消息失败: {str(e)}")
+                        continue
+            else:
+                # 对于wxauto库，使用更健壮的格式化方法
+                try:
+                    # 遍历消息并格式化
+                    for chat_wnd, msg_list in messages.items():
+                        try:
+                            # 获取聊天窗口名称
+                            chat_name = getattr(chat_wnd, 'who', str(chat_wnd))
+                            formatted_messages[chat_name] = []
+
+                            # 遍历消息列表
+                            for msg in msg_list:
+                                try:
+                                    # 格式化单条消息
+                                    formatted_msg = {
+                                        'type': getattr(msg, 'type', 'unknown'),
+                                        'content': getattr(msg, 'content', ''),
+                                        'sender': getattr(msg, 'sender', ''),
+                                        'id': getattr(msg, 'id', ''),
+                                        'mtype': getattr(msg, 'mtype', None),
+                                        'sender_remark': getattr(msg, 'sender_remark', None)
+                                    }
+                                    formatted_messages[chat_name].append(formatted_msg)
+                                except Exception as msg_e:
+                                    logger.error(f"格式化消息失败: {str(msg_e)}")
+                                    # 继续处理下一条消息
+                                    continue
+                        except Exception as chat_e:
+                            logger.error(f"处理聊天窗口消息失败: {str(chat_e)}")
+                            # 继续处理下一个聊天窗口
+                            continue
+                except Exception as format_e:
+                    logger.error(f"格式化消息列表失败: {str(format_e)}")
+                    # 如果格式化失败，返回空消息列表
+                    formatted_messages = {}
+        else:
+            # 如果返回的既不是列表也不是字典，记录错误
+            logger.error(f"GetListenMessage返回了意外的类型: {type(messages)}")
 
         return jsonify({
             'code': 0,
@@ -642,7 +729,7 @@ def get_listen_messages():
             }
         })
     except Exception as e:
-        logger.error(f"获取监听消息失败: {str(e)}")
+        logger.error(f"获取监听消息失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3002,
             'message': f'获取失败: {str(e)}',
@@ -671,14 +758,30 @@ def remove_listen_chat():
         }), 400
 
     try:
-        wx_instance.RemoveListenChat(who)
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"移除监听，当前使用的库: {lib_name}")
+
+        # 调用RemoveListenChat方法，现在已经在适配器中添加了异常处理
+        result = wx_instance.RemoveListenChat(who)
+
+        # 检查结果
+        if result is False:  # 明确返回False表示失败
+            logger.warning(f"移除监听失败: {who}")
+            return jsonify({
+                'code': 3001,
+                'message': f'移除监听失败: 未找到监听对象 {who}',
+                'data': None
+            }), 404
+
+        # 成功移除
         return jsonify({
             'code': 0,
             'message': '移除监听成功',
             'data': {'who': who}
         })
     except Exception as e:
-        logger.error(f"移除监听失败: {str(e)}")
+        logger.error(f"移除监听失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3001,
             'message': f'移除失败: {str(e)}',
@@ -710,18 +813,56 @@ def chat_window_send_message():
         }), 400
 
     try:
-        if who not in wx_instance.listen:
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"发送消息，当前使用的库: {lib_name}")
+
+        # 安全地获取listen属性
+        listen = {}
+        try:
+            listen = wx_instance.listen
+        except Exception as e:
+            logger.error(f"获取监听列表失败: {str(e)}")
+            return jsonify({
+                'code': 3001,
+                'message': f'获取监听列表失败: {str(e)}',
+                'data': None
+            }), 500
+
+        if not listen or who not in listen:
             return jsonify({
                 'code': 3001,
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
 
-        chat_wnd = wx_instance.listen[who]
-        if at_list:
-            chat_wnd.SendMsg(message, clear=clear, at=at_list)
+        chat_wnd = listen[who]
+
+        # 根据不同的库使用不同的处理方法
+        if lib_name == 'wxautox':
+            # 对于wxautox库，直接调用方法，包含clear参数
+            if at_list:
+                chat_wnd.SendMsg(message, clear=clear, at=at_list)
+            else:
+                chat_wnd.SendMsg(message, clear=clear)
         else:
-            chat_wnd.SendMsg(message, clear=clear)
+            # 对于wxauto库，不传递clear参数
+            try:
+                # 使用_handle_chat_window_method方法调用SendMsg
+                if hasattr(wx_instance, '_handle_chat_window_method'):
+                    if at_list:
+                        wx_instance._handle_chat_window_method(chat_wnd, 'SendMsg', message, at=at_list)
+                    else:
+                        wx_instance._handle_chat_window_method(chat_wnd, 'SendMsg', message)
+                else:
+                    # 如果没有_handle_chat_window_method方法，直接调用
+                    if at_list:
+                        chat_wnd.SendMsg(message, at=at_list)
+                    else:
+                        chat_wnd.SendMsg(message)
+            except Exception as e:
+                logger.error(f"发送消息失败: {str(e)}")
+                raise
 
         return jsonify({
             'code': 0,
@@ -729,7 +870,7 @@ def chat_window_send_message():
             'data': {'message_id': 'success'}
         })
     except Exception as e:
-        logger.error(f"发送消息失败: {str(e)}")
+        logger.error(f"发送消息失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3001,
             'message': f'发送失败: {str(e)}',
@@ -761,14 +902,32 @@ def chat_window_send_typing_message():
         }), 400
 
     try:
-        if who not in wx_instance.listen:
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"发送打字消息，当前使用的库: {lib_name}")
+
+        # 安全地获取listen属性
+        listen = {}
+        try:
+            listen = wx_instance.listen
+        except Exception as e:
+            logger.error(f"获取监听列表失败: {str(e)}")
+            return jsonify({
+                'code': 3001,
+                'message': f'获取监听列表失败: {str(e)}',
+                'data': None
+            }), 500
+
+        if not listen or who not in listen:
             return jsonify({
                 'code': 3001,
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
 
-        chat_wnd = wx_instance.listen[who]
+        chat_wnd = listen[who]
+
+        # 处理@列表
         if at_list:
             if message and not message.endswith('\n'):
                 message += '\n'
@@ -776,7 +935,24 @@ def chat_window_send_typing_message():
                 message += f"{{@{user}}}"
                 if user != at_list[-1]:
                     message += '\n'
-        chat_wnd.SendTypingText(message, clear=clear)
+
+        # 根据不同的库使用不同的处理方法
+        if lib_name == 'wxautox':
+            # 对于wxautox库，直接调用SendTypingText方法，包含clear参数
+            chat_wnd.SendTypingText(message, clear=clear)
+        else:
+            # 对于wxauto库，使用SendMsg方法代替SendTypingText方法，不传递clear参数
+            try:
+                # 使用_handle_chat_window_method方法调用SendMsg
+                if hasattr(wx_instance, '_handle_chat_window_method'):
+                    # wxauto库不支持SendTypingText方法，使用SendMsg代替
+                    wx_instance._handle_chat_window_method(chat_wnd, 'SendMsg', message)
+                else:
+                    # 如果没有_handle_chat_window_method方法，直接调用SendMsg
+                    chat_wnd.SendMsg(message)
+            except Exception as e:
+                logger.error(f"发送打字消息失败: {str(e)}")
+                raise
 
         return jsonify({
             'code': 0,
@@ -784,7 +960,7 @@ def chat_window_send_typing_message():
             'data': {'message_id': 'success'}
         })
     except Exception as e:
-        logger.error(f"发送消息失败: {str(e)}")
+        logger.error(f"发送消息失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3001,
             'message': f'发送失败: {str(e)}',
@@ -814,14 +990,30 @@ def chat_window_send_file():
         }), 400
 
     try:
-        if who not in wx_instance.listen:
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"发送文件，当前使用的库: {lib_name}")
+
+        # 安全地获取listen属性
+        listen = {}
+        try:
+            listen = wx_instance.listen
+        except Exception as e:
+            logger.error(f"获取监听列表失败: {str(e)}")
+            return jsonify({
+                'code': 3001,
+                'message': f'获取监听列表失败: {str(e)}',
+                'data': None
+            }), 500
+
+        if not listen or who not in listen:
             return jsonify({
                 'code': 3001,
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
 
-        chat_wnd = wx_instance.listen[who]
+        chat_wnd = listen[who]
         success_count = 0
         failed_files = []
 
@@ -834,9 +1026,21 @@ def chat_window_send_file():
                 continue
 
             try:
-                chat_wnd.SendFiles(file_path)
+                # 根据不同的库使用不同的处理方法
+                if lib_name == 'wxautox':
+                    # 对于wxautox库，直接调用方法
+                    chat_wnd.SendFiles(file_path)
+                else:
+                    # 对于wxauto库，使用更健壮的处理方法
+                    if hasattr(wx_instance, '_handle_chat_window_method'):
+                        wx_instance._handle_chat_window_method(chat_wnd, 'SendFiles', file_path)
+                    else:
+                        # 如果没有_handle_chat_window_method方法，直接调用
+                        chat_wnd.SendFiles(file_path)
+
                 success_count += 1
             except Exception as e:
+                logger.error(f"发送文件失败: {file_path} - {str(e)}")
                 failed_files.append({
                     'path': file_path,
                     'reason': str(e)
@@ -851,7 +1055,7 @@ def chat_window_send_file():
             }
         })
     except Exception as e:
-        logger.error(f"发送文件失败: {str(e)}")
+        logger.error(f"发送文件失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3001,
             'message': f'发送失败: {str(e)}',
@@ -881,15 +1085,47 @@ def chat_window_at_all():
         }), 400
 
     try:
-        if who not in wx_instance.listen:
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"发送@所有人消息，当前使用的库: {lib_name}")
+
+        # 安全地获取listen属性
+        listen = {}
+        try:
+            listen = wx_instance.listen
+        except Exception as e:
+            logger.error(f"获取监听列表失败: {str(e)}")
+            return jsonify({
+                'code': 3001,
+                'message': f'获取监听列表失败: {str(e)}',
+                'data': None
+            }), 500
+
+        if not listen or who not in listen:
             return jsonify({
                 'code': 3001,
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
 
-        chat_wnd = wx_instance.listen[who]
-        chat_wnd.AtAll(message)
+        chat_wnd = listen[who]
+
+        # 根据不同的库使用不同的处理方法
+        if lib_name == 'wxautox':
+            # 对于wxautox库，直接调用方法
+            chat_wnd.AtAll(message)
+        else:
+            # 对于wxauto库，使用更健壮的处理方法
+            try:
+                # 使用_handle_chat_window_method方法调用AtAll
+                if hasattr(wx_instance, '_handle_chat_window_method'):
+                    wx_instance._handle_chat_window_method(chat_wnd, 'AtAll', message)
+                else:
+                    # 如果没有_handle_chat_window_method方法，直接调用
+                    chat_wnd.AtAll(message)
+            except Exception as e:
+                logger.error(f"发送@所有人消息失败: {str(e)}")
+                raise
 
         return jsonify({
             'code': 0,
@@ -897,7 +1133,7 @@ def chat_window_at_all():
             'data': {'message_id': 'success'}
         })
     except Exception as e:
-        logger.error(f"发送@所有人消息失败: {str(e)}")
+        logger.error(f"发送@所有人消息失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3001,
             'message': f'发送失败: {str(e)}',
@@ -924,15 +1160,47 @@ def get_chat_window_info():
         }), 400
 
     try:
-        if who not in wx_instance.listen:
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"获取聊天窗口信息，当前使用的库: {lib_name}")
+
+        # 安全地获取listen属性
+        listen = {}
+        try:
+            listen = wx_instance.listen
+        except Exception as e:
+            logger.error(f"获取监听列表失败: {str(e)}")
+            return jsonify({
+                'code': 3001,
+                'message': f'获取监听列表失败: {str(e)}',
+                'data': None
+            }), 500
+
+        if not listen or who not in listen:
             return jsonify({
                 'code': 3001,
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
 
-        chat_wnd = wx_instance.listen[who]
-        info = chat_wnd.ChatInfo()
+        chat_wnd = listen[who]
+
+        # 根据不同的库使用不同的处理方法
+        if lib_name == 'wxautox':
+            # 对于wxautox库，直接调用方法
+            info = chat_wnd.ChatInfo()
+        else:
+            # 对于wxauto库，使用更健壮的处理方法
+            try:
+                # 使用_handle_chat_window_method方法调用ChatInfo
+                if hasattr(wx_instance, '_handle_chat_window_method'):
+                    info = wx_instance._handle_chat_window_method(chat_wnd, 'ChatInfo')
+                else:
+                    # 如果没有_handle_chat_window_method方法，直接调用
+                    info = chat_wnd.ChatInfo()
+            except Exception as e:
+                logger.error(f"获取聊天窗口信息失败: {str(e)}")
+                raise
 
         return jsonify({
             'code': 0,
@@ -940,7 +1208,7 @@ def get_chat_window_info():
             'data': info
         })
     except Exception as e:
-        logger.error(f"获取聊天窗口信息失败: {str(e)}")
+        logger.error(f"获取聊天窗口信息失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3001,
             'message': f'获取失败: {str(e)}',

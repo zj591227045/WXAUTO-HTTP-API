@@ -36,6 +36,7 @@ class WeChatAdapter:
         self._instance = None
         self._lib_name = None
         self._lock = threading.Lock()
+        self._listen = {}  # 添加listen属性
 
         # 根据指定的库名称导入相应的库
         if lib_name.lower() == 'wxautox':
@@ -48,6 +49,14 @@ class WeChatAdapter:
                 raise ImportError("无法导入wxauto库，请确保已正确安装")
 
         logger.info(f"使用微信自动化库: {self._lib_name}")
+
+    @property
+    def listen(self):
+        """获取监听列表"""
+        if self._instance:
+            # 直接返回实例的listen属性
+            return self._instance.listen
+        return self._listen
 
     def _try_import_wxautox(self) -> bool:
         """尝试导入wxautox库"""
@@ -203,6 +212,160 @@ class WeChatAdapter:
 
         # 调用原始方法
         return self._instance.AddListenChat(*args, **kwargs)
+
+    def _handle_GetListenMessage(self, *args, **kwargs):
+        """处理GetListenMessage方法的差异，并添加异常处理"""
+        if not self._instance:
+            raise AttributeError("微信实例未初始化")
+
+        # 根据不同的库使用不同的处理方法
+        if self._lib_name == "wxautox":
+            # 对于wxautox库，直接调用原始方法
+            try:
+                result = self._instance.GetListenMessage(*args, **kwargs)
+                # 记录返回类型，帮助调试
+                logger.debug(f"wxautox GetListenMessage返回类型: {type(result)}")
+                return result
+            except Exception as e:
+                # 捕获所有异常，避免崩溃
+                import traceback
+                logger.error(f"wxautox获取监听消息失败: {str(e)}")
+                traceback.print_exc()
+                # 返回空字典，表示没有新消息
+                return {}
+        else:
+            # 对于wxauto库，使用更健壮的处理方法
+            try:
+                # 调用原始方法，但添加额外的异常处理
+                result = self._instance.GetListenMessage(*args, **kwargs)
+
+                # 记录返回类型，帮助调试
+                logger.debug(f"wxauto GetListenMessage返回类型: {type(result)}")
+
+                # 检查是否指定了who参数
+                who = args[0] if args else kwargs.get('who')
+
+                # 如果指定了who参数且返回的是列表，这是正常的
+                if who and isinstance(result, list):
+                    logger.debug(f"wxauto GetListenMessage为{who}返回了列表，长度: {len(result)}")
+                    return result
+                # 如果没有指定who参数且返回的是字典，这是正常的
+                elif not who and isinstance(result, dict):
+                    logger.debug(f"wxauto GetListenMessage返回了字典，键数量: {len(result)}")
+                    return result
+                # 如果返回的是空值，这是正常的
+                elif not result:
+                    logger.debug("wxauto GetListenMessage返回了空值")
+                    return {}
+                # 其他情况可能是异常的
+                else:
+                    logger.warning(f"wxauto GetListenMessage返回了意外的类型: {type(result)}")
+                    # 尝试转换为适当的格式
+                    if isinstance(result, list) and not who:
+                        # 如果没有指定who参数但返回了列表，尝试转换为字典
+                        logger.warning("尝试将列表转换为字典")
+                        return {}
+                    elif isinstance(result, dict) and who:
+                        # 如果指定了who参数但返回了字典，尝试提取相关消息
+                        logger.warning("尝试从字典中提取指定聊天对象的消息")
+                        for chat_wnd, msg_list in result.items():
+                            if hasattr(chat_wnd, 'who') and chat_wnd.who == who:
+                                return msg_list
+                        return []
+                    else:
+                        # 无法处理的情况，返回空值
+                        logger.error(f"无法处理的返回类型: {type(result)}")
+                        return {} if not who else []
+
+            except Exception as e:
+                # 捕获所有异常，避免崩溃
+                import traceback
+                logger.error(f"wxauto获取监听消息失败: {str(e)}")
+                traceback.print_exc()
+                # 根据是否指定了who参数返回不同的空值
+                who = args[0] if args else kwargs.get('who')
+                return [] if who else {}
+
+    def _handle_RemoveListenChat(self, *args, **kwargs):
+        """处理RemoveListenChat方法的差异，并添加异常处理"""
+        if not self._instance:
+            raise AttributeError("微信实例未初始化")
+
+        # 根据不同的库使用不同的处理方法
+        if self._lib_name == "wxautox":
+            # 对于wxautox库，直接调用原始方法
+            try:
+                return self._instance.RemoveListenChat(*args, **kwargs)
+            except Exception as e:
+                # 捕获所有异常，避免崩溃
+                import traceback
+                logger.error(f"wxautox移除监听失败: {str(e)}")
+                traceback.print_exc()
+                # 返回False表示失败
+                return False
+        else:
+            # 对于wxauto库，使用更健壮的处理方法
+            try:
+                # 获取要移除的聊天对象名称
+                who = args[0] if args else kwargs.get('who')
+                if not who:
+                    logger.error("移除监听失败: 未指定聊天对象名称")
+                    return False
+
+                # 检查聊天对象是否在监听列表中
+                if who in self._instance.listen:
+                    # 获取聊天窗口对象
+                    chat_wnd = self._instance.listen[who]
+
+                    try:
+                        # 尝试关闭聊天窗口
+                        import win32gui
+                        import win32con
+
+                        # 使用win32gui.FindWindow直接查找窗口
+                        chat_hwnd = win32gui.FindWindow('ChatWnd', who)
+                        if chat_hwnd:
+                            logger.debug(f"关闭聊天窗口: {who}")
+                            win32gui.PostMessage(chat_hwnd, win32con.WM_CLOSE, 0, 0)
+                    except Exception as e:
+                        logger.error(f"关闭聊天窗口失败: {str(e)}")
+
+                    # 从监听列表中删除
+                    del self._instance.listen[who]
+                    logger.debug(f"成功移除监听: {who}")
+                    return True
+                else:
+                    logger.warning(f"未找到监听对象: {who}")
+                    return False
+            except Exception as e:
+                # 捕获所有异常，避免崩溃
+                import traceback
+                logger.error(f"wxauto移除监听失败: {str(e)}")
+                traceback.print_exc()
+                # 返回False表示失败
+                return False
+
+# 添加对聊天窗口方法的特殊处理
+    def _handle_chat_window_method(self, chat_wnd, method_name, *args, **kwargs):
+        """处理聊天窗口方法的调用，添加异常处理"""
+        if not chat_wnd:
+            raise AttributeError(f"聊天窗口对象为空，无法调用 {method_name} 方法")
+
+        # 获取方法
+        method = getattr(chat_wnd, method_name, None)
+        if not method:
+            raise AttributeError(f"聊天窗口对象没有 {method_name} 方法")
+
+        try:
+            # 调用方法
+            return method(*args, **kwargs)
+        except Exception as e:
+            # 捕获所有异常，避免崩溃
+            import traceback
+            logger.error(f"调用聊天窗口方法 {method_name} 失败: {str(e)}")
+            traceback.print_exc()
+            # 重新抛出异常，让上层处理
+            raise
 
 # 导入配置
 try:
