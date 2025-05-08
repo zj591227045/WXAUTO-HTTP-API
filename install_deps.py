@@ -20,67 +20,37 @@ def install_package(package):
         return False
 
 def install_wxauto():
-    """安装wxauto库"""
-    print("正在安装wxauto库...")
+    """检查本地wxauto文件夹"""
+    print("正在检查本地wxauto文件夹...")
 
-    # 安装尝试顺序：PyPI -> GitHub -> 本地文件夹
+    # 检查本地wxauto文件夹是否存在
+    if os.path.exists("wxauto") and os.path.isdir("wxauto"):
+        # 检查wxauto文件夹中是否包含必要的文件
+        init_file = os.path.join("wxauto", "wxauto", "__init__.py")
+        wxauto_file = os.path.join("wxauto", "wxauto", "wxauto.py")
 
-    # 1. 尝试从PyPI安装
-    try:
-        result = install_package("wxauto")
-        if result:
-            print("wxauto库从PyPI安装成功")
-            return True
-    except Exception as e:
-        print(f"从PyPI安装wxauto库失败: {e}")
+        if os.path.exists(init_file) and os.path.exists(wxauto_file):
+            # 确保本地wxauto文件夹在Python路径中
+            wxauto_path = os.path.join(os.getcwd(), "wxauto")
+            if wxauto_path not in sys.path:
+                sys.path.insert(0, wxauto_path)
 
-    # 2. 如果PyPI安装失败，尝试从GitHub克隆并安装
-    print("从PyPI安装失败，尝试从GitHub克隆并安装...")
-    try:
-        # 使用临时目录
-        temp_dir = "wxauto_temp"
-        if os.path.exists(temp_dir):
-            # 如果临时目录已存在，先尝试更新
+            # 尝试导入
             try:
-                cwd = os.getcwd()
-                os.chdir(temp_dir)
-                subprocess.check_call(["git", "pull"])
-                os.chdir(cwd)
-            except Exception:
-                # 如果更新失败，删除目录重新克隆
-                import shutil
-                shutil.rmtree(temp_dir, ignore_errors=True)
-                subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", temp_dir])
+                import wxauto
+                print(f"成功从本地文件夹导入wxauto: {wxauto_path}")
+                return True
+            except ImportError as e:
+                print(f"从本地文件夹导入wxauto失败: {e}")
+                print("请确保wxauto文件夹包含正确的wxauto模块")
+                return False
         else:
-            # 克隆仓库到临时目录
-            subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", temp_dir])
-
-        # 进入目录并安装
-        cwd = os.getcwd()
-        os.chdir(temp_dir)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
-        os.chdir(cwd)
-        print("wxauto库从GitHub安装成功")
-        return True
-    except Exception as e:
-        print(f"从GitHub安装wxauto库失败: {e}")
-
-    # 3. 如果PyPI和GitHub安装都失败，尝试从本地wxauto文件夹安装
-    print("从GitHub安装失败，尝试从本地wxauto文件夹安装...")
-    try:
-        if os.path.exists("wxauto") and os.path.isdir("wxauto"):
-            # 进入目录并安装
-            cwd = os.getcwd()
-            os.chdir("wxauto")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
-            os.chdir(cwd)
-            print("wxauto库从本地文件夹安装成功")
-            return True
-        else:
-            print("本地wxauto文件夹不存在")
+            print("wxauto文件夹结构不完整，缺少必要文件")
+            print("请确保wxauto文件夹包含完整的wxauto模块")
             return False
-    except Exception as e:
-        print(f"从本地文件夹安装wxauto库失败: {e}")
+    else:
+        print("本地wxauto文件夹不存在")
+        print("请确保项目根目录下存在wxauto文件夹")
         return False
 
 def install_wxautox():

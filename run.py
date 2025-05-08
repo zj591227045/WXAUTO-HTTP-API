@@ -41,75 +41,18 @@ def check_dependencies():
     # 检查wxauto库
     if wechat_lib == 'wxauto':
         try:
-            # 尝试导入wxauto
+            # 确保本地wxauto文件夹在Python路径中
+            wxauto_path = os.path.join(os.getcwd(), "wxauto")
+            if wxauto_path not in sys.path:
+                sys.path.insert(0, wxauto_path)
+
+            # 尝试直接从本地文件夹导入wxauto
             import wxauto
-            logger.info("wxauto库已安装")
-        except ImportError:
-            logger.warning("wxauto库未安装，尝试安装...")
-
-            # 安装尝试顺序：PyPI -> GitHub -> 本地文件夹
-            pypi_success = False
-            github_success = False
-
-            # 1. 尝试从PyPI安装
-            try:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "wxauto"])
-                logger.info("wxauto库从PyPI安装成功")
-                pypi_success = True
-            except Exception as e:
-                logger.error(f"从PyPI安装wxauto库失败: {e}")
-
-            # 2. 如果PyPI安装失败，尝试从GitHub安装
-            if not pypi_success:
-                logger.warning("尝试从GitHub克隆并安装wxauto...")
-                try:
-                    # 使用临时目录
-                    temp_dir = "wxauto_temp"
-                    if os.path.exists(temp_dir):
-                        # 如果临时目录已存在，先尝试更新
-                        try:
-                            cwd = os.getcwd()
-                            os.chdir(temp_dir)
-                            subprocess.check_call(["git", "pull"])
-                            os.chdir(cwd)
-                        except Exception:
-                            # 如果更新失败，删除目录重新克隆
-                            import shutil
-                            shutil.rmtree(temp_dir, ignore_errors=True)
-                            subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", temp_dir])
-                    else:
-                        # 克隆仓库到临时目录
-                        subprocess.check_call(["git", "clone", "https://github.com/cluic/wxauto.git", temp_dir])
-
-                    # 进入目录并安装
-                    cwd = os.getcwd()
-                    os.chdir(temp_dir)
-                    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
-                    os.chdir(cwd)
-                    logger.info("wxauto库从GitHub安装成功")
-                    github_success = True
-                except Exception as e:
-                    logger.error(f"wxauto库从GitHub安装失败: {e}")
-
-            # 3. 如果PyPI和GitHub安装都失败，尝试从本地wxauto文件夹安装
-            if not pypi_success and not github_success:
-                logger.warning("尝试从本地wxauto文件夹安装...")
-                try:
-                    if os.path.exists("wxauto") and os.path.isdir("wxauto"):
-                        # 进入目录并安装
-                        cwd = os.getcwd()
-                        os.chdir("wxauto")
-                        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
-                        os.chdir(cwd)
-                        logger.info("wxauto库从本地文件夹安装成功")
-                    else:
-                        logger.error("本地wxauto文件夹不存在")
-                        logger.error("无法安装wxauto库，程序无法继续运行")
-                        sys.exit(1)
-                except Exception as e:
-                    logger.error(f"wxauto库从本地文件夹安装失败: {e}")
-                    logger.error("无法安装wxauto库，程序无法继续运行")
-                    sys.exit(1)
+            logger.info(f"成功从本地文件夹导入wxauto: {wxauto_path}")
+        except ImportError as e:
+            logger.error(f"无法从本地文件夹导入wxauto: {str(e)}")
+            logger.error("请确保wxauto文件夹存在且包含正确的wxauto模块")
+            sys.exit(1)
 
     # 检查wxautox库
     elif wechat_lib == 'wxautox':

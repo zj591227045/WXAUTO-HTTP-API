@@ -71,11 +71,20 @@ class WeChatAdapter:
     def _try_import_wxauto(self) -> bool:
         """尝试导入wxauto库"""
         try:
+            # 确保本地wxauto文件夹在Python路径中
+            import sys
+            import os
+            wxauto_path = os.path.join(os.getcwd(), "wxauto")
+            if wxauto_path not in sys.path:
+                sys.path.insert(0, wxauto_path)
+
+            # 直接从本地文件夹导入
             import wxauto
             self._lib_name = "wxauto"
+            logger.info(f"成功从本地文件夹导入wxauto: {wxauto_path}")
             return True
-        except ImportError:
-            logger.warning("无法导入wxauto库")
+        except ImportError as e:
+            logger.warning(f"无法导入wxauto库: {str(e)}")
             return False
 
     def initialize(self) -> bool:
@@ -90,6 +99,14 @@ class WeChatAdapter:
                         from wxautox import WeChat
                         self._instance = WeChat()
                     else:  # wxauto
+                        # 确保本地wxauto文件夹在Python路径中
+                        import sys
+                        import os
+                        wxauto_path = os.path.join(os.getcwd(), "wxauto")
+                        if wxauto_path not in sys.path:
+                            sys.path.insert(0, wxauto_path)
+
+                        # 直接从本地文件夹导入
                         from wxauto import WeChat
                         self._instance = WeChat()
 

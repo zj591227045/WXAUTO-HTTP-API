@@ -651,11 +651,20 @@ class WxAutoHttpUI:
     def check_wxauto_status(self):
         """检查wxauto库的安装状态"""
         try:
+            # 确保本地wxauto文件夹在Python路径中
+            import sys
+            import os
+            wxauto_path = os.path.join(os.getcwd(), "wxauto")
+            if wxauto_path not in sys.path:
+                sys.path.insert(0, wxauto_path)
+
+            # 直接从本地文件夹导入
             import wxauto
             self.wxauto_status.config(text="已安装", style="Green.TLabel")
             return True
-        except ImportError:
+        except ImportError as e:
             self.wxauto_status.config(text="未安装", style="Red.TLabel")
+            self.add_log(f"wxauto导入失败: {str(e)}")
             return False
 
     def check_wxautox_status(self):
@@ -669,89 +678,57 @@ class WxAutoHttpUI:
             return False
 
     def install_wxauto(self):
-        """安装或修复wxauto库"""
+        """检查本地wxauto文件夹"""
         # 禁用按钮，避免重复点击
         self.install_wxauto_button.config(state=tk.DISABLED)
-        self.wxauto_status.config(text="安装中...", style="Bold.TLabel")
-        self.add_log("正在安装wxauto库...")
+        self.wxauto_status.config(text="检查中...", style="Bold.TLabel")
+        self.add_log("正在检查本地wxauto文件夹...")
 
-        def install_thread():
+        def check_thread():
             try:
-                # 尝试从PyPI安装
-                process = subprocess.Popen(
-                    [sys.executable, "-m", "pip", "install", "wxauto"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True
-                )
+                # 检查本地wxauto文件夹是否存在
+                wxauto_path = os.path.join(os.getcwd(), "wxauto")
+                if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
+                    # 检查wxauto文件夹中是否包含必要的文件
+                    init_file = os.path.join(wxauto_path, "wxauto", "__init__.py")
+                    wxauto_file = os.path.join(wxauto_path, "wxauto", "wxauto.py")
 
-                # 读取输出并添加到日志
-                for line in process.stdout:
-                    self.root.after(0, lambda l=line: self.add_log(f"pip: {l.strip()}"))
+                    if os.path.exists(init_file) and os.path.exists(wxauto_file):
+                        # 确保本地wxauto文件夹在Python路径中
+                        import sys
+                        if wxauto_path not in sys.path:
+                            sys.path.insert(0, wxauto_path)
 
-                # 等待进程完成
-                process.wait()
-
-                if process.returncode == 0:
-                    self.root.after(0, lambda: self.add_log("wxauto库安装成功"))
-                    self.root.after(0, lambda: self.wxauto_status.config(text="已安装", style="Green.TLabel"))
-                else:
-                    # 尝试从GitHub克隆并安装
-                    self.root.after(0, lambda: self.add_log("从PyPI安装失败，尝试从GitHub安装..."))
-
-                    if not os.path.exists("wxauto_temp"):
-                        self.root.after(0, lambda: self.add_log("正在克隆wxauto仓库..."))
-                        clone_process = subprocess.Popen(
-                            ["git", "clone", "https://github.com/cluic/wxauto.git", "wxauto_temp"],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT,
-                            text=True
-                        )
-
-                        for line in clone_process.stdout:
-                            self.root.after(0, lambda l=line: self.add_log(f"git: {l.strip()}"))
-
-                        clone_process.wait()
-
-                    # 安装
-                    self.root.after(0, lambda: self.add_log("正在安装wxauto..."))
-
-                    # 进入目录并安装
-                    cwd = os.getcwd()
-                    os.chdir("wxauto_temp")
-
-                    install_process = subprocess.Popen(
-                        [sys.executable, "-m", "pip", "install", "-e", "."],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True
-                    )
-
-                    for line in install_process.stdout:
-                        self.root.after(0, lambda l=line: self.add_log(f"pip: {l.strip()}"))
-
-                    install_process.wait()
-
-                    # 恢复工作目录
-                    os.chdir(cwd)
-
-                    if install_process.returncode == 0:
-                        self.root.after(0, lambda: self.add_log("wxauto库安装成功"))
-                        self.root.after(0, lambda: self.wxauto_status.config(text="已安装", style="Green.TLabel"))
+                        # 尝试导入
+                        try:
+                            import wxauto
+                            self.root.after(0, lambda: self.add_log(f"成功从本地文件夹导入wxauto: {wxauto_path}"))
+                            self.root.after(0, lambda: self.wxauto_status.config(text="已安装", style="Green.TLabel"))
+                        except ImportError as e:
+                            self.root.after(0, lambda: self.add_log(f"从本地文件夹导入wxauto失败: {str(e)}"))
+                            self.root.after(0, lambda: self.wxauto_status.config(text="导入失败", style="Red.TLabel"))
+                            self.root.after(0, lambda: messagebox.showerror("导入失败",
+                                f"从本地文件夹导入wxauto失败: {str(e)}\n\n请确保wxauto文件夹包含正确的wxauto模块"))
                     else:
-                        self.root.after(0, lambda: self.add_log("wxauto库安装失败"))
-                        self.root.after(0, lambda: self.wxauto_status.config(text="安装失败", style="Red.TLabel"))
-                        self.root.after(0, lambda: messagebox.showerror("安装失败", "安装wxauto失败，请查看日志了解详情"))
+                        self.root.after(0, lambda: self.add_log(f"wxauto文件夹结构不完整，缺少必要文件"))
+                        self.root.after(0, lambda: self.wxauto_status.config(text="结构不完整", style="Red.TLabel"))
+                        self.root.after(0, lambda: messagebox.showerror("文件夹结构不完整",
+                            f"wxauto文件夹结构不完整，缺少必要文件\n\n请确保wxauto文件夹包含完整的wxauto模块"))
+                else:
+                    self.root.after(0, lambda: self.add_log(f"本地wxauto文件夹不存在: {wxauto_path}"))
+                    self.root.after(0, lambda: self.wxauto_status.config(text="文件夹不存在", style="Red.TLabel"))
+                    self.root.after(0, lambda: messagebox.showerror("文件夹不存在",
+                        f"本地wxauto文件夹不存在: {wxauto_path}\n\n请确保项目根目录下存在wxauto文件夹"))
             except Exception as e:
-                self.root.after(0, lambda: self.add_log(f"安装过程出错: {str(e)}"))
-                self.root.after(0, lambda: self.wxauto_status.config(text="安装失败", style="Red.TLabel"))
-                self.root.after(0, lambda: messagebox.showerror("安装失败", f"安装wxauto失败: {str(e)}"))
+                self.root.after(0, lambda: self.add_log(f"检查过程出错: {str(e)}"))
+                self.root.after(0, lambda: self.wxauto_status.config(text="检查失败", style="Red.TLabel"))
+                self.root.after(0, lambda: messagebox.showerror("检查失败", f"检查wxauto文件夹失败: {str(e)}"))
             finally:
                 # 恢复按钮状态
                 self.root.after(0, lambda: self.install_wxauto_button.config(state=tk.NORMAL))
 
-        # 在新线程中运行安装过程
-        threading.Thread(target=install_thread, daemon=True).start()
+        # 在新线程中运行检查过程
+        threading.Thread(target=check_thread, daemon=True).start()
 
     def show_wxautox_install(self):
         """显示wxautox安装说明"""
