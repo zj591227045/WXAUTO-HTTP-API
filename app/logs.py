@@ -1,14 +1,11 @@
-import os
 import sys
 import logging
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 from app.config import Config
 
 def setup_logger():
     # 确保日志目录存在
-    log_dir = os.path.dirname(Config.LOG_FILE)
-    if log_dir and not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    Config.LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
     # 创建logger实例
     logger = logging.getLogger('wxauto-api')
@@ -21,11 +18,12 @@ def setup_logger():
     # 创建格式化器，使用统一的时间戳格式
     formatter = logging.Formatter(Config.LOG_FORMAT, Config.LOG_DATE_FORMAT)
 
-    # 添加文件处理器
-    file_handler = RotatingFileHandler(
+    # 添加文件处理器 - 使用按日期滚动的日志文件
+    file_handler = TimedRotatingFileHandler(
         Config.LOG_FILE,
-        maxBytes=10*1024*1024,  # 10MB
-        backupCount=5,
+        when='midnight',  # 每天午夜滚动
+        interval=1,       # 每1天滚动一次
+        backupCount=30,   # 保留30天的日志
         encoding='utf-8'
     )
     file_handler.setFormatter(formatter)

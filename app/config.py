@@ -1,6 +1,8 @@
 import os
 import logging
 from dotenv import load_dotenv
+from datetime import datetime
+from pathlib import Path
 
 load_dotenv()
 
@@ -22,7 +24,13 @@ class Config:
     LOG_LEVEL = logging.DEBUG  # 设置为DEBUG级别
     LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
     LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # 统一的时间戳格式
-    LOG_FILE = 'app.log'
+
+    # 日志文件路径
+    DATA_DIR = Path("data")
+    API_DIR = DATA_DIR / "api"
+    LOGS_DIR = API_DIR / "logs"
+    LOG_FILENAME = f"api_{datetime.now().strftime('%Y%m%d')}.log"
+    LOG_FILE = str(LOGS_DIR / LOG_FILENAME)
 
     # 微信监控配置
     WECHAT_CHECK_INTERVAL = int(os.getenv('WECHAT_CHECK_INTERVAL', 60))  # 连接检查间隔（秒）

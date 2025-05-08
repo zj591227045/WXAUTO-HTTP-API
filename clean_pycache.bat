@@ -1,6 +1,0 @@
-@echo off
-echo 正在清理 __pycache__ 目录和 .pyc 文件...
-python clean_pycache.py
-echo.
-echo 清理完成！按任意键退出...
-pause > nul
