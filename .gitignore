@@ -8,6 +8,7 @@ wxauto文件/
 tests\
 app.log
 data\
+data/
 
 # C extensions
 *.so
@@ -28,6 +29,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+wxautox-3.9.11.17.25b48-cp311-cp311-win_amd64.whl
 MANIFEST
 
 

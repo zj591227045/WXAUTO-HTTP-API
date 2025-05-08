@@ -7,3 +7,8 @@ python-jose==3.3.0
 requests==2.26.0
 pywin32==310
 psutil==5.9.8
+comtypes>=1.4.0
+pyperclip>=1.9.0
+tenacity>=9.1.0
+typing-extensions>=4.0.0
+# wxauto库将在运行时安装

@@ -1,9 +1,9 @@
 import threading
 import time
 import pythoncom
-from wxautox import WeChat
 from app.logs import logger
 from app.config import Config
+from app.wechat_adapter import wechat_adapter
 
 class WeChatManager:
     def __init__(self):
@@ -16,39 +16,35 @@ class WeChatManager:
         self._monitor_thread = None
         self._running = False
         self._retry_count = 0
+        self._adapter = wechat_adapter
 
     def initialize(self):
         """初始化微信实例"""
         with self._lock:
-            if not self._instance:
-                try:
-                    # 初始化COM环境
-                    pythoncom.CoInitialize()
-                    self._instance = WeChat()
-                    if Config.WECHAT_AUTO_RECONNECT:
-                        self._start_monitor()
-                    self._retry_count = 0
-                    return True
-                except Exception as e:
-                    logger.error(f"微信初始化失败: {str(e)}")
-                    # 出错时确保COM环境被清理
-                    pythoncom.CoUninitialize()
-                    return False
-            return True
+            success = self._adapter.initialize()
+            if success:
+                self._instance = self._adapter.get_instance()
+                if Config.WECHAT_AUTO_RECONNECT:
+                    self._start_monitor()
+                self._retry_count = 0
+                logger.info(f"微信初始化成功，使用库: {self._adapter.get_lib_name()}")
+            return success
 
     def get_instance(self):
         """获取微信实例"""
-        return self._instance
+        # 返回适配器而不是直接返回实例，这样可以使用适配器的参数处理功能
+        return self._adapter
 
     def check_connection(self):
         """检查微信连接状态"""
         if not self._instance:
             return False
-        
+
         try:
-            self._instance.GetSessionList()
-            self._retry_count = 0  # 重置重试计数
-            return True
+            result = self._adapter.check_connection()
+            if result:
+                self._retry_count = 0  # 重置重试计数
+            return result
         except Exception as e:
             logger.error(f"微信连接检查失败: {str(e)}")
             return False
@@ -57,7 +53,7 @@ class WeChatManager:
         """监控微信连接状态"""
         # 为监控线程初始化COM环境
         pythoncom.CoInitialize()
-        
+
         while self._running:
             try:
                 if not self.check_connection():

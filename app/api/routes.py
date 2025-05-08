@@ -3,10 +3,12 @@ from app.auth import require_api_key
 from app.logs import logger
 from app.wechat import wechat_manager
 from app.system_monitor import get_system_resources
+from app.api_queue import queue_task, get_queue_stats
 import os
 import time
 from typing import Optional, List
 from urllib.parse import quote
+import functools
 
 api_bp = Blueprint('api', __name__)
 
@@ -16,6 +18,7 @@ start_time = time.time()
 @api_bp.before_request
 def before_request():
     g.start_time = time.time()
+    # 修改日志格式，确保API计数器能够正确识别
     logger.info(f"收到请求: {request.method} {request.path}")
     logger.debug(f"请求头: {dict(request.headers)}")
     if request.method in ['POST', 'PUT', 'PATCH'] and request.is_json:
@@ -25,6 +28,7 @@ def before_request():
 def after_request(response):
     if hasattr(g, 'start_time'):
         duration = time.time() - g.start_time
+        # 修改日志格式，确保API计数器能够正确识别 - 确保状态码周围有空格
         logger.info(f"请求处理完成: {request.method} {request.path} - 状态码: {response.status_code} - 耗时: {duration:.2f}秒")
     return response
 
@@ -54,10 +58,32 @@ def initialize_wechat():
     try:
         success = wechat_manager.initialize()
         if success:
+            # 获取微信窗口名称
+            wx_instance = wechat_manager.get_instance()
+            window_name = ""
+            try:
+                # 直接从实例中获取窗口名称
+                # 注意：WeChat()初始化时会自动打印窗口名称，我们需要从实例中获取
+                window_name = getattr(wx_instance._instance, "window_name", "")
+                if not window_name:
+                    # 尝试使用GetWindowName方法
+                    if hasattr(wx_instance._instance, "GetWindowName"):
+                        window_name = wx_instance._instance.GetWindowName()
+
+                if window_name:
+                    logger.info(f"初始化成功，获取到已登录窗口：{window_name}")
+                else:
+                    logger.warning("无法获取微信窗口名称")
+            except Exception as e:
+                logger.warning(f"获取窗口名称失败: {str(e)}")
+
             return jsonify({
                 'code': 0,
                 'message': '初始化成功',
-                'data': {'status': 'connected'}
+                'data': {
+                    'status': 'connected',
+                    'window_name': window_name
+                }
             })
         else:
             return jsonify({
@@ -83,24 +109,42 @@ def get_wechat_status():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     is_connected = wechat_manager.check_connection()
+
+    # 获取微信窗口名称
+    window_name = ""
+    if is_connected:
+        try:
+            # 直接从实例中获取窗口名称
+            window_name = getattr(wx_instance._instance, "window_name", "")
+            if not window_name:
+                # 尝试使用GetWindowName方法
+                if hasattr(wx_instance._instance, "GetWindowName"):
+                    window_name = wx_instance._instance.GetWindowName()
+
+            if window_name:
+                logger.debug(f"状态检查：获取到已登录窗口：{window_name}")
+        except Exception as e:
+            logger.warning(f"获取窗口名称失败: {str(e)}")
+
     return jsonify({
         'code': 0,
         'message': '获取成功',
         'data': {
-            'status': 'online' if is_connected else 'offline'
+            'status': 'online' if is_connected else 'offline',
+            'window_name': window_name
         }
     })
 
 def format_at_message(message: str, at_list: Optional[List[str]] = None) -> str:
     if not at_list:
         return message
-    
+
     result = message
     if result and not result.endswith('\n'):
         result += '\n'
-    
+
     for user in at_list:
         result += f"{{@{user}}}"
         if user != at_list[-1]:
@@ -111,65 +155,107 @@ def format_at_message(message: str, at_list: Optional[List[str]] = None) -> str:
 @api_bp.route('/message/send', methods=['POST'])
 @require_api_key
 def send_message():
-    wx_instance = wechat_manager.get_instance()
-    if not wx_instance:
-        return jsonify({
-            'code': 2001,
-            'message': '微信未初始化',
-            'data': None
-        }), 400
-    
-    data = request.get_json()
-    receiver = data.get('receiver')
-    message = data.get('message')
-    at_list = data.get('at_list', [])
-    clear = "1" if data.get('clear', True) else "0"
-    
-    if not receiver or not message:
-        return jsonify({
-            'code': 1002,
-            'message': '缺少必要参数',
-            'data': None
-        }), 400
-        
+    # 在队列处理前获取所有请求数据
     try:
-        formatted_message = format_at_message(message, at_list)
-        
-        # 使用精确匹配模式查找联系人
-        chat_name = wx_instance.ChatWith(receiver, exact=True)
-        if not chat_name:
+        data = request.get_json()
+        receiver = data.get('receiver')
+        message = data.get('message')
+        at_list = data.get('at_list', [])
+        clear = "1" if data.get('clear', True) else "0"
+
+        if not receiver or not message:
             return jsonify({
-                'code': 3001,
-                'message': f'找不到联系人: {receiver}',
-                'data': None
-            }), 404
-            
-        # 确认切换到了正确的聊天窗口
-        if chat_name != receiver:
-            return jsonify({
-                'code': 3001,
-                'message': f'联系人匹配错误，期望: {receiver}, 实际: {chat_name}',
+                'code': 1002,
+                'message': '缺少必要参数',
                 'data': None
             }), 400
-            
+
+        # 将任务加入队列处理
+        result = _send_message_task(receiver, message, at_list, clear)
+
+        # 处理队列任务返回的结果
+        if isinstance(result, dict) and 'response' in result and 'status_code' in result:
+            return jsonify(result['response']), result['status_code']
+
+        # 如果返回的不是预期格式，返回错误
+        logger.error(f"队列任务返回了意外的结果格式: {result}")
+        return jsonify({
+            'code': 3001,
+            'message': '服务器内部错误',
+            'data': None
+        }), 500
+    except Exception as e:
+        logger.error(f"处理发送消息请求失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'处理请求失败: {str(e)}',
+            'data': None
+        }), 500
+
+@queue_task(timeout=30)  # 使用队列处理请求，超时30秒
+def _send_message_task(receiver, message, at_list, clear):
+    """实际执行发送消息的队列任务"""
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return {
+            'response': {
+                'code': 2001,
+                'message': '微信未初始化',
+                'data': None
+            },
+            'status_code': 400
+        }
+
+    try:
+        formatted_message = format_at_message(message, at_list)
+
+        # 查找联系人
+        chat_name = wx_instance.ChatWith(receiver)
+        if not chat_name:
+            return {
+                'response': {
+                    'code': 3001,
+                    'message': f'找不到联系人: {receiver}',
+                    'data': None
+                },
+                'status_code': 404
+            }
+
+        # 确认切换到了正确的聊天窗口
+        if chat_name != receiver:
+            return {
+                'response': {
+                    'code': 3001,
+                    'message': f'联系人匹配错误，期望: {receiver}, 实际: {chat_name}',
+                    'data': None
+                },
+                'status_code': 400
+            }
+
         if at_list:
             wx_instance.SendMsg(formatted_message, clear=clear, at=at_list)
             wx_instance.SendMsg(message, clear=clear, at=at_list)
         else:
             wx_instance.SendMsg(message, clear=clear)
-            
-        return jsonify({
-            'code': 0,
-            'message': '发送成功',
-            'data': {'message_id': 'success'}
-        })
+
+        return {
+            'response': {
+                'code': 0,
+                'message': '发送成功',
+                'data': {'message_id': 'success'}
+            },
+            'status_code': 200
+        }
     except Exception as e:
         logger.error(f"发送消息失败: {str(e)}")
-        return jsonify({
-            'code': 3001,
-            'message': f'发送失败: {str(e)}',
-            'data': None
-        }), 500
+        return {
+            'response': {
+                'code': 3001,
+                'message': f'发送失败: {str(e)}',
+                'data': None
+            },
+            'status_code': 500
+        }
 
 @api_bp.route('/message/send-typing', methods=['POST'])
 @require_api_key
@@ -181,30 +267,30 @@ def send_typing_message():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     data = request.get_json()
     receiver = data.get('receiver')
     message = data.get('message')
     at_list = data.get('at_list', [])
     clear = data.get('clear', True)
-    
+
     if not receiver or not message:
         return jsonify({
             'code': 1002,
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
-        # 使用精确匹配模式查找联系人
-        chat_name = wx_instance.ChatWith(receiver, exact=True)
+        # 查找联系人
+        chat_name = wx_instance.ChatWith(receiver)
         if not chat_name:
             return jsonify({
                 'code': 3001,
                 'message': f'找不到联系人: {receiver}',
                 'data': None
             }), 404
-            
+
         # 确认切换到了正确的聊天窗口
         if chat_name != receiver:
             return jsonify({
@@ -212,7 +298,7 @@ def send_typing_message():
                 'message': f'联系人匹配错误，期望: {receiver}, 实际: {chat_name}',
                 'data': None
             }), 400
-            
+
         # 使用正确的参数调用 SendTypingText
         if at_list:
             if message and not message.endswith('\n'):
@@ -222,7 +308,7 @@ def send_typing_message():
                 if user != at_list[-1]:
                     message += '\n'
         chat_name.SendTypingText(message, clear=clear)
-            
+
         return jsonify({
             'code': 0,
             'message': '发送成功',
@@ -239,46 +325,82 @@ def send_typing_message():
 @api_bp.route('/message/send-file', methods=['POST'])
 @require_api_key
 def send_file():
-    wx_instance = wechat_manager.get_instance()
-    if not wx_instance:
-        return jsonify({
-            'code': 2001,
-            'message': '微信未初始化',
-            'data': None
-        }), 400
-    
-    data = request.get_json()
-    receiver = data.get('receiver')
-    file_paths = data.get('file_paths', [])
-    
-    if not receiver or not file_paths:
-        return jsonify({
-            'code': 1002,
-            'message': '缺少必要参数',
-            'data': None
-        }), 400
-    
-    failed_files = []
-    success_count = 0
-    
+    # 在队列处理前获取所有请求数据
     try:
-        # 使用精确匹配模式查找联系人
-        chat_name = wx_instance.ChatWith(receiver, exact=True)
-        if not chat_name:
+        data = request.get_json()
+        receiver = data.get('receiver')
+        file_paths = data.get('file_paths', [])
+
+        if not receiver or not file_paths:
             return jsonify({
-                'code': 3001,
-                'message': f'找不到联系人: {receiver}',
-                'data': None
-            }), 404
-            
-        # 确认切换到了正确的聊天窗口
-        if chat_name != receiver:
-            return jsonify({
-                'code': 3001,
-                'message': f'联系人匹配错误，期望: {receiver}, 实际: {chat_name}',
+                'code': 1002,
+                'message': '缺少必要参数',
                 'data': None
             }), 400
-        
+
+        # 将任务加入队列处理
+        result = _send_file_task(receiver, file_paths)
+
+        # 处理队列任务返回的结果
+        if isinstance(result, dict) and 'response' in result and 'status_code' in result:
+            return jsonify(result['response']), result['status_code']
+
+        # 如果返回的不是预期格式，返回错误
+        logger.error(f"队列任务返回了意外的结果格式: {result}")
+        return jsonify({
+            'code': 3001,
+            'message': '服务器内部错误',
+            'data': None
+        }), 500
+    except Exception as e:
+        logger.error(f"处理发送文件请求失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'处理请求失败: {str(e)}',
+            'data': None
+        }), 500
+
+@queue_task(timeout=60)  # 使用队列处理请求，文件发送可能需要更长时间，设置60秒超时
+def _send_file_task(receiver, file_paths):
+    """实际执行发送文件的队列任务"""
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return {
+            'response': {
+                'code': 2001,
+                'message': '微信未初始化',
+                'data': None
+            },
+            'status_code': 400
+        }
+
+    failed_files = []
+    success_count = 0
+
+    try:
+        # 查找联系人
+        chat_name = wx_instance.ChatWith(receiver)
+        if not chat_name:
+            return {
+                'response': {
+                    'code': 3001,
+                    'message': f'找不到联系人: {receiver}',
+                    'data': None
+                },
+                'status_code': 404
+            }
+
+        # 确认切换到了正确的聊天窗口
+        if chat_name != receiver:
+            return {
+                'response': {
+                    'code': 3001,
+                    'message': f'联系人匹配错误，期望: {receiver}, 实际: {chat_name}',
+                    'data': None
+                },
+                'status_code': 400
+            }
+
         for file_path in file_paths:
             if not os.path.exists(file_path):
                 failed_files.append({
@@ -286,7 +408,7 @@ def send_file():
                     'reason': '文件不存在'
                 })
                 continue
-                
+
             try:
                 wx_instance.SendFiles(file_path)
                 success_count += 1
@@ -295,22 +417,28 @@ def send_file():
                     'path': file_path,
                     'reason': str(e)
                 })
-        
-        return jsonify({
-            'code': 0 if not failed_files else 3001,
-            'message': '发送完成' if not failed_files else '部分文件发送失败',
-            'data': {
-                'success_count': success_count,
-                'failed_files': failed_files
-            }
-        })
+
+        return {
+            'response': {
+                'code': 0 if not failed_files else 3001,
+                'message': '发送完成' if not failed_files else '部分文件发送失败',
+                'data': {
+                    'success_count': success_count,
+                    'failed_files': failed_files
+                }
+            },
+            'status_code': 200
+        }
     except Exception as e:
         logger.error(f"发送文件失败: {str(e)}")
-        return jsonify({
-            'code': 3001,
-            'message': f'发送失败: {str(e)}',
-            'data': None
-        }), 500
+        return {
+            'response': {
+                'code': 3001,
+                'message': f'发送失败: {str(e)}',
+                'data': None
+            },
+            'status_code': 500
+        }
 
 @api_bp.route('/message/get-next-new', methods=['GET'])
 @require_api_key
@@ -323,7 +451,7 @@ def get_next_new_message():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     try:
         # 更灵活的布尔值处理
         def parse_bool(value):
@@ -357,24 +485,25 @@ def get_next_new_message():
                     logger.warning(f"下载失败，第{attempt + 1}次重试: {str(e)}")
                     time.sleep(delay)
 
-        # 获取消息
+        # 获取消息 - 适配器会自动处理不同库的参数差异
+        # wxauto不支持savevideo和parseurl参数，但适配器会自动移除这些参数
         messages = retry_download(
             lambda: wx_instance.GetNextNewMessage(
                 savepic=savepic,
-                savevideo=savevideo,
+                savevideo=savevideo,  # wxauto不支持，但适配器会处理
                 savefile=savefile,
                 savevoice=savevoice,
-                parseurl=parseurl
+                parseurl=parseurl  # wxauto不支持，但适配器会处理
             )
         )
-        
+
         if not messages:
             return jsonify({
                 'code': 0,
                 'message': '没有新消息',
                 'data': {'messages': {}}
             })
-            
+
         formatted_messages = {}
         for chat_name, msg_list in messages.items():
             formatted_messages[chat_name] = []
@@ -390,15 +519,15 @@ def get_next_new_message():
                                 retry_download(
                                     lambda: wx_instance.GetNextNewMessage(
                                         savepic=savepic,
-                                        savevideo=savevideo,
+                                        savevideo=savevideo,  # wxauto不支持，但适配器会处理
                                         savefile=savefile,
                                         savevoice=savevoice,
-                                        parseurl=parseurl
+                                        parseurl=parseurl  # wxauto不支持，但适配器会处理
                                     )
                                 )
                         except Exception as e:
                             logger.error(f"检查文件失败: {str(e)}")
-                
+
                 formatted_messages[chat_name].append({
                     'type': msg.type,
                     'content': msg.content,
@@ -408,7 +537,7 @@ def get_next_new_message():
                     'sender_remark': getattr(msg, 'sender_remark', None),
                     'file_path': getattr(msg, 'file_path', None)
                 })
-            
+
         return jsonify({
             'code': 0,
             'message': '获取成功',
@@ -434,28 +563,30 @@ def add_listen_chat():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     data = request.get_json()
     who = data.get('who')
-    
+
     if not who:
         return jsonify({
             'code': 1002,
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
+        # 适配器会自动处理不同库的参数差异
+        # wxauto不支持savevideo和parseurl参数，但适配器会自动移除这些参数
         wx_instance.AddListenChat(
             who=who,
             savepic=data.get('savepic', False),
-            savevideo=data.get('savevideo', False),
+            savevideo=data.get('savevideo', False),  # wxauto不支持，但适配器会处理
             savefile=data.get('savefile', False),
             savevoice=data.get('savevoice', False),
-            parseurl=data.get('parseurl', False),
-            exact=data.get('exact', False)
+            parseurl=data.get('parseurl', False),  # wxauto不支持，但适配器会处理
+            # exact参数已移除，wxauto不支持
         )
-        
+
         return jsonify({
             'code': 0,
             'message': '添加监听成功',
@@ -479,19 +610,19 @@ def get_listen_messages():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     who = request.args.get('who')  # 可选参数
-        
+
     try:
         messages = wx_instance.GetListenMessage(who)
-        
+
         if not messages:
             return jsonify({
                 'code': 0,
                 'message': '没有新消息',
                 'data': {'messages': {}}
             })
-            
+
         formatted_messages = {}
         for chat_wnd, msg_list in messages.items():
             formatted_messages[chat_wnd.who] = [{
@@ -502,7 +633,7 @@ def get_listen_messages():
                 'mtype': getattr(msg, 'mtype', None),
                 'sender_remark': getattr(msg, 'sender_remark', None)
             } for msg in msg_list]
-            
+
         return jsonify({
             'code': 0,
             'message': '获取成功',
@@ -528,17 +659,17 @@ def remove_listen_chat():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     data = request.get_json()
     who = data.get('who')
-    
+
     if not who:
         return jsonify({
             'code': 1002,
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
         wx_instance.RemoveListenChat(who)
         return jsonify({
@@ -564,20 +695,20 @@ def chat_window_send_message():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     data = request.get_json()
     who = data.get('who')
     message = data.get('message')
     at_list = data.get('at_list', [])
     clear = data.get('clear', True)
-    
+
     if not who or not message:
         return jsonify({
             'code': 1002,
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
         if who not in wx_instance.listen:
             return jsonify({
@@ -585,13 +716,13 @@ def chat_window_send_message():
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
-            
+
         chat_wnd = wx_instance.listen[who]
         if at_list:
             chat_wnd.SendMsg(message, clear=clear, at=at_list)
         else:
             chat_wnd.SendMsg(message, clear=clear)
-            
+
         return jsonify({
             'code': 0,
             'message': '发送成功',
@@ -615,20 +746,20 @@ def chat_window_send_typing_message():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     data = request.get_json()
     who = data.get('who')
     message = data.get('message')
     at_list = data.get('at_list', [])
     clear = data.get('clear', True)
-    
+
     if not who or not message:
         return jsonify({
             'code': 1002,
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
         if who not in wx_instance.listen:
             return jsonify({
@@ -636,7 +767,7 @@ def chat_window_send_typing_message():
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
-            
+
         chat_wnd = wx_instance.listen[who]
         if at_list:
             if message and not message.endswith('\n'):
@@ -646,7 +777,7 @@ def chat_window_send_typing_message():
                 if user != at_list[-1]:
                     message += '\n'
         chat_wnd.SendTypingText(message, clear=clear)
-            
+
         return jsonify({
             'code': 0,
             'message': '发送成功',
@@ -670,18 +801,18 @@ def chat_window_send_file():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     data = request.get_json()
     who = data.get('who')
     file_paths = data.get('file_paths', [])
-    
+
     if not who or not file_paths:
         return jsonify({
             'code': 1002,
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
         if who not in wx_instance.listen:
             return jsonify({
@@ -689,11 +820,11 @@ def chat_window_send_file():
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
-            
+
         chat_wnd = wx_instance.listen[who]
         success_count = 0
         failed_files = []
-        
+
         for file_path in file_paths:
             if not os.path.exists(file_path):
                 failed_files.append({
@@ -701,7 +832,7 @@ def chat_window_send_file():
                     'reason': '文件不存在'
                 })
                 continue
-                
+
             try:
                 chat_wnd.SendFiles(file_path)
                 success_count += 1
@@ -710,7 +841,7 @@ def chat_window_send_file():
                     'path': file_path,
                     'reason': str(e)
                 })
-        
+
         return jsonify({
             'code': 0 if not failed_files else 3001,
             'message': '发送完成' if not failed_files else '部分文件发送失败',
@@ -737,18 +868,18 @@ def chat_window_at_all():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     data = request.get_json()
     who = data.get('who')
     message = data.get('message')
-    
+
     if not who:
         return jsonify({
             'code': 1002,
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
         if who not in wx_instance.listen:
             return jsonify({
@@ -756,10 +887,10 @@ def chat_window_at_all():
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
-            
+
         chat_wnd = wx_instance.listen[who]
         chat_wnd.AtAll(message)
-            
+
         return jsonify({
             'code': 0,
             'message': '发送成功',
@@ -783,7 +914,7 @@ def get_chat_window_info():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     who = request.args.get('who')
     if not who:
         return jsonify({
@@ -791,7 +922,7 @@ def get_chat_window_info():
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
         if who not in wx_instance.listen:
             return jsonify({
@@ -799,10 +930,10 @@ def get_chat_window_info():
                 'message': f'聊天窗口 {who} 未在监听列表中',
                 'data': None
             }), 404
-            
+
         chat_wnd = wx_instance.listen[who]
         info = chat_wnd.ChatInfo()
-            
+
         return jsonify({
             'code': 0,
             'message': '获取成功',
@@ -827,7 +958,7 @@ def get_group_list():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     try:
         groups = wx_instance.GetGroupList()
         return jsonify({
@@ -854,19 +985,19 @@ def manage_group():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     data = request.get_json()
     group_name = data.get('group_name')
     action = data.get('action')
     params = data.get('params', {})
-    
+
     if not group_name or not action:
         return jsonify({
             'code': 1002,
             'message': '缺少必要参数',
             'data': None
         }), 400
-        
+
     try:
         if action == 'rename':
             new_name = params.get('new_name')
@@ -883,7 +1014,7 @@ def manage_group():
             # 退出群聊
             wx_instance.ChatWith(group_name)
             wx_instance.QuitGroup()
-            
+
         return jsonify({
             'code': 0,
             'message': '操作成功',
@@ -907,7 +1038,7 @@ def get_contact_list():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     try:
         contacts = wx_instance.GetFriendList()
         return jsonify({
@@ -928,10 +1059,10 @@ def get_contact_list():
 def health_check():
     wx_instance = wechat_manager.get_instance()
     wx_status = "not_initialized"
-    
+
     if wx_instance:
         wx_status = "connected" if wechat_manager.check_connection() else "disconnected"
-    
+
     return jsonify({
         'code': 0,
         'message': '服务正常',
@@ -973,10 +1104,10 @@ def add_current_chat_to_listen():
             'message': '微信未初始化',
             'data': None
         }), 400
-    
+
     try:
         data = request.get_json() or {}
-        
+
         # 更灵活的布尔值处理
         def parse_bool(value, default=False):
             if value is None:
@@ -1008,7 +1139,7 @@ def add_current_chat_to_listen():
                 'message': '未找到当前聊天窗口',
                 'data': None
             }), 404
-            
+
         # 如果窗口名称以 "微信" 开头，说明不是聊天窗口
         if current_chat.startswith('微信'):
             return jsonify({
@@ -1026,7 +1157,7 @@ def add_current_chat_to_listen():
             savevoice=savevoice,
             parseurl=parseurl
         )
-        
+
         return jsonify({
             'code': 0,
             'message': '添加监听成功',
@@ -1081,7 +1212,7 @@ def download_file():
 
         # 获取文件名
         filename = os.path.basename(file_path)
-        
+
         # 读取文件内容
         with open(file_path, 'rb') as f:
             file_content = f.read()
@@ -1108,4 +1239,24 @@ def download_file():
             'code': 3003,
             'message': '文件下载失败',
             'data': {'error': str(e)}
+        }), 500
+
+
+@api_bp.route('/system/queue-stats', methods=['GET'])
+@require_api_key
+def get_queue_status():
+    """获取队列状态"""
+    try:
+        stats = get_queue_stats()
+        return jsonify({
+            'code': 0,
+            'message': '获取成功',
+            'data': stats
+        })
+    except Exception as e:
+        logger.error(f"获取队列状态失败: {str(e)}")
+        return jsonify({
+            'code': 5002,
+            'message': f'获取队列状态失败: {str(e)}',
+            'data': None
         }), 500
