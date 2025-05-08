@@ -394,6 +394,29 @@ class WeChatAdapter:
             try:
                 # wxauto的GetListenMessage只接受who参数，移除其他参数
                 who = args[0] if args else kwargs.get('who')
+
+                # 在获取消息前，确保聊天窗口被激活到前台
+                if who and who in self._instance.listen:
+                    try:
+                        # 获取聊天窗口对象
+                        chat_wnd = self._instance.listen[who]
+
+                        # 尝试激活窗口到前台
+                        logger.debug(f"尝试激活聊天窗口到前台: {who}")
+                        import win32gui
+
+                        # 查找聊天窗口句柄
+                        chat_hwnd = win32gui.FindWindow('ChatWnd', who)
+                        if chat_hwnd:
+                            # 将窗口设置为前台窗口
+                            win32gui.SetForegroundWindow(chat_hwnd)
+                            # 等待窗口激活
+                            import time
+                            time.sleep(0.5)
+                            logger.debug(f"聊天窗口已激活: {who}")
+                    except Exception as e:
+                        logger.error(f"激活聊天窗口失败: {str(e)}")
+
                 # 调用原始方法，只传递who参数
                 if who:
                     result = self._instance.GetListenMessage(who)

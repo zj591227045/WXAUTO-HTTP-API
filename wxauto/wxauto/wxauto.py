@@ -596,6 +596,13 @@ class WeChat(WeChatBase):
             if who and who in self.listen:
                 chat = self.listen[who]
                 try:
+                    # 确保聊天窗口在前台
+                    try:
+                        chat._show()
+                        wxlog.debug(f"已激活聊天窗口到前台: {who}")
+                    except Exception as e:
+                        wxlog.error(f"激活聊天窗口失败: {str(e)}")
+
                     # 使用异常处理包装GetNewMessage调用
                     msg = chat.GetNewMessage(
                         savepic=getattr(chat, 'savepic', False),
@@ -614,6 +621,14 @@ class WeChat(WeChatBase):
             for chat_who in list(self.listen.keys()):  # 使用列表复制避免迭代过程中修改字典
                 try:
                     chat = self.listen[chat_who]
+
+                    # 确保聊天窗口在前台
+                    try:
+                        chat._show()
+                        wxlog.debug(f"已激活聊天窗口到前台: {chat_who}")
+                    except Exception as e:
+                        wxlog.error(f"激活聊天窗口失败: {str(e)}")
+
                     # 使用异常处理包装GetNewMessage调用
                     msg = chat.GetNewMessage(
                         savepic=getattr(chat, 'savepic', False),

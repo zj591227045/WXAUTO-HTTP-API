@@ -372,6 +372,13 @@ class ChatWnd(WeChatBase):
         '''
         wxlog.debug(f"获取新聊天记录：{self.who}")
 
+        # 确保窗口在前台
+        try:
+            self._show()
+            wxlog.debug(f"已激活聊天窗口到前台: {self.who}")
+        except Exception as e:
+            wxlog.error(f"激活聊天窗口失败: {str(e)}")
+
         # 初始化usedmsgid（如果需要）
         if not self.usedmsgid:
             # 直接从MsgItems中提取ID，避免递归调用
