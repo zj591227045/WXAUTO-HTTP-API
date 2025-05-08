@@ -210,11 +210,70 @@ class WeChatAdapter:
         # wxauto不支持savevideo和parseurl参数
         if self._lib_name == "wxauto":
             # 从kwargs中移除不支持的参数
-            kwargs.pop("savevideo", None)
-            kwargs.pop("parseurl", None)
+            if "savevideo" in kwargs:
+                logger.debug("移除wxauto不支持的参数: savevideo")
+                kwargs.pop("savevideo", None)
+            if "parseurl" in kwargs:
+                logger.debug("移除wxauto不支持的参数: parseurl")
+                kwargs.pop("parseurl", None)
 
-        # 调用原始方法
-        return self._instance.GetNextNewMessage(*args, **kwargs)
+        try:
+            # 直接调用原始方法，不进行额外的窗口状态检查
+            logger.debug(f"调用GetNextNewMessage方法，参数: {kwargs}")
+            return self._instance.GetNextNewMessage(*args, **kwargs)
+        except Exception as e:
+            error_str = str(e)
+            logger.error(f"调用GetNextNewMessage方法失败: {error_str}")
+
+            # 如果是"Find Control Timeout"错误，可能是因为没有打开的聊天窗口
+            if "Find Control Timeout" in error_str and "消息" in error_str:
+                logger.warning("找不到'消息'控件，可能没有打开的聊天窗口")
+                # 尝试打开一个聊天窗口
+                try:
+                    # 获取会话列表
+                    session_dict = self._instance.GetSessionList(reset=True)
+                    if session_dict:
+                        # 打开第一个会话的聊天窗口
+                        first_session = list(session_dict.keys())[0]
+                        logger.info(f"尝试打开会话聊天窗口: {first_session}")
+                        self._instance.ChatWith(first_session)
+                        # 等待窗口打开
+                        import time
+                        time.sleep(1)
+                        # 重试获取消息
+                        logger.info("重试获取消息")
+                        return self._instance.GetNextNewMessage(*args, **kwargs)
+                    else:
+                        logger.warning("会话列表为空，无法打开聊天窗口")
+                except Exception as open_e:
+                    logger.error(f"尝试打开聊天窗口失败: {str(open_e)}")
+                # 如果无法解决，返回空列表表示没有新消息
+                logger.info("返回空列表表示没有新消息")
+                return []
+
+            # 如果是参数错误，尝试使用最基本的参数重试
+            if "参数" in error_str or "parameter" in error_str.lower() or "argument" in error_str.lower():
+                logger.warning("可能是参数错误，尝试使用基本参数重试")
+                # 只保留基本参数
+                basic_kwargs = {}
+                if "savepic" in kwargs:
+                    basic_kwargs["savepic"] = kwargs["savepic"]
+                if "savefile" in kwargs:
+                    basic_kwargs["savefile"] = kwargs["savefile"]
+                if "savevoice" in kwargs:
+                    basic_kwargs["savevoice"] = kwargs["savevoice"]
+
+                logger.debug(f"使用基本参数重试: {basic_kwargs}")
+                try:
+                    return self._instance.GetNextNewMessage(*args, **basic_kwargs)
+                except Exception as retry_e:
+                    logger.error(f"使用基本参数重试失败: {str(retry_e)}")
+                    # 如果重试失败，返回空列表表示没有新消息
+                    return []
+
+            # 对于其他错误，返回空列表表示没有新消息
+            logger.warning(f"无法处理的错误，返回空列表: {error_str}")
+            return []
 
     def _handle_AddListenChat(self, *args, **kwargs):
         """处理AddListenChat方法的差异"""
@@ -224,11 +283,37 @@ class WeChatAdapter:
         # wxauto不支持savevideo和parseurl参数
         if self._lib_name == "wxauto":
             # 从kwargs中移除不支持的参数
-            kwargs.pop("savevideo", None)
-            kwargs.pop("parseurl", None)
+            if "savevideo" in kwargs:
+                logger.debug("移除wxauto不支持的参数: savevideo")
+                kwargs.pop("savevideo", None)
+            if "parseurl" in kwargs:
+                logger.debug("移除wxauto不支持的参数: parseurl")
+                kwargs.pop("parseurl", None)
 
-        # 调用原始方法
-        return self._instance.AddListenChat(*args, **kwargs)
+        try:
+            # 调用原始方法
+            logger.debug(f"调用AddListenChat方法，参数: {kwargs}")
+            return self._instance.AddListenChat(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"调用AddListenChat方法失败: {str(e)}")
+            # 如果是参数错误，尝试使用最基本的参数重试
+            if "参数" in str(e) or "parameter" in str(e).lower() or "argument" in str(e).lower():
+                logger.warning("可能是参数错误，尝试使用基本参数重试")
+                # 只保留基本参数
+                basic_kwargs = {}
+                if "who" in kwargs:
+                    basic_kwargs["who"] = kwargs["who"]
+                if "savepic" in kwargs:
+                    basic_kwargs["savepic"] = kwargs["savepic"]
+                if "savefile" in kwargs:
+                    basic_kwargs["savefile"] = kwargs["savefile"]
+                if "savevoice" in kwargs:
+                    basic_kwargs["savevoice"] = kwargs["savevoice"]
+
+                logger.debug(f"使用基本参数重试: {basic_kwargs}")
+                return self._instance.AddListenChat(*args, **basic_kwargs)
+            # 重新抛出原始异常
+            raise
 
     def _handle_GetListenMessage(self, *args, **kwargs):
         """处理GetListenMessage方法的差异，并添加异常处理"""

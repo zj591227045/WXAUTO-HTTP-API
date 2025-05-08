@@ -475,28 +475,37 @@ def get_next_new_message():
 
         logger.debug(f"处理参数: savepic={savepic}, savevideo={savevideo}, savefile={savefile}, savevoice={savevoice}, parseurl={parseurl}")
 
-        # 定义重试函数
-        def retry_download(func, max_retries=3, delay=1):
-            for attempt in range(max_retries):
-                try:
-                    return func()
-                except Exception as e:
-                    if attempt == max_retries - 1:
-                        raise e
-                    logger.warning(f"下载失败，第{attempt + 1}次重试: {str(e)}")
-                    time.sleep(delay)
+        # 获取当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"当前使用的库: {lib_name}")
 
-        # 获取消息 - 适配器会自动处理不同库的参数差异
-        # wxauto不支持savevideo和parseurl参数，但适配器会自动移除这些参数
-        messages = retry_download(
-            lambda: wx_instance.GetNextNewMessage(
-                savepic=savepic,
-                savevideo=savevideo,  # wxauto不支持，但适配器会处理
-                savefile=savefile,
-                savevoice=savevoice,
-                parseurl=parseurl  # wxauto不支持，但适配器会处理
-            )
-        )
+        # 根据不同的库构建不同的参数
+        if lib_name == 'wxautox':
+            # wxautox支持所有参数
+            params = {
+                'savepic': savepic,
+                'savevideo': savevideo,
+                'savefile': savefile,
+                'savevoice': savevoice,
+                'parseurl': parseurl
+            }
+            logger.debug(f"使用wxautox参数: {params}")
+        else:
+            # wxauto不支持savevideo和parseurl参数
+            params = {
+                'savepic': savepic,
+                'savefile': savefile,
+                'savevoice': savevoice
+            }
+            logger.debug(f"使用wxauto参数: {params}")
+
+        # 直接调用GetNextNewMessage方法，不需要重试
+        try:
+            messages = wx_instance.GetNextNewMessage(**params)
+        except Exception as e:
+            logger.error(f"获取新消息失败: {str(e)}")
+            # 如果出现异常，返回空字典表示没有新消息
+            messages = {}
 
         if not messages:
             return jsonify({
@@ -505,9 +514,18 @@ def get_next_new_message():
                 'data': {'messages': {}}
             })
 
+        # 辅助函数：清理群名中的人数信息
+        def clean_group_name(name):
+            # 匹配群名后面的 (数字) 模式
+            import re
+            return re.sub(r'\s*\(\d+\)$', '', name)
+
         formatted_messages = {}
         for chat_name, msg_list in messages.items():
-            formatted_messages[chat_name] = []
+            # 清理群名中的人数信息
+            clean_name = clean_group_name(chat_name)
+            formatted_messages[clean_name] = []
+
             for msg in msg_list:
                 # 检查消息类型
                 if msg.type in ['image', 'file', 'video', 'voice']:
@@ -516,20 +534,12 @@ def get_next_new_message():
                         try:
                             if not os.path.exists(msg.file_path) or os.path.getsize(msg.file_path) == 0:
                                 logger.warning(f"文件不存在或大小为0: {msg.file_path}")
-                                # 尝试重新下载
-                                retry_download(
-                                    lambda: wx_instance.GetNextNewMessage(
-                                        savepic=savepic,
-                                        savevideo=savevideo,  # wxauto不支持，但适配器会处理
-                                        savefile=savefile,
-                                        savevoice=savevoice,
-                                        parseurl=parseurl  # wxauto不支持，但适配器会处理
-                                    )
-                                )
+                                # 记录文件不存在的警告，但不重试下载
+                                logger.warning("文件不存在或大小为0，但不重试下载")
                         except Exception as e:
                             logger.error(f"检查文件失败: {str(e)}")
 
-                formatted_messages[chat_name].append({
+                formatted_messages[clean_name].append({
                     'type': msg.type,
                     'content': msg.content,
                     'sender': msg.sender,
@@ -576,17 +586,34 @@ def add_listen_chat():
         }), 400
 
     try:
-        # 适配器会自动处理不同库的参数差异
-        # wxauto不支持savevideo和parseurl参数，但适配器会自动移除这些参数
-        wx_instance.AddListenChat(
-            who=who,
-            savepic=data.get('savepic', False),
-            savevideo=data.get('savevideo', False),  # wxauto不支持，但适配器会处理
-            savefile=data.get('savefile', False),
-            savevoice=data.get('savevoice', False),
-            parseurl=data.get('parseurl', False),  # wxauto不支持，但适配器会处理
-            # exact参数已移除，wxauto不支持
-        )
+        # 获取当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"当前使用的库: {lib_name}")
+
+        # 根据不同的库构建不同的参数
+        if lib_name == 'wxautox':
+            # wxautox支持所有参数
+            params = {
+                'who': who,
+                'savepic': data.get('savepic', False),
+                'savevideo': data.get('savevideo', False),
+                'savefile': data.get('savefile', False),
+                'savevoice': data.get('savevoice', False),
+                'parseurl': data.get('parseurl', False)
+            }
+            logger.debug(f"使用wxautox参数: {params}")
+        else:
+            # wxauto不支持savevideo和parseurl参数
+            params = {
+                'who': who,
+                'savepic': data.get('savepic', False),
+                'savefile': data.get('savefile', False),
+                'savevoice': data.get('savevoice', False)
+            }
+            logger.debug(f"使用wxauto参数: {params}")
+
+        # 调用AddListenChat方法
+        wx_instance.AddListenChat(**params)
 
         return jsonify({
             'code': 0,
@@ -615,8 +642,41 @@ def get_listen_messages():
     who = request.args.get('who')  # 可选参数
 
     try:
-        # 调用GetListenMessage方法，现在已经在适配器中添加了异常处理
-        messages = wx_instance.GetListenMessage(who)
+        # 获取当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"获取监听消息，当前使用的库: {lib_name}")
+
+        # 获取请求参数
+        savepic = request.args.get('savepic', 'true').lower() in ('true', '1', 'yes', 'y', 'on')
+        savevideo = request.args.get('savevideo', 'false').lower() in ('true', '1', 'yes', 'y', 'on')
+        savefile = request.args.get('savefile', 'true').lower() in ('true', '1', 'yes', 'y', 'on')
+        savevoice = request.args.get('savevoice', 'true').lower() in ('true', '1', 'yes', 'y', 'on')
+        parseurl = request.args.get('parseurl', 'false').lower() in ('true', '1', 'yes', 'y', 'on')
+
+        # 根据不同的库构建不同的参数
+        if lib_name == 'wxautox':
+            # wxautox支持所有参数
+            params = {
+                'who': who,
+                'savepic': savepic,
+                'savevideo': savevideo,
+                'savefile': savefile,
+                'savevoice': savevoice,
+                'parseurl': parseurl
+            }
+            logger.debug(f"使用wxautox参数: {params}")
+        else:
+            # wxauto不支持savevideo和parseurl参数
+            params = {
+                'who': who,
+                'savepic': savepic,
+                'savefile': savefile,
+                'savevoice': savevoice
+            }
+            logger.debug(f"使用wxauto参数: {params}")
+
+        # 调用GetListenMessage方法
+        messages = wx_instance.GetListenMessage(**params)
 
         if not messages:
             return jsonify({
@@ -627,6 +687,12 @@ def get_listen_messages():
 
         # 检查当前使用的库
         lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+
+        # 辅助函数：清理群名中的人数信息
+        def clean_group_name(name):
+            # 匹配群名后面的 (数字) 模式
+            import re
+            return re.sub(r'\s*\(\d+\)$', '', name)
 
         # 初始化格式化消息字典
         formatted_messages = {}
@@ -639,7 +705,9 @@ def get_listen_messages():
             if who:
                 # 如果指定了who参数，将消息列表添加到该聊天对象下
                 try:
-                    formatted_messages[who] = []
+                    # 清理群名中的人数信息
+                    clean_who = clean_group_name(who)
+                    formatted_messages[clean_who] = []
                     for msg in messages:
                         try:
                             # 格式化单条消息
@@ -651,7 +719,7 @@ def get_listen_messages():
                                 'mtype': getattr(msg, 'mtype', None),
                                 'sender_remark': getattr(msg, 'sender_remark', None)
                             }
-                            formatted_messages[who].append(formatted_msg)
+                            formatted_messages[clean_who].append(formatted_msg)
                         except Exception as msg_e:
                             logger.error(f"格式化消息失败: {str(msg_e)}")
                             # 继续处理下一条消息
@@ -671,7 +739,9 @@ def get_listen_messages():
                 for chat_wnd, msg_list in messages.items():
                     try:
                         chat_name = getattr(chat_wnd, 'who', str(chat_wnd))
-                        formatted_messages[chat_name] = [{
+                        # 清理群名中的人数信息
+                        clean_name = clean_group_name(chat_name)
+                        formatted_messages[clean_name] = [{
                             'type': msg.type,
                             'content': msg.content,
                             'sender': msg.sender,
@@ -690,7 +760,9 @@ def get_listen_messages():
                         try:
                             # 获取聊天窗口名称
                             chat_name = getattr(chat_wnd, 'who', str(chat_wnd))
-                            formatted_messages[chat_name] = []
+                            # 清理群名中的人数信息
+                            clean_name = clean_group_name(chat_name)
+                            formatted_messages[clean_name] = []
 
                             # 遍历消息列表
                             for msg in msg_list:
@@ -704,7 +776,7 @@ def get_listen_messages():
                                         'mtype': getattr(msg, 'mtype', None),
                                         'sender_remark': getattr(msg, 'sender_remark', None)
                                     }
-                                    formatted_messages[chat_name].append(formatted_msg)
+                                    formatted_messages[clean_name].append(formatted_msg)
                                 except Exception as msg_e:
                                     logger.error(f"格式化消息失败: {str(msg_e)}")
                                     # 继续处理下一条消息
