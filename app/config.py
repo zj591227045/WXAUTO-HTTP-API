@@ -1,20 +1,50 @@
 import os
 import logging
+import sys
 from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
 
-load_dotenv()
+# 确保config_manager可以被导入
+current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# 导入配置管理模块
+try:
+    import config_manager
+except ImportError:
+    # 如果无法导入，则使用环境变量
+    load_dotenv()
+    config_manager = None
 
 class Config:
-    # API配置
-    API_KEYS = os.getenv('API_KEYS', '').split(',')
-    SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
+    # 从配置文件或环境变量加载配置
+    if config_manager:
+        # 确保目录存在
+        config_manager.ensure_dirs()
 
-    # Flask配置
+        # 加载应用配置
+        app_config = config_manager.load_app_config()
+
+        # API配置
+        API_KEYS = app_config.get('api_keys', ['test-key-2'])
+
+        # Flask配置
+        PORT = app_config.get('port', 5000)
+
+        # 微信库选择配置
+        WECHAT_LIB = app_config.get('wechat_lib', 'wxauto').lower()
+    else:
+        # 如果无法导入config_manager，则使用环境变量
+        API_KEYS = os.getenv('API_KEYS', 'test-key-2').split(',')
+        PORT = int(os.getenv('PORT', 5000))
+        WECHAT_LIB = os.getenv('WECHAT_LIB', 'wxauto').lower()
+
+    # 其他固定配置
+    SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
     DEBUG = True
     HOST = '0.0.0.0'  # 允许所有IP访问
-    PORT = int(os.getenv('PORT', 5000))
 
     # 限流配置
     RATELIMIT_DEFAULT = "100 per minute"
@@ -37,7 +67,3 @@ class Config:
     WECHAT_AUTO_RECONNECT = os.getenv('WECHAT_AUTO_RECONNECT', 'true').lower() == 'true'
     WECHAT_RECONNECT_DELAY = int(os.getenv('WECHAT_RECONNECT_DELAY', 30))  # 重连延迟（秒）
     WECHAT_MAX_RETRY = int(os.getenv('WECHAT_MAX_RETRY', 3))  # 最大重试次数
-
-    # 微信库选择配置
-    # 可选值: 'wxauto', 'wxautox'
-    WECHAT_LIB = os.getenv('WECHAT_LIB', 'wxauto').lower()  # 默认使用wxauto

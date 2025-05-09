@@ -193,14 +193,9 @@ class WxAutoHttpUI:
         self.wxautox_radio = ttk.Radiobutton(lib_frame, text="wxautox", variable=self.lib_var, value="wxautox", command=self.on_lib_change)
         self.wxautox_radio.pack(side=tk.LEFT, padx=5)
 
-        # 端口设置区域
-        port_frame = ttk.Frame(row1)
-        port_frame.pack(side=tk.LEFT, padx=20)
-
-        ttk.Label(port_frame, text="端口号:").pack(side=tk.LEFT, padx=5)
+        # 初始化变量，但不在主界面显示
         self.port_var = tk.StringVar(value="5000")
-        port_entry = ttk.Entry(port_frame, textvariable=self.port_var, width=6)
-        port_entry.pack(side=tk.LEFT, padx=5)
+        self.apikey_var = tk.StringVar(value="test-key-2")
 
         # 服务控制区域
         service_frame = ttk.Frame(row1)
@@ -210,6 +205,8 @@ class WxAutoHttpUI:
         self.start_button.pack(side=tk.LEFT, padx=5)
         self.stop_button = ttk.Button(service_frame, text="停止服务", command=self.stop_api_service)
         self.stop_button.pack(side=tk.LEFT, padx=5)
+        self.config_button = ttk.Button(service_frame, text="插件配置", command=self.show_config_dialog)
+        self.config_button.pack(side=tk.LEFT, padx=5)
         self.reload_button = ttk.Button(service_frame, text="重载配置", command=self.reload_config)
         self.reload_button.pack(side=tk.LEFT, padx=5)
 
@@ -1175,84 +1172,34 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
             self.lib_var.set(self.current_lib)
             return
 
-        # 更新配置文件
-        self.update_lib_config(selected_lib)
-        self.current_lib = selected_lib
-        self.current_lib_label.config(text=selected_lib)
+        try:
+            # 加载当前配置
+            config = config_manager.load_app_config()
+
+            # 更新库配置
+            config['wechat_lib'] = selected_lib
+
+            # 保存配置
+            config_manager.save_app_config(config)
+
+            # 标记配置已修改
+            global CONFIG_MODIFIED
+            CONFIG_MODIFIED = True
+
+            # 更新UI
+            self.current_lib = selected_lib
+            self.current_lib_label.config(text=selected_lib)
+
+            self.add_log(f"已更新微信库配置: {selected_lib}")
+        except Exception as e:
+            self.add_log(f"更新微信库配置失败: {str(e)}")
+            messagebox.showerror("错误", f"更新微信库配置失败: {str(e)}")
 
         # 如果服务正在运行，提示需要重启
         if self.api_running:
             messagebox.showinfo("需要重启", "库已切换，需要重启服务才能生效")
 
-    def update_lib_config(self, lib_name):
-        """更新.env文件中的库配置"""
-        env_file = ".env"
-
-        if os.path.exists(env_file):
-            with open(env_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-
-            # 检查是否已有WECHAT_LIB参数
-            has_lib_param = False
-            for i, line in enumerate(lines):
-                if line.strip().startswith("WECHAT_LIB="):
-                    lines[i] = f"WECHAT_LIB={lib_name}\n"
-                    has_lib_param = True
-                    break
-
-            # 如果没有WECHAT_LIB参数，添加一个
-            if not has_lib_param:
-                lines.append(f"\n# 微信库选择 (wxauto 或 wxautox)\nWECHAT_LIB={lib_name}\n")
-
-            # 写回.env文件
-            with open(env_file, "w", encoding="utf-8") as f:
-                f.writelines(lines)
-
-            # 标记配置已修改
-            global CONFIG_MODIFIED
-            CONFIG_MODIFIED = True
-        else:
-            # 创建新的.env文件
-            with open(env_file, "w", encoding="utf-8") as f:
-                f.write(f"# 微信库选择 (wxauto 或 wxautox)\nWECHAT_LIB={lib_name}\n")
-
-            # 标记配置已修改
-            CONFIG_MODIFIED = True
-
-    def update_port_config(self, port):
-        """更新.env文件中的端口配置"""
-        env_file = ".env"
-
-        if os.path.exists(env_file):
-            with open(env_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-
-            # 检查是否已有PORT参数
-            has_port_param = False
-            for i, line in enumerate(lines):
-                if line.strip().startswith("PORT="):
-                    lines[i] = f"PORT={port}\n"
-                    has_port_param = True
-                    break
-
-            # 如果没有PORT参数，添加一个
-            if not has_port_param:
-                lines.append(f"\n# API服务端口\nPORT={port}\n")
-
-            # 写回.env文件
-            with open(env_file, "w", encoding="utf-8") as f:
-                f.writelines(lines)
-
-            # 标记配置已修改
-            global CONFIG_MODIFIED
-            CONFIG_MODIFIED = True
-        else:
-            # 创建新的.env文件
-            with open(env_file, "w", encoding="utf-8") as f:
-                f.write(f"# API服务端口\nPORT={port}\n")
-
-            # 标记配置已修改
-            CONFIG_MODIFIED = True
+    # 这些方法已被移除，配置现在通过插件配置对话框进行管理
 
     def start_api_service(self):
         """启动API服务"""
@@ -1272,18 +1219,21 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
             messagebox.showwarning("库未安装", "wxautox库未安装，请先安装")
             return
 
-        # 获取端口号
+        # 从配置文件获取端口号
         try:
-            port = int(self.port_var.get())
-            if port < 1 or port > 65535:
-                messagebox.showwarning("端口错误", "端口号必须在1-65535之间")
-                return
-        except ValueError:
-            messagebox.showwarning("端口错误", "端口号必须是数字")
-            return
+            config = config_manager.load_app_config()
+            port = config.get('port', 5000)
 
-        # 更新.env文件中的端口配置
-        self.update_port_config(port)
+            # 更新UI显示
+            self.port_var.set(str(port))
+
+            if port < 1 or port > 65535:
+                messagebox.showwarning("端口错误", "配置文件中的端口号必须在1-65535之间")
+                return
+        except Exception as e:
+            self.add_log(f"读取端口配置失败: {str(e)}")
+            messagebox.showwarning("配置错误", f"读取端口配置失败: {str(e)}")
+            return
 
         # 启动服务
         try:
@@ -1508,10 +1458,126 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
             # 恢复按钮状态
             self.root.after(0, lambda: self.reload_button.config(state=tk.NORMAL))
 
-    def get_api_key(self):
-        """从.env文件获取API密钥"""
-        env_file = ".env"
+    def show_config_dialog(self):
+        """显示插件配置对话框"""
+        # 创建配置对话框
+        config_dialog = tk.Toplevel(self.root)
+        config_dialog.title("插件配置")
+        config_dialog.geometry("400x300")
+        config_dialog.resizable(False, False)
+        config_dialog.transient(self.root)  # 设置为主窗口的子窗口
+        config_dialog.grab_set()  # 模态对话框
 
+        # 创建设置框架
+        settings_frame = ttk.Frame(config_dialog, padding=10)
+        settings_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 添加标题
+        ttk.Label(settings_frame, text="插件配置设置", font=("TkDefaultFont", 12, "bold")).pack(pady=10)
+
+        # 端口设置区域
+        port_frame = ttk.Frame(settings_frame)
+        port_frame.pack(fill=tk.X, pady=10)
+
+        ttk.Label(port_frame, text="端口号:").pack(side=tk.LEFT, padx=5)
+        port_entry = ttk.Entry(port_frame, textvariable=self.port_var, width=10)
+        port_entry.pack(side=tk.LEFT, padx=5)
+
+        # API Key设置区域
+        apikey_frame = ttk.Frame(settings_frame)
+        apikey_frame.pack(fill=tk.X, pady=10)
+
+        ttk.Label(apikey_frame, text="API Key:").pack(side=tk.LEFT, padx=5)
+        apikey_entry = ttk.Entry(apikey_frame, textvariable=self.apikey_var, width=30)
+        apikey_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+
+        # 说明文本
+        ttk.Separator(settings_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
+        ttk.Label(settings_frame, text="注意: 配置将在保存后自动应用，但需要重启服务才能生效",
+                 wraplength=380).pack(pady=5)
+
+        # 按钮区域
+        button_frame = ttk.Frame(settings_frame)
+        button_frame.pack(fill=tk.X, pady=10)
+
+        # 保存按钮
+        ttk.Button(
+            button_frame,
+            text="保存配置",
+            command=lambda: [self.save_config(), config_dialog.destroy()]
+        ).pack(side=tk.RIGHT, padx=5)
+
+        # 取消按钮
+        ttk.Button(
+            button_frame,
+            text="取消",
+            command=config_dialog.destroy
+        ).pack(side=tk.RIGHT, padx=5)
+
+    def save_config(self):
+        """保存配置到配置文件"""
+        try:
+            # 获取当前配置
+            port = self.port_var.get().strip()
+            api_key = self.apikey_var.get().strip()
+
+            # 验证输入
+            if not port:
+                messagebox.showwarning("警告", "端口号不能为空")
+                return
+
+            if not api_key:
+                messagebox.showwarning("警告", "API Key不能为空")
+                return
+
+            try:
+                port = int(port)
+                if port < 1 or port > 65535:
+                    messagebox.showwarning("警告", "端口号必须在1-65535之间")
+                    return
+            except ValueError:
+                messagebox.showwarning("警告", "端口号必须是数字")
+                return
+
+            # 加载当前配置
+            config = config_manager.load_app_config()
+
+            # 更新配置
+            config['port'] = port
+            config['api_keys'] = [api_key]
+
+            # 保存配置
+            config_manager.save_app_config(config)
+
+            # 标记配置已修改
+            global CONFIG_MODIFIED
+            CONFIG_MODIFIED = True
+
+            # 提示用户
+            self.add_log(f"配置已保存 - 端口: {port}, API Key: {api_key}")
+            messagebox.showinfo("成功", "配置已保存，请重载配置使其生效")
+        except Exception as e:
+            self.add_log(f"保存配置失败: {str(e)}")
+            messagebox.showerror("错误", f"保存配置失败: {str(e)}")
+
+    def get_api_key(self):
+        """获取当前API密钥"""
+        # 优先使用UI中设置的API Key
+        api_key = self.apikey_var.get().strip()
+        if api_key:
+            return api_key
+
+        # 如果UI中没有设置，从配置文件中读取
+        try:
+            config = config_manager.load_app_config()
+            api_keys = config.get('api_keys', [])
+            if api_keys:
+                return api_keys[0]
+        except Exception as e:
+            self.add_log(f"从配置文件读取API Key失败: {str(e)}")
+
+        # 如果配置文件中没有，从.env文件中读取
+        env_file = ".env"
         if os.path.exists(env_file):
             with open(env_file, "r", encoding="utf-8") as f:
                 for line in f:
@@ -1520,7 +1586,7 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                         if keys:
                             return keys[0]
 
-        return "test-key-1"  # 默认API密钥
+        return "test-key-2"  # 默认API密钥
 
     def add_log(self, message):
         """添加日志到日志区域"""
@@ -1749,29 +1815,60 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
     def update_status(self):
         """初始化状态"""
-        # 检查当前配置的库和端口
-        env_file = ".env"
-        if os.path.exists(env_file):
-            with open(env_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
+        try:
+            # 从配置文件加载配置
+            config = config_manager.load_app_config()
 
-                # 读取库配置
-                for line in lines:
-                    if line.strip().startswith("WECHAT_LIB="):
-                        lib_name = line.strip()[11:].strip()
-                        self.current_lib = lib_name
-                        self.lib_var.set(lib_name)
-                        self.current_lib_label.config(text=lib_name)
+            # 设置微信库
+            lib_name = config.get('wechat_lib', 'wxauto')
+            self.current_lib = lib_name
+            self.lib_var.set(lib_name)
+            self.current_lib_label.config(text=lib_name)
 
-                # 读取端口配置
-                for line in lines:
-                    if line.strip().startswith("PORT="):
-                        try:
-                            port = int(line.strip()[5:].strip())
-                            self.current_port = port
-                            self.port_var.set(str(port))
-                        except ValueError:
-                            pass
+            # 设置端口
+            port = config.get('port', 5000)
+            self.current_port = port
+            self.port_var.set(str(port))
+
+            # 设置API Key
+            api_keys = config.get('api_keys', ['test-key-2'])
+            if api_keys:
+                self.apikey_var.set(api_keys[0])
+
+            self.add_log("从配置文件加载配置成功")
+        except Exception as e:
+            self.add_log(f"从配置文件加载配置失败: {str(e)}")
+
+            # 如果配置文件加载失败，尝试从.env文件加载
+            env_file = ".env"
+            if os.path.exists(env_file):
+                with open(env_file, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+
+                    # 读取库配置
+                    for line in lines:
+                        if line.strip().startswith("WECHAT_LIB="):
+                            lib_name = line.strip()[11:].strip()
+                            self.current_lib = lib_name
+                            self.lib_var.set(lib_name)
+                            self.current_lib_label.config(text=lib_name)
+
+                    # 读取端口配置
+                    for line in lines:
+                        if line.strip().startswith("PORT="):
+                            try:
+                                port = int(line.strip()[5:].strip())
+                                self.current_port = port
+                                self.port_var.set(str(port))
+                            except ValueError:
+                                pass
+
+                    # 读取API Key配置
+                    for line in lines:
+                        if line.strip().startswith("API_KEYS="):
+                            keys = line.strip()[9:].split(",")
+                            if keys:
+                                self.apikey_var.set(keys[0])
 
         # 初始化按钮状态
         self.start_button.config(state=tk.NORMAL)
