@@ -4,6 +4,33 @@ import re
 from logging.handlers import TimedRotatingFileHandler
 from app.config import Config
 
+# 创建一个自定义的日志记录器，用于添加当前使用的库信息
+class WeChatLibAdapter(logging.LoggerAdapter):
+    """添加当前使用的库信息到日志记录"""
+
+    def __init__(self, logger, lib_name='wxauto'):
+        super().__init__(logger, {'wechat_lib': lib_name})
+
+    def process(self, msg, kwargs):
+        # 确保额外参数中包含当前使用的库信息
+        if 'extra' not in kwargs:
+            kwargs['extra'] = self.extra
+        else:
+            # 如果已经有extra参数，添加wechat_lib
+            kwargs['extra'].update(self.extra)
+        return msg, kwargs
+
+    def set_lib_name(self, lib_name):
+        """更新当前使用的库名称"""
+        self.extra['wechat_lib'] = lib_name
+
+    @classmethod
+    def set_lib_name_static(cls, lib_name):
+        """静态方法，用于更新全局logger的库名称"""
+        global logger
+        if isinstance(logger, cls):
+            logger.set_lib_name(lib_name)
+
 # 创建一个过滤器类，用于过滤掉重复的HTTP请求处理日志
 class HttpRequestFilter(logging.Filter):
     """过滤掉重复的HTTP请求处理日志"""
@@ -87,5 +114,8 @@ def setup_logger():
 
     return logger
 
-# 创建全局logger实例
-logger = setup_logger()
+# 创建基础logger实例
+base_logger = setup_logger()
+
+# 使用适配器包装logger，添加当前使用的库信息
+logger = WeChatLibAdapter(base_logger, Config.WECHAT_LIB)

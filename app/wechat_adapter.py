@@ -14,7 +14,7 @@ from typing import Optional, Union, List, Dict, Any
 
 # 配置日志
 try:
-    from app.logs import logger
+    from app.logs import logger, WeChatLibAdapter
 except ImportError:
     # 如果无法导入app.logs，则创建一个默认的logger
     logging.basicConfig(
@@ -22,6 +22,12 @@ except ImportError:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     logger = logging.getLogger("wechat_adapter")
+
+    # 创建一个空的适配器类，避免导入错误
+    class WeChatLibAdapter:
+        @staticmethod
+        def set_lib_name(lib_name):
+            pass
 
 class WeChatAdapter:
     """微信自动化库适配器，支持wxauto和wxautox"""
@@ -63,6 +69,8 @@ class WeChatAdapter:
         try:
             import wxautox
             self._lib_name = "wxautox"
+            # 更新日志适配器中的库名称
+            WeChatLibAdapter.set_lib_name_static("wxautox")
             return True
         except ImportError:
             logger.warning("无法导入wxautox库")
@@ -81,6 +89,8 @@ class WeChatAdapter:
             # 直接从本地文件夹导入
             import wxauto
             self._lib_name = "wxauto"
+            # 更新日志适配器中的库名称
+            WeChatLibAdapter.set_lib_name_static("wxauto")
             logger.info(f"成功从本地文件夹导入wxauto: {wxauto_path}")
             return True
         except ImportError as e:

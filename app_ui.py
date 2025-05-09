@@ -541,25 +541,72 @@ class WxAutoHttpUI:
 
         # 添加队列处理器到logger
         self.log_handler = APILogHandler(LOG_QUEUE)
-        # 不需要设置格式化器，因为在emit方法中已经处理了格式
-        logger.addHandler(self.log_handler)
 
-        # 添加文件处理器，将日志保存到文件
+        # 检查logger类型，如果是WeChatLibAdapter，需要获取原始logger
         try:
-            # 生成日志文件名
-            timestamp = datetime.now().strftime("%Y%m%d")
-            log_file = config_manager.LOGS_DIR / f"api_{timestamp}.log"
+            from app.logs import WeChatLibAdapter
+            if isinstance(logger, WeChatLibAdapter):
+                # 获取原始logger
+                original_logger = logger.logger
+                # 添加处理器到原始logger
+                original_logger.addHandler(self.log_handler)
 
-            # 创建文件处理器 - 文件中使用完整时间戳格式
-            file_handler = logging.FileHandler(log_file, encoding='utf-8')
-            # 使用与UI相同的时间戳格式
-            file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
-                                                       '%Y-%m-%d %H:%M:%S'))
-            logger.addHandler(file_handler)
+                # 添加文件处理器，将日志保存到文件
+                try:
+                    # 生成日志文件名
+                    timestamp = datetime.now().strftime("%Y%m%d")
+                    log_file = config_manager.LOGS_DIR / f"api_{timestamp}.log"
 
-            self.add_log(f"日志将保存到: {log_file}")
-        except Exception as e:
-            self.add_log(f"设置日志文件失败: {str(e)}")
+                    # 创建文件处理器 - 文件中使用完整时间戳格式
+                    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+                    # 使用与UI相同的时间戳格式
+                    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                                               '%Y-%m-%d %H:%M:%S'))
+                    original_logger.addHandler(file_handler)
+
+                    self.add_log(f"日志将保存到: {log_file}")
+                except Exception as e:
+                    self.add_log(f"设置日志文件失败: {str(e)}")
+            else:
+                # 直接添加处理器到logger
+                logger.addHandler(self.log_handler)
+
+                # 添加文件处理器，将日志保存到文件
+                try:
+                    # 生成日志文件名
+                    timestamp = datetime.now().strftime("%Y%m%d")
+                    log_file = config_manager.LOGS_DIR / f"api_{timestamp}.log"
+
+                    # 创建文件处理器 - 文件中使用完整时间戳格式
+                    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+                    # 使用与UI相同的时间戳格式
+                    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                                               '%Y-%m-%d %H:%M:%S'))
+                    logger.addHandler(file_handler)
+
+                    self.add_log(f"日志将保存到: {log_file}")
+                except Exception as e:
+                    self.add_log(f"设置日志文件失败: {str(e)}")
+        except ImportError:
+            # 如果无法导入WeChatLibAdapter，直接使用logger
+            logger.addHandler(self.log_handler)
+
+            # 添加文件处理器，将日志保存到文件
+            try:
+                # 生成日志文件名
+                timestamp = datetime.now().strftime("%Y%m%d")
+                log_file = config_manager.LOGS_DIR / f"api_{timestamp}.log"
+
+                # 创建文件处理器 - 文件中使用完整时间戳格式
+                file_handler = logging.FileHandler(log_file, encoding='utf-8')
+                # 使用与UI相同的时间戳格式
+                file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
+                                                           '%Y-%m-%d %H:%M:%S'))
+                logger.addHandler(file_handler)
+
+                self.add_log(f"日志将保存到: {log_file}")
+            except Exception as e:
+                self.add_log(f"设置日志文件失败: {str(e)}")
 
         # 启动日志更新线程
         self.root.after(100, self.update_log)
@@ -595,9 +642,18 @@ class WxAutoHttpUI:
 
                 # 应用过滤器
                 if not self.should_filter_log(msg):
-                    # 添加统一格式的时间戳
+                    # 添加统一格式的时间戳，但不再添加库信息（因为日志中已经包含）
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    formatted_msg = f"[{timestamp}] {msg}"
+
+                    # 检查消息中是否已经包含库信息标记 [wxauto] 或 [wxautox]
+                    if "[wxauto]" in msg or "[wxautox]" in msg:
+                        # 已经包含库信息，只添加时间戳
+                        formatted_msg = f"[{timestamp}] {msg}"
+                    else:
+                        # 不包含库信息，添加时间戳和库信息
+                        lib_name = getattr(self, 'current_lib', 'wxauto')  # 默认使用wxauto
+                        formatted_msg = f"[{timestamp}] [{lib_name}] {msg}"
+
                     self.log_text.insert(tk.END, formatted_msg + "\n")
                     has_new_visible_logs = True
 
@@ -1470,7 +1526,15 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         """添加日志到日志区域"""
         # 使用完整的时间戳格式，精确到秒
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_message = f"[{timestamp}] {message}"
+
+        # 检查消息中是否已经包含库信息标记 [wxauto] 或 [wxautox]
+        if "[wxauto]" in message or "[wxautox]" in message:
+            # 已经包含库信息，只添加时间戳
+            log_message = f"[{timestamp}] {message}"
+        else:
+            # 不包含库信息，添加时间戳和库信息
+            lib_name = getattr(self, 'current_lib', 'wxauto')  # 默认使用wxauto
+            log_message = f"[{timestamp}] [{lib_name}] {message}"
 
         # 检查日志中是否包含窗口名称信息
         if "初始化成功，获取到已登录窗口：" in message:

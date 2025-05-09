@@ -73,8 +73,6 @@ def initialize_wechat():
 
                 if window_name:
                     logger.info(f"初始化成功，获取到已登录窗口：{window_name}")
-                else:
-                    logger.warning("无法获取微信窗口名称")
 
                 # 注意：在wechat_adapter.py的initialize方法中已经添加了打开文件传输助手的逻辑
                 # 这里不需要重复打开，但可以检查是否已经打开
