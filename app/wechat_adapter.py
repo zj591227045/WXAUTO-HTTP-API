@@ -124,9 +124,29 @@ class WeChatAdapter:
                             logger.info(f"微信实例初始化成功，获取到已登录窗口：{window_name}，使用库: {self._lib_name}")
                         else:
                             logger.info(f"微信实例初始化成功，但无法获取窗口名称，使用库: {self._lib_name}")
+
+                        # 初始化完成后，自动打开"文件传输助手"窗口
+                        try:
+                            logger.info("正在打开文件传输助手窗口...")
+                            self._instance.ChatWith("文件传输助手")
+                            import time
+                            time.sleep(1)  # 等待窗口打开
+                            logger.info("文件传输助手窗口已打开")
+                        except Exception as chat_e:
+                            logger.error(f"打开文件传输助手窗口失败: {str(chat_e)}")
                     except Exception as e:
                         logger.warning(f"获取窗口名称失败: {str(e)}")
                         logger.info(f"微信实例初始化成功，使用库: {self._lib_name}")
+
+                        # 即使获取窗口名称失败，也尝试打开文件传输助手窗口
+                        try:
+                            logger.info("正在打开文件传输助手窗口...")
+                            self._instance.ChatWith("文件传输助手")
+                            import time
+                            time.sleep(1)  # 等待窗口打开
+                            logger.info("文件传输助手窗口已打开")
+                        except Exception as chat_e:
+                            logger.error(f"打开文件传输助手窗口失败: {str(chat_e)}")
 
                     return True
                 except Exception as e:
@@ -240,7 +260,29 @@ class WeChatAdapter:
                 kwargs.pop("parseurl", None)
 
         try:
-            # 直接调用原始方法，不进行额外的窗口状态检查
+            # 在调用GetNextNewMessage前，先检查是否有打开的聊天窗口
+            # 如果没有，先打开一个聊天窗口
+            try:
+                # 尝试获取当前聊天窗口名称
+                current_chat = self._instance.CurrentChat()
+                if not current_chat:
+                    # 如果没有打开的聊天窗口，先打开一个
+                    logger.debug("没有打开的聊天窗口，尝试打开一个")
+                    session_dict = self._instance.GetSessionList(reset=True)
+                    if session_dict:
+                        first_session = list(session_dict.keys())[0]
+                        logger.debug(f"打开会话聊天窗口: {first_session}")
+                        self._instance.ChatWith(first_session)
+                        # 等待窗口打开
+                        import time
+                        time.sleep(0.5)
+                else:
+                    logger.debug(f"当前已打开聊天窗口: {current_chat}")
+            except Exception as e:
+                logger.warning(f"检查聊天窗口状态失败: {str(e)}")
+                # 继续执行，让原始的错误处理逻辑处理
+
+            # 调用原始方法
             logger.debug(f"调用GetNextNewMessage方法，参数: {kwargs}")
             return self._instance.GetNextNewMessage(*args, **kwargs)
         except Exception as e:
@@ -250,36 +292,7 @@ class WeChatAdapter:
             # 如果是"Find Control Timeout"错误，可能是因为没有打开的聊天窗口
             if "Find Control Timeout" in error_str and "消息" in error_str:
                 logger.warning("找不到'消息'控件，可能没有打开的聊天窗口")
-                # 尝试打开一个聊天窗口
-                try:
-                    # 获取会话列表
-                    session_dict = self._instance.GetSessionList(reset=True)
-                    if session_dict:
-                        # 打开第一个会话的聊天窗口
-                        first_session = list(session_dict.keys())[0]
-                        logger.info(f"尝试打开会话聊天窗口: {first_session}")
-                        self._instance.ChatWith(first_session)
-                        # 等待窗口打开
-                        import time
-                        time.sleep(1)
-                        # 重试获取消息
-                        logger.info(f"重试获取消息，使用参数: {kwargs}")
-                        # 确保保存路径设置正确
-                        try:
-                            import config_manager
-                            from wxauto.elements import WxParam
-                            temp_dir = str(config_manager.TEMP_DIR.absolute())
-                            WxParam.DEFALUT_SAVEPATH = temp_dir
-                            logger.debug(f"重试前再次确认wxauto保存路径: {temp_dir}")
-                        except Exception as path_e:
-                            logger.error(f"重试时设置wxauto保存路径失败: {str(path_e)}")
-
-                        return self._instance.GetNextNewMessage(*args, **kwargs)
-                    else:
-                        logger.warning("会话列表为空，无法打开聊天窗口")
-                except Exception as open_e:
-                    logger.error(f"尝试打开聊天窗口失败: {str(open_e)}")
-                # 如果无法解决，返回空列表表示没有新消息
+                # 我们已经在调用前尝试打开聊天窗口，如果仍然失败，直接返回空结果
                 logger.info("返回空列表表示没有新消息")
                 return []
 
@@ -395,27 +408,9 @@ class WeChatAdapter:
                 # wxauto的GetListenMessage只接受who参数，移除其他参数
                 who = args[0] if args else kwargs.get('who')
 
-                # 在获取消息前，确保聊天窗口被激活到前台
-                if who and who in self._instance.listen:
-                    try:
-                        # 获取聊天窗口对象
-                        chat_wnd = self._instance.listen[who]
-
-                        # 尝试激活窗口到前台
-                        logger.debug(f"尝试激活聊天窗口到前台: {who}")
-                        import win32gui
-
-                        # 查找聊天窗口句柄
-                        chat_hwnd = win32gui.FindWindow('ChatWnd', who)
-                        if chat_hwnd:
-                            # 将窗口设置为前台窗口
-                            win32gui.SetForegroundWindow(chat_hwnd)
-                            # 等待窗口激活
-                            import time
-                            time.sleep(0.5)
-                            logger.debug(f"聊天窗口已激活: {who}")
-                    except Exception as e:
-                        logger.error(f"激活聊天窗口失败: {str(e)}")
+                # 不再手动激活窗口，直接使用wxauto库的内置功能
+                # wxauto的GetListenMessage方法内部会调用chat._show()来激活窗口
+                logger.debug(f"使用wxauto库内置功能激活聊天窗口: {who if who else '所有窗口'}")
 
                 # 调用原始方法，只传递who参数
                 if who:

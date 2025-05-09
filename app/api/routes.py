@@ -75,6 +75,19 @@ def initialize_wechat():
                     logger.info(f"初始化成功，获取到已登录窗口：{window_name}")
                 else:
                     logger.warning("无法获取微信窗口名称")
+
+                # 注意：在wechat_adapter.py的initialize方法中已经添加了打开文件传输助手的逻辑
+                # 这里不需要重复打开，但可以检查是否已经打开
+                try:
+                    current_chat = wx_instance._instance.CurrentChat()
+                    if current_chat != "文件传输助手":
+                        logger.info("当前聊天窗口不是文件传输助手，尝试打开文件传输助手窗口...")
+                        wx_instance._instance.ChatWith("文件传输助手")
+                        import time
+                        time.sleep(0.5)
+                        logger.info("文件传输助手窗口已打开")
+                except Exception as chat_e:
+                    logger.warning(f"检查或打开文件传输助手窗口失败: {str(chat_e)}")
             except Exception as e:
                 logger.warning(f"获取窗口名称失败: {str(e)}")
 
