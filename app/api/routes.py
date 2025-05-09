@@ -1424,9 +1424,12 @@ def get_contact_list():
 def health_check():
     wx_instance = wechat_manager.get_instance()
     wx_status = "not_initialized"
+    wx_lib = "unknown"
 
     if wx_instance:
         wx_status = "connected" if wechat_manager.check_connection() else "disconnected"
+        # 获取当前使用的库名称
+        wx_lib = getattr(wx_instance, '_lib_name', 'wxauto')
 
     return jsonify({
         'code': 0,
@@ -1434,7 +1437,8 @@ def health_check():
         'data': {
             'status': 'ok',
             'wechat_status': wx_status,
-            'uptime': int(time.time() - start_time)
+            'uptime': int(time.time() - start_time),
+            'wx_lib': wx_lib
         }
     })
 
