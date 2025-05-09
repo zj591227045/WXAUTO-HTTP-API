@@ -7,6 +7,8 @@ import datetime
 import time
 import os
 import re
+import win32api
+import win32con
 
 
 
@@ -107,6 +109,56 @@ class WeChatBase:
             return SysMessage(['SYS', f'解析消息出错: {str(e)}', '0'], MsgItem, self)
 
     def _getmsgs(self, msgitems, savepic=False, savefile=False, savevoice=False):
+        """解析消息项列表，提取消息内容
+
+        Args:
+            msgitems: 消息项控件列表
+            savepic: 是否保存图片
+            savefile: 是否保存文件
+            savevoice: 是否保存语音
+
+        Returns:
+            list: 解析后的消息列表
+        """
+        wxlog.debug(f"开始解析消息项，savepic={savepic}, savefile={savefile}, savevoice={savevoice}")
+
+        # 首先关闭可能已经打开的图片查看窗口和保存对话框
+        try:
+            # 检查是否已经有保存对话框打开，如果有则关闭
+            save_dialog = FindWindow(name='另存为...')
+            if save_dialog:
+                wxlog.debug("检测到另存为对话框已打开，尝试使用Esc键关闭")
+                # 模拟按下Esc键
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, 0, 0)
+                time.sleep(0.1)
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, win32con.KEYEVENTF_KEYUP, 0)
+                time.sleep(0.5)
+
+            # 检查是否已经有图片查看窗口打开，如果有则关闭
+            img_window = FindWindow(classname='ImagePreviewWnd')
+            if img_window:
+                wxlog.debug("检测到图片查看窗口已打开，尝试使用Esc键关闭")
+                # 模拟按下Esc键
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, 0, 0)
+                time.sleep(0.1)
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, win32con.KEYEVENTF_KEYUP, 0)
+                time.sleep(0.5)
+
+                # 如果Esc键没有关闭窗口，尝试使用Alt+F4
+                img_window = FindWindow(classname='ImagePreviewWnd')
+                if img_window:
+                    wxlog.debug("窗口仍然存在，尝试使用Alt+F4关闭")
+                    # 模拟按下Alt+F4
+                    win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)  # Alt键按下
+                    win32api.keybd_event(win32con.VK_F4, 0, 0, 0)    # F4键按下
+                    time.sleep(0.1)
+                    win32api.keybd_event(win32con.VK_F4, 0, win32con.KEYEVENTF_KEYUP, 0)  # F4键释放
+                    win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)  # Alt键释放
+                    time.sleep(0.5)
+        except Exception as e:
+            wxlog.error(f"关闭已存在的窗口时出错: {str(e)}")
+
+        # 解析消息项
         msgs = []
         for MsgItem in msgitems:
             if MsgItem.ControlTypeName == 'ListItemControl':
@@ -118,35 +170,213 @@ class WeChatBase:
             f"[{self._lang('语音')}]",
         ]
 
+        # 如果没有需要处理的特殊消息类型，直接返回
         if not [i for i in msgs if i.content[:4] in msgtypes]:
             return msgs
 
+        # 处理特殊消息类型
         for msg in msgs:
             if msg.type not in ('friend', 'self'):
                 continue
-            if msg.content.startswith(f"[{self._lang('图片')}]") and savepic:
-                imgpath = self._download_pic(msg.control)
-                msg.content = imgpath if imgpath else msg.content
-            elif msg.content.startswith(f"[{self._lang('文件')}]") and savefile:
-                filepath = self._download_file(msg.control)
-                msg.content = filepath if filepath else msg.content
-            elif msg.content.startswith(f"[{self._lang('语音')}]") and savevoice:
-                voice_text = self._get_voice_text(msg.control)
-                msg.content = voice_text if voice_text else msg.content
-            msg.info[1] = msg.content
+
+            try:
+                # 在处理每条消息前，确保没有图片查看窗口或保存对话框打开
+                self._ensure_no_windows_open()
+
+                if msg.content.startswith(f"[{self._lang('图片')}]") and savepic:
+                    wxlog.debug(f"处理图片消息: {msg.content}")
+                    imgpath = self._download_pic(msg.control)
+                    if imgpath:
+                        wxlog.debug(f"图片已保存到: {imgpath}")
+                        msg.content = imgpath
+                    else:
+                        wxlog.warning(f"图片保存失败，保持原始内容: {msg.content}")
+
+                    # 在处理完图片消息后，再次确保没有窗口打开
+                    self._ensure_no_windows_open()
+
+                elif msg.content.startswith(f"[{self._lang('文件')}]") and savefile:
+                    wxlog.debug(f"处理文件消息: {msg.content}")
+                    filepath = self._download_file(msg.control)
+                    if filepath:
+                        wxlog.debug(f"文件已保存到: {filepath}")
+                        msg.content = filepath
+                    else:
+                        wxlog.warning(f"文件保存失败，保持原始内容: {msg.content}")
+
+                elif msg.content.startswith(f"[{self._lang('语音')}]") and savevoice:
+                    wxlog.debug(f"处理语音消息: {msg.content}")
+                    voice_text = self._get_voice_text(msg.control)
+                    if voice_text:
+                        wxlog.debug(f"语音已转换为文本: {voice_text}")
+                        msg.content = voice_text
+                    else:
+                        wxlog.warning(f"语音转换失败，保持原始内容: {msg.content}")
+
+                # 更新消息信息
+                msg.info[1] = msg.content
+
+            except Exception as e:
+                wxlog.error(f"处理消息时出错: {str(e)}")
+                import traceback
+                wxlog.error(traceback.format_exc())
+
         return msgs
 
     def _download_pic(self, msgitem):
-        self._show()
-        imgcontrol = msgitem.ButtonControl(Name='')
-        if not imgcontrol.Exists(0.5):
+        """下载图片
+
+        Args:
+            msgitem: 消息项控件
+
+        Returns:
+            str: 图片保存路径，如果保存失败则返回None
+        """
+        wxlog.debug("开始下载图片")
+
+        # 检查是否已经有保存对话框打开，如果有则关闭
+        try:
+            save_dialog = FindWindow(name='另存为...')
+            if save_dialog:
+                wxlog.debug("检测到另存为对话框已打开，尝试使用Esc键关闭")
+                # 模拟按下Esc键
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, 0, 0)
+                time.sleep(0.1)
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, win32con.KEYEVENTF_KEYUP, 0)
+                time.sleep(0.5)
+        except Exception as e:
+            wxlog.error(f"关闭已存在的保存对话框时出错: {str(e)}")
+
+        # 检查是否已经有图片查看窗口打开，如果有则关闭
+        try:
+            img_window = FindWindow(classname='ImagePreviewWnd')
+            if img_window:
+                wxlog.debug("检测到图片查看窗口已打开，尝试使用Esc键关闭")
+                # 模拟按下Esc键
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, 0, 0)
+                time.sleep(0.1)
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, win32con.KEYEVENTF_KEYUP, 0)
+                time.sleep(0.5)
+
+                # 如果Esc键没有关闭窗口，尝试使用Alt+F4
+                img_window = FindWindow(classname='ImagePreviewWnd')
+                if img_window:
+                    wxlog.debug("窗口仍然存在，尝试使用Alt+F4关闭")
+                    # 模拟按下Alt+F4
+                    win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)  # Alt键按下
+                    win32api.keybd_event(win32con.VK_F4, 0, 0, 0)    # F4键按下
+                    time.sleep(0.1)
+                    win32api.keybd_event(win32con.VK_F4, 0, win32con.KEYEVENTF_KEYUP, 0)  # F4键释放
+                    win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)  # Alt键释放
+                    time.sleep(0.5)
+        except Exception as e:
+            wxlog.error(f"关闭已存在的图片查看窗口时出错: {str(e)}")
+
+        try:
+            # 确保窗口在前台
+            self._show()
+
+            # 查找图片控件
+            imgcontrol = msgitem.ButtonControl(Name='')
+            if not imgcontrol.Exists(0.5):
+                wxlog.warning("未找到图片控件")
+                return None
+
+            # 滚动到图片控件位置
+            RollIntoView(self.C_MsgList, imgcontrol)
+
+            # 点击图片控件
+            wxlog.debug("点击图片控件")
+            imgcontrol.Click(simulateMove=False)
+
+            # 等待图片查看窗口出现
+            t0 = time.time()
+            img_window = None
+            while time.time() - t0 < 5:  # 最多等待5秒
+                img_window = FindWindow(classname='ImagePreviewWnd')
+                if img_window:
+                    break
+                time.sleep(0.1)
+
+            if not img_window:
+                wxlog.warning("图片查看窗口未出现")
+                return None
+
+            # 创建图片对象并保存
+            wxlog.debug("创建WeChatImage对象")
+            imgobj = WeChatImage()
+
+            # 保存图片
+            wxlog.debug(f"保存图片，默认路径: {WxParam.DEFALUT_SAVEPATH}")
+
+            # 生成唯一的文件名（不带扩展名）
+            timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            save_path = os.path.join(WxParam.DEFALUT_SAVEPATH, f"微信图片_{timestamp}")
+
+            # 保存图片
+            savepath = imgobj.Save(save_path)
+            wxlog.debug(f"图片已保存到: {savepath}")
+
+            # 关闭图片查看窗口
+            wxlog.debug("关闭图片查看窗口")
+            imgobj.Close()
+
+            # 确保图片查看窗口已经完全关闭
+            t0 = time.time()
+            while time.time() - t0 < 5:  # 最多等待5秒
+                if not FindWindow(classname='ImagePreviewWnd'):
+                    wxlog.debug("图片查看窗口已完全关闭")
+                    break
+                time.sleep(0.1)
+
+            # 确保保存对话框已经完全关闭
+            t0 = time.time()
+            while time.time() - t0 < 5:  # 最多等待5秒
+                if not FindWindow(name='另存为...'):
+                    wxlog.debug("保存对话框已完全关闭")
+                    break
+                time.sleep(0.1)
+
+            # 如果窗口仍然存在，发出警告
+            if FindWindow(classname='ImagePreviewWnd'):
+                wxlog.warning("图片查看窗口仍然存在，可能会导致下一次操作出现问题")
+
+            if FindWindow(name='另存为...'):
+                wxlog.warning("保存对话框仍然存在，可能会导致下一次操作出现问题")
+
+            # 验证文件是否存在
+            if os.path.exists(savepath):
+                wxlog.debug(f"文件存在性验证通过: {savepath}")
+            else:
+                # 尝试查找实际保存的文件
+                dir_name = os.path.dirname(save_path)
+                if os.path.exists(dir_name):
+                    for filename in os.listdir(dir_name):
+                        # 检查文件是否是最近创建的（10秒内）
+                        file_path = os.path.join(dir_name, filename)
+                        if not os.path.isfile(file_path):
+                            continue
+
+                        file_time = os.path.getmtime(file_path)
+                        if time.time() - file_time > 10:  # 只考虑10秒内创建的文件
+                            continue
+
+                        # 检查文件名是否包含时间戳
+                        if timestamp in filename:
+                            savepath = file_path
+                            wxlog.debug(f"找到匹配时间戳的文件: {savepath}")
+                            break
+
+                if not os.path.exists(savepath):
+                    wxlog.warning(f"文件不存在: {savepath}")
+
+            return savepath
+
+        except Exception as e:
+            wxlog.error(f"下载图片时出错: {str(e)}")
+            import traceback
+            wxlog.error(traceback.format_exc())
             return None
-        RollIntoView(self.C_MsgList, imgcontrol)
-        imgcontrol.Click(simulateMove=False)
-        imgobj = WeChatImage()
-        savepath = imgobj.Save()
-        imgobj.Close()
-        return savepath
 
     def _download_file(self, msgitem):
         # msgitems = self.C_MsgList.GetChildren()
@@ -194,6 +424,53 @@ class WeChatBase:
             os.makedirs(WxParam.DEFALUT_SAVEPATH)
         shutil.copyfile(filepath, savepath)
         return savepath
+
+    def _ensure_no_windows_open(self):
+        """确保没有图片查看窗口或保存对话框打开"""
+        # 检查是否有图片查看窗口打开
+        img_window = FindWindow(classname='ImagePreviewWnd')
+        if img_window:
+            wxlog.warning("检测到图片查看窗口已打开，尝试关闭")
+            try:
+                # 模拟按下Esc键
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, 0, 0)
+                time.sleep(0.1)
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, win32con.KEYEVENTF_KEYUP, 0)
+                time.sleep(0.5)
+
+                # 如果Esc键没有关闭窗口，尝试使用Alt+F4
+                img_window = FindWindow(classname='ImagePreviewWnd')
+                if img_window:
+                    wxlog.debug("窗口仍然存在，尝试使用Alt+F4关闭")
+                    # 模拟按下Alt+F4
+                    win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)  # Alt键按下
+                    win32api.keybd_event(win32con.VK_F4, 0, 0, 0)    # F4键按下
+                    time.sleep(0.1)
+                    win32api.keybd_event(win32con.VK_F4, 0, win32con.KEYEVENTF_KEYUP, 0)  # F4键释放
+                    win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)  # Alt键释放
+                    time.sleep(0.5)
+            except Exception as e:
+                wxlog.error(f"关闭图片查看窗口时出错: {str(e)}")
+
+        # 检查是否有保存对话框打开
+        save_dialog = FindWindow(name='另存为...')
+        if save_dialog:
+            wxlog.warning("检测到保存对话框已打开，尝试关闭")
+            try:
+                # 模拟按下Esc键
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, 0, 0)
+                time.sleep(0.1)
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, win32con.KEYEVENTF_KEYUP, 0)
+                time.sleep(0.5)
+            except Exception as e:
+                wxlog.error(f"关闭保存对话框时出错: {str(e)}")
+
+        # 最终确认所有窗口都已关闭
+        if FindWindow(classname='ImagePreviewWnd'):
+            wxlog.warning("图片查看窗口仍然存在，可能会导致下一次操作出现问题")
+
+        if FindWindow(name='另存为...'):
+            wxlog.warning("保存对话框仍然存在，可能会导致下一次操作出现问题")
 
     def _get_voice_text(self, msgitem):
         if msgitem.GetProgenyControl(8, 4):
@@ -517,15 +794,39 @@ class WeChatImage:
             str: 文件保存路径，即savepath
         """
 
+        # 记录开始时间，用于调试
+        start_time = time.time()
+
+        # 确保保存路径有效
         if not savepath:
             savepath = os.path.join(WxParam.DEFALUT_SAVEPATH, f"微信图片_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.jpg")
-        if not os.path.exists(os.path.split(savepath)[0]):
-            os.makedirs(os.path.split(savepath)[0])
 
-        if self.t_zoom.Exists(maxSearchSeconds=5):
-            self.t_save.Click(simulateMove=False)
+        # 处理文件路径，分离目录和文件名
+        save_dir = os.path.dirname(savepath)
+        file_name = os.path.basename(savepath)
+        file_name_without_ext = os.path.splitext(file_name)[0]  # 去掉扩展名
+
+        # 确保目录存在
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
+        # 记录保存路径，用于调试
+        wxlog.debug(f"原始图片保存路径: {savepath}")
+        wxlog.debug(f"保存目录: {save_dir}")
+        wxlog.debug(f"文件名(无扩展名): {file_name_without_ext}")
+        wxlog.debug(f"保存目录是否存在: {os.path.exists(save_dir)}")
+
+        # 检查是否已经有保存对话框打开
+        save_dialog = FindWindow(name='另存为...')
+        if save_dialog:
+            wxlog.debug("检测到另存为对话框已打开，直接使用")
         else:
-            raise TimeoutError('下载超时')
+            # 点击保存按钮
+            if self.t_zoom.Exists(maxSearchSeconds=5):
+                wxlog.debug("点击另存为按钮")
+                self.t_save.Click(simulateMove=False)
+            else:
+                raise TimeoutError('下载超时')
         t0 = time.time()
         while True:
             if time.time() - t0 > timeout:
@@ -544,9 +845,155 @@ class WeChatImage:
                     break
             except:
                 pass
-        win32gui.SendMessage(edithandle, win32con.WM_SETTEXT, '', str(savepath))
-        win32gui.SendMessage(savehandle, win32con.BM_CLICK, 0, 0)
-        return savepath
+        # 准备保存路径 - 使用不带扩展名的文件名
+        save_path_for_dialog = os.path.join(save_dir, file_name_without_ext)
+        wxlog.debug(f"对话框使用的保存路径: {save_path_for_dialog}")
+
+        # 清空编辑框
+        win32gui.SendMessage(edithandle, win32con.WM_SETTEXT, 0, "")
+        time.sleep(0.1)
+
+        # 设置保存路径
+        wxlog.debug(f"设置保存路径: {save_path_for_dialog}")
+        win32gui.SendMessage(edithandle, win32con.WM_SETTEXT, 0, str(save_path_for_dialog))
+        time.sleep(0.2)
+
+        # 获取编辑框当前文本，检查是否设置成功
+        try:
+            buffer_size = 1024
+            buffer = win32gui.PyMakeBuffer(buffer_size)
+            length = win32gui.SendMessage(edithandle, win32con.WM_GETTEXT, buffer_size, buffer)
+
+            # 正确处理memoryview对象
+            address, _ = win32gui.PyGetBufferAddressAndLen(buffer)
+            if length > 0:
+                current_text = win32gui.PyGetString(address, length)
+            else:
+                current_text = ""
+
+            wxlog.debug(f"编辑框当前文本: {current_text}")
+        except Exception as e:
+            wxlog.error(f"获取编辑框文本时出错: {str(e)}")
+            current_text = ""
+
+        # 如果设置失败，尝试使用剪贴板
+        if not current_text or save_path_for_dialog not in current_text:
+            wxlog.warning("通过SendMessage设置路径失败，尝试使用剪贴板")
+            # 保存原始剪贴板内容
+            import win32clipboard
+            win32clipboard.OpenClipboard()
+            try:
+                original_clipboard = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT) if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_UNICODETEXT) else None
+            except:
+                original_clipboard = None
+            win32clipboard.CloseClipboard()
+
+            # 设置剪贴板为保存路径
+            SetClipboardText(save_path_for_dialog)
+
+            # 选择所有文本并粘贴
+            win32gui.SendMessage(edithandle, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
+            win32gui.SendMessage(edithandle, win32con.WM_KEYDOWN, ord('A'), 0)
+            win32gui.SendMessage(edithandle, win32con.WM_KEYUP, ord('A'), 0)
+            win32gui.SendMessage(edithandle, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+            time.sleep(0.1)
+
+            win32gui.SendMessage(edithandle, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0)
+            win32gui.SendMessage(edithandle, win32con.WM_KEYDOWN, ord('V'), 0)
+            win32gui.SendMessage(edithandle, win32con.WM_KEYUP, ord('V'), 0)
+            win32gui.SendMessage(edithandle, win32con.WM_KEYUP, win32con.VK_CONTROL, 0)
+            time.sleep(0.2)
+
+            # 恢复原始剪贴板内容
+            if original_clipboard:
+                SetClipboardText(original_clipboard)
+
+        # 点击保存按钮
+        wxlog.debug("点击保存按钮")
+
+        # 使用SendMessage点击保存按钮
+        try:
+            wxlog.debug("使用SendMessage点击保存按钮")
+            win32gui.SendMessage(savehandle, win32con.BM_CLICK, 0, 0)
+
+            # 等待一段时间，确保文件有足够的时间保存
+            time.sleep(1.0)
+
+            # 检查文件是否已保存
+            test_path = save_path_for_dialog + ".jpg"
+            if os.path.exists(test_path):
+                wxlog.debug("文件已成功保存")
+            else:
+                # 如果文件未保存，尝试使用模拟按键
+                wxlog.debug("文件未保存，尝试使用模拟按键")
+                try:
+                    # 模拟按下回车键
+                    win32api.keybd_event(win32con.VK_RETURN, 0, 0, 0)
+                    time.sleep(0.1)
+                    win32api.keybd_event(win32con.VK_RETURN, 0, win32con.KEYEVENTF_KEYUP, 0)
+                    time.sleep(0.5)
+                except Exception as e:
+                    wxlog.error(f"模拟按键失败: {str(e)}")
+        except Exception as e:
+            wxlog.error(f"点击保存按钮失败: {str(e)}")
+
+        # 再等待一段时间，确保文件已保存
+        time.sleep(0.5)
+
+        # 尝试查找实际保存的文件
+        actual_file = None
+        possible_extensions = ['.jpg', '.png', '.gif', '.bmp']
+
+        # 获取保存目录
+        dir_name = os.path.dirname(save_path_for_dialog)
+
+        # 检查目录中的所有文件，查找匹配的文件名（不考虑时间戳部分）
+        if os.path.exists(dir_name):
+            for filename in os.listdir(dir_name):
+                # 检查文件是否是最近创建的（10秒内）
+                file_path = os.path.join(dir_name, filename)
+                if not os.path.isfile(file_path):
+                    continue
+
+                file_time = os.path.getmtime(file_path)
+                if time.time() - file_time > 10:  # 只考虑10秒内创建的文件
+                    continue
+
+                # 检查文件名是否匹配基本模式（微信图片_）
+                if "微信图片_" in filename:
+                    # 检查文件扩展名
+                    _, ext = os.path.splitext(filename)
+                    if ext.lower() in ['.jpg', '.png', '.gif', '.bmp']:
+                        actual_file = file_path
+                        wxlog.debug(f"找到实际保存的文件: {actual_file}")
+                        break
+
+        # 如果上面的方法没找到，尝试直接检查可能的扩展名
+        if not actual_file:
+            for ext in possible_extensions:
+                test_path = save_path_for_dialog + ext
+                if os.path.exists(test_path):
+                    actual_file = test_path
+                    wxlog.debug(f"找到实际保存的文件: {actual_file}")
+                    break
+
+        # 如果找到了实际文件，返回实际路径，否则返回原始路径
+        if actual_file:
+            wxlog.debug(f"保存图片总耗时: {time.time() - start_time:.2f}秒")
+
+            # 关闭可能仍然打开的保存对话框
+            try:
+                save_dialog = FindWindow(name='另存为...')
+                if save_dialog:
+                    wxlog.debug("检测到另存为对话框仍然打开，尝试关闭")
+                    win32gui.PostMessage(save_dialog, win32con.WM_CLOSE, 0, 0)
+            except Exception as e:
+                wxlog.error(f"尝试关闭另存为对话框时出错: {str(e)}")
+
+            return actual_file
+        else:
+            wxlog.warning(f"未找到实际保存的文件，返回原始路径: {savepath}")
+            return savepath
 
     def Previous(self):
         """上一张"""
@@ -570,8 +1017,69 @@ class WeChatImage:
             return False
 
     def Close(self):
-        self._show()
-        self.api.SendKeys('{Esc}')
+        """关闭图片查看窗口"""
+        try:
+            # 确保窗口在前台
+            self._show()
+
+            # 发送Esc键关闭窗口
+            wxlog.debug("使用Esc键关闭图片查看窗口")
+            self.api.SendKeys('{Esc}')
+
+            # 等待窗口关闭，最多等待3秒
+            t0 = time.time()
+            while time.time() - t0 < 3:
+                if not FindWindow(classname='ImagePreviewWnd'):
+                    wxlog.debug("图片查看窗口已关闭")
+                    break
+                time.sleep(0.1)
+
+            # 如果窗口仍然存在，尝试使用Alt+F4关闭
+            if FindWindow(classname='ImagePreviewWnd'):
+                wxlog.debug("窗口仍然存在，尝试使用Alt+F4关闭")
+                # 模拟按下Alt+F4
+                win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)  # Alt键按下
+                win32api.keybd_event(win32con.VK_F4, 0, 0, 0)    # F4键按下
+                time.sleep(0.1)
+                win32api.keybd_event(win32con.VK_F4, 0, win32con.KEYEVENTF_KEYUP, 0)  # F4键释放
+                win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)  # Alt键释放
+
+                # 再次等待窗口关闭，最多等待3秒
+                t0 = time.time()
+                while time.time() - t0 < 3:
+                    if not FindWindow(classname='ImagePreviewWnd'):
+                        wxlog.debug("图片查看窗口已关闭")
+                        break
+                    time.sleep(0.1)
+
+            # 关闭可能仍然打开的保存对话框
+            save_dialog = FindWindow(name='另存为...')
+            if save_dialog:
+                wxlog.debug("检测到另存为对话框仍然打开，尝试使用Esc键关闭")
+                # 模拟按下Esc键
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, 0, 0)
+                time.sleep(0.1)
+                win32api.keybd_event(win32con.VK_ESCAPE, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+                # 等待保存对话框关闭，最多等待3秒
+                t0 = time.time()
+                while time.time() - t0 < 3:
+                    if not FindWindow(name='另存为...'):
+                        wxlog.debug("保存对话框已关闭")
+                        break
+                    time.sleep(0.1)
+
+            # 最终确认所有窗口都已关闭
+            if FindWindow(classname='ImagePreviewWnd'):
+                wxlog.warning("图片查看窗口仍然存在，可能需要手动关闭")
+
+            if FindWindow(name='另存为...'):
+                wxlog.warning("保存对话框仍然存在，可能需要手动关闭")
+
+        except Exception as e:
+            wxlog.error(f"关闭图片查看窗口时出错: {str(e)}")
+            import traceback
+            wxlog.error(traceback.format_exc())
 
 class TextElement:
     def __init__(self, ele, wx) -> None:
