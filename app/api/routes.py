@@ -680,14 +680,9 @@ def get_listen_messages():
 
         # 根据不同的库构建不同的参数
         if lib_name == 'wxautox':
-            # wxautox支持所有参数
+            # wxautox的GetListenMessage方法只接受who参数
             params = {
-                'who': who,
-                'savepic': savepic,
-                'savevideo': savevideo,
-                'savefile': savefile,
-                'savevoice': savevoice,
-                'parseurl': parseurl
+                'who': who
             }
             logger.debug(f"使用wxautox参数: {params}")
         else:
@@ -1577,15 +1572,34 @@ def add_current_chat_to_listen():
                 'data': None
             }), 400
 
+        # 获取当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"添加当前聊天窗口到监听列表，当前使用的库: {lib_name}")
+
+        # 根据不同的库构建不同的参数
+        if lib_name == 'wxautox':
+            # wxautox支持所有参数
+            params = {
+                'who': current_chat,
+                'savepic': savepic,
+                'savevideo': savevideo,
+                'savefile': savefile,
+                'savevoice': savevoice,
+                'parseurl': parseurl
+            }
+            logger.debug(f"使用wxautox参数: {params}")
+        else:
+            # wxauto不支持savevideo和parseurl参数
+            params = {
+                'who': current_chat,
+                'savepic': savepic,
+                'savefile': savefile,
+                'savevoice': savevoice
+            }
+            logger.debug(f"使用wxauto参数: {params}")
+
         # 添加到监听列表
-        wx_instance.AddListenChat(
-            who=current_chat,
-            savepic=savepic,
-            savevideo=savevideo,
-            savefile=savefile,
-            savevoice=savevoice,
-            parseurl=parseurl
-        )
+        wx_instance.AddListenChat(**params)
 
         return jsonify({
             'code': 0,

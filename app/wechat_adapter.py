@@ -335,15 +335,20 @@ class WeChatAdapter:
         if not self._instance:
             raise AttributeError("微信实例未初始化")
 
-        # wxauto不支持savevideo和parseurl参数
+        # 根据不同的库处理参数
         if self._lib_name == "wxauto":
-            # 从kwargs中移除不支持的参数
+            # wxauto不支持savevideo和parseurl参数
             if "savevideo" in kwargs:
                 logger.debug("移除wxauto不支持的参数: savevideo")
                 kwargs.pop("savevideo", None)
             if "parseurl" in kwargs:
                 logger.debug("移除wxauto不支持的参数: parseurl")
                 kwargs.pop("parseurl", None)
+        elif self._lib_name == "wxautox":
+            # 根据文档，wxautox的AddListenChat支持以下参数：
+            # who, savepic, savevideo, savefile, savevoice, parseurl, exact
+            # 不需要移除任何参数
+            pass
 
         try:
             # 调用原始方法
@@ -352,18 +357,36 @@ class WeChatAdapter:
         except Exception as e:
             logger.error(f"调用AddListenChat方法失败: {str(e)}")
             # 如果是参数错误，尝试使用最基本的参数重试
-            if "参数" in str(e) or "parameter" in str(e).lower() or "argument" in str(e).lower():
+            if "参数" in str(e) or "parameter" in str(e).lower() or "argument" in str(e).lower() or "unexpected keyword" in str(e).lower():
                 logger.warning("可能是参数错误，尝试使用基本参数重试")
                 # 只保留基本参数
                 basic_kwargs = {}
                 if "who" in kwargs:
                     basic_kwargs["who"] = kwargs["who"]
-                if "savepic" in kwargs:
-                    basic_kwargs["savepic"] = kwargs["savepic"]
-                if "savefile" in kwargs:
-                    basic_kwargs["savefile"] = kwargs["savefile"]
-                if "savevoice" in kwargs:
-                    basic_kwargs["savevoice"] = kwargs["savevoice"]
+
+                # 根据不同的库添加不同的基本参数
+                if self._lib_name == "wxauto":
+                    # wxauto支持的基本参数
+                    if "savepic" in kwargs:
+                        basic_kwargs["savepic"] = kwargs["savepic"]
+                    if "savefile" in kwargs:
+                        basic_kwargs["savefile"] = kwargs["savefile"]
+                    if "savevoice" in kwargs:
+                        basic_kwargs["savevoice"] = kwargs["savevoice"]
+                elif self._lib_name == "wxautox":
+                    # wxautox支持的基本参数
+                    if "savepic" in kwargs:
+                        basic_kwargs["savepic"] = kwargs["savepic"]
+                    if "savevideo" in kwargs:
+                        basic_kwargs["savevideo"] = kwargs["savevideo"]
+                    if "savefile" in kwargs:
+                        basic_kwargs["savefile"] = kwargs["savefile"]
+                    if "savevoice" in kwargs:
+                        basic_kwargs["savevoice"] = kwargs["savevoice"]
+                    if "parseurl" in kwargs:
+                        basic_kwargs["parseurl"] = kwargs["parseurl"]
+                    if "exact" in kwargs:
+                        basic_kwargs["exact"] = kwargs["exact"]
 
                 logger.debug(f"使用基本参数重试: {basic_kwargs}")
                 return self._instance.AddListenChat(*args, **basic_kwargs)
@@ -399,9 +422,20 @@ class WeChatAdapter:
 
         # 根据不同的库使用不同的处理方法
         if self._lib_name == "wxautox":
-            # 对于wxautox库，直接调用原始方法
+            # 对于wxautox库，只传递who参数，不传递其他参数
             try:
-                result = self._instance.GetListenMessage(*args, **kwargs)
+                # 根据文档，wxautox的GetListenMessage只接受who参数
+                who = args[0] if args else kwargs.get('who')
+
+                # 记录调用信息，帮助调试
+                logger.debug(f"调用wxautox GetListenMessage，参数: who={who}")
+
+                # 只传递who参数
+                if who:
+                    result = self._instance.GetListenMessage(who)
+                else:
+                    result = self._instance.GetListenMessage()
+
                 # 记录返回类型，帮助调试
                 logger.debug(f"wxautox GetListenMessage返回类型: {type(result)}")
                 return result
