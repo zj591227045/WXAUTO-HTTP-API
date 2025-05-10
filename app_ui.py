@@ -139,6 +139,26 @@ class WxAutoHttpUI:
         self.style.configure("Red.TLabel", foreground="red")
         self.style.configure("Bold.TLabel", font=("TkDefaultFont", 9, "bold"))
 
+        # 添加强调按钮样式
+        try:
+            # 尝试使用更现代的样式
+            self.style.configure("Accent.TButton",
+                                padding=8,
+                                relief="raised",
+                                background="#4a86e8",
+                                foreground="#ffffff",
+                                font=("TkDefaultFont", 10, "bold"))
+
+            # 设置鼠标悬停效果
+            self.style.map("Accent.TButton",
+                        background=[('active', '#3a76d8'), ('pressed', '#2a66c8')],
+                        relief=[('pressed', 'sunken')])
+        except Exception:
+            # 如果样式设置失败，使用基本样式
+            self.style.configure("Accent.TButton",
+                                padding=8,
+                                font=("TkDefaultFont", 10, "bold"))
+
         # 创建主框架
         self.main_frame = ttk.Frame(self.root, padding="10")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
@@ -233,7 +253,12 @@ class WxAutoHttpUI:
         ttk.Label(wxautox_frame, text="wxautox状态:").pack(side=tk.LEFT, padx=5)
         self.wxautox_status = ttk.Label(wxautox_frame, text="检测中...", style="Bold.TLabel")
         self.wxautox_status.pack(side=tk.LEFT, padx=5)
-        self.install_wxautox_button = ttk.Button(wxautox_frame, text="安装说明", command=self.show_wxautox_install)
+        # 使用ttk.Button与其他按钮保持一致的风格
+        self.install_wxautox_button = ttk.Button(
+            wxautox_frame,
+            text="安装wxautox",
+            command=self.show_wxautox_install
+        )
         self.install_wxautox_button.pack(side=tk.LEFT, padx=5)
 
     def create_status_panel(self):
@@ -795,13 +820,190 @@ class WxAutoHttpUI:
 
     def show_wxautox_install(self):
         """显示wxautox安装说明"""
-        messagebox.showinfo("wxautox安装说明",
-                           "wxautox是付费增强库，需要单独购买并安装。\n\n"
-                           "安装步骤：\n"
-                           "1. 获取wxautox的wheel文件\n"
-                           "2. 运行命令: pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl\n"
-                           "3. 安装完成后，在本界面选择wxautox库\n\n"
-                           "更多信息请访问: https://docs.wxauto.org/")
+        # 创建一个新窗口显示详细的安装说明
+        install_info = tk.Toplevel(self.root)
+        install_info.title("wxautox安装向导")
+        install_info.geometry("500x400")
+        install_info.resizable(True, True)
+        install_info.transient(self.root)
+        install_info.grab_set()
+
+        # 确保窗口在屏幕中央
+        install_info.update_idletasks()
+        width = install_info.winfo_width()
+        height = install_info.winfo_height()
+        x = (install_info.winfo_screenwidth() // 2) - (width // 2)
+        y = (install_info.winfo_screenheight() // 2) - (height // 2)
+        install_info.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
+        # 创建主框架
+        main_frame = tk.Frame(install_info, padx=20, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 添加标题
+        title_label = tk.Label(main_frame, text="wxautox安装向导", font=("TkDefaultFont", 14, "bold"))
+        title_label.pack(pady=(0, 15))
+
+        # 添加详细说明
+        info_text = """wxautox是付费增强库，需要单独购买并安装。
+
+安装步骤:
+1. 点击下方的【开始安装】按钮
+2. 在文件选择对话框中找到并选择wxautox的wheel文件
+   (文件名格式为: wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl)
+3. 系统将自动安装并配置wxautox库
+4. 安装完成后，重启服务即可使用wxautox库
+
+您也可以通过命令行手动安装:
+pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
+
+        # 创建滚动文本区域
+        text_frame = tk.Frame(main_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        text_scroll = tk.Scrollbar(text_frame)
+        text_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        info_area = tk.Text(text_frame, wrap=tk.WORD, height=12, width=50,
+                           font=("TkDefaultFont", 10),
+                           yscrollcommand=text_scroll.set)
+        info_area.insert(tk.END, info_text)
+        info_area.config(state=tk.DISABLED)  # 设置为只读
+        info_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        text_scroll.config(command=info_area.yview)
+
+        # 添加文档链接
+        link_frame = tk.Frame(main_frame)
+        link_frame.pack(fill=tk.X, pady=(5, 15))
+
+        link_label = tk.Label(link_frame, text="更多信息请访问: ", font=("TkDefaultFont", 9))
+        link_label.pack(side=tk.LEFT)
+
+        # 创建一个可点击的链接
+        link_button = tk.Label(
+            link_frame,
+            text="https://docs.wxauto.org/",
+            fg="blue",
+            cursor="hand2",
+            font=("TkDefaultFont", 9, "underline")
+        )
+        link_button.pack(side=tk.LEFT)
+
+        # 添加点击事件
+        def open_url(event):
+            import webbrowser
+            webbrowser.open_new("https://docs.wxauto.org/")
+
+        link_button.bind("<Button-1>", open_url)
+
+        # 添加按钮框架
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        # 添加安装按钮 - 使用ttk.Button与主界面按钮保持一致
+        install_button = ttk.Button(
+            button_frame,
+            text="开始安装",
+            command=lambda: [install_info.destroy(), self.select_wxautox_file()]
+        )
+        install_button.pack(side=tk.LEFT, padx=(0, 10))
+
+        # 添加取消按钮 - 使用ttk.Button与主界面按钮保持一致
+        cancel_button = ttk.Button(
+            button_frame,
+            text="取消",
+            command=install_info.destroy
+        )
+        cancel_button.pack(side=tk.LEFT)
+
+    def select_wxautox_file(self):
+        """选择并安装wxautox wheel文件"""
+        # 打开文件选择对话框
+        file_path = filedialog.askopenfilename(
+            title="选择wxautox wheel文件",
+            filetypes=[("Wheel文件", "*.whl"), ("所有文件", "*.*")],
+            initialdir=os.getcwd()
+        )
+
+        if not file_path:
+            return  # 用户取消了选择
+
+        # 检查文件名是否包含wxautox
+        if 'wxautox-' not in os.path.basename(file_path):
+            messagebox.showerror("错误", "所选文件不是wxautox wheel文件")
+            return
+
+        # 显示安装中对话框
+        progress_dialog = tk.Toplevel(self.root)
+        progress_dialog.title("wxautox安装中...")
+        progress_dialog.geometry("400x200")
+        progress_dialog.resizable(False, False)
+        progress_dialog.transient(self.root)
+        progress_dialog.grab_set()
+
+        # 居中显示
+        progress_dialog.update_idletasks()
+        width = progress_dialog.winfo_width()
+        height = progress_dialog.winfo_height()
+        x = (progress_dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (progress_dialog.winfo_screenheight() // 2) - (height // 2)
+        progress_dialog.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
+        # 创建主框架
+        main_frame = ttk.Frame(progress_dialog, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 创建进度提示
+        ttk.Label(main_frame, text="正在安装wxautox，请稍候...", font=("TkDefaultFont", 12)).pack(pady=20)
+
+        # 创建进度条
+        progress = ttk.Progressbar(main_frame, mode="indeterminate", length=300)
+        progress.pack(pady=10)
+        progress.start()
+
+        # 创建进度文本
+        progress_var = tk.StringVar(value="安装准备中...")
+        progress_label = ttk.Label(main_frame, textvariable=progress_var, font=("TkDefaultFont", 10))
+        progress_label.pack(pady=10)
+
+        # 在新线程中执行安装
+        def install_thread():
+            try:
+                # 更新进度
+                self.root.after(0, lambda: progress_var.set("正在安装wxautox..."))
+
+                # 导入插件管理模块
+                from app import plugin_manager
+
+                # 安装wxautox
+                success, message = plugin_manager.install_wxautox(file_path)
+
+                # 在主线程中更新UI
+                if success:
+                    self.root.after(0, lambda: progress_var.set("安装成功！"))
+                    self.root.after(0, lambda: self.add_log(f"wxautox安装成功: {message}"))
+                    self.root.after(0, lambda: self.check_wxautox_status())
+                    self.root.after(0, lambda: progress.stop())  # 停止进度条
+                    self.root.after(1000, lambda: progress_dialog.destroy())
+                    self.root.after(1200, lambda: messagebox.showinfo("安装成功",
+                                                                   "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
+                                                                   "如需立即使用，请重启服务。"))
+                else:
+                    self.root.after(0, lambda: progress_var.set("安装失败！"))
+                    self.root.after(0, lambda: self.add_log(f"wxautox安装失败: {message}"))
+                    self.root.after(0, lambda: progress.stop())  # 停止进度条
+                    self.root.after(1000, lambda: progress_dialog.destroy())
+                    self.root.after(1200, lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
+            except Exception as e:
+                self.root.after(0, lambda: progress_var.set("安装出错！"))
+                self.root.after(0, lambda: self.add_log(f"wxautox安装过程出错: {str(e)}"))
+                self.root.after(0, lambda: progress.stop())  # 停止进度条
+                self.root.after(1000, lambda: progress_dialog.destroy())
+                self.root.after(1200, lambda: messagebox.showerror("安装错误", f"wxautox安装过程出错:\n{str(e)}"))
+
+        # 启动安装线程
+        threading.Thread(target=install_thread, daemon=True).start()
 
     def show_api_documentation(self):
         """显示API功能说明和对比"""

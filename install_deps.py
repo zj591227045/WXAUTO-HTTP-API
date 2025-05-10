@@ -63,9 +63,23 @@ def install_wxautox():
             wheel_file = wheel_files[0]
             print(f"找到本地wxautox wheel文件: {wheel_file}")
             result = install_package(wheel_file)
+
+            # 如果安装成功，尝试导入验证
+            if result:
+                try:
+                    import wxautox
+                    import importlib
+                    importlib.reload(wxautox)  # 重新加载模块，确保使用最新版本
+                    print(f"wxautox库导入验证成功，版本: {getattr(wxautox, 'VERSION', '未知版本')}")
+                except ImportError as e:
+                    print(f"wxautox库安装后导入失败: {e}")
+                    return False
+
             return result
         else:
-            print("未找到本地wxautox wheel文件，wxautox库安装失败")
+            # 提示用户可以通过UI界面安装
+            print("未找到本地wxautox wheel文件")
+            print("您可以稍后通过UI界面的'安装wxautox'按钮来安装wxautox库")
             return False
     except Exception as e:
         print(f"wxautox库安装失败: {e}")
@@ -122,7 +136,8 @@ def install_dependencies():
                     sys.exit(1)
         else:
             print("\n未发现wxautox wheel文件")
-            print("无法安装wxautox，将安装wxauto作为备选")
+            print("您可以稍后通过UI界面的'安装wxautox'按钮来安装wxautox库")
+            print("现在将安装wxauto作为备选")
             wxauto_installed = install_wxauto()
             if wxauto_installed:
                 print("wxauto库安装成功")

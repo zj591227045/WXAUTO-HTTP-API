@@ -126,12 +126,22 @@ WECHAT_LIB=wxauto
 WECHAT_LIB=wxautox
 ```
 
-如果您选择使用wxautox库，需要确保已正确安装：
+如果您选择使用wxautox库，有以下几种安装方式：
 
-```bash
-# 如果您有wxautox的wheel文件
-pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl
-```
+1. **通过UI界面安装**：
+   - 启动程序后，在UI界面点击"安装wxautox"按钮
+   - 选择您已下载的wxautox wheel文件
+   - 系统将自动安装并配置wxautox库
+
+2. **通过命令行安装**：
+   ```bash
+   # 如果您有wxautox的wheel文件
+   pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl
+   ```
+
+3. **通过安装脚本安装**：
+   - 将wxautox wheel文件放在项目根目录
+   - 运行 `python install_deps.py` 并选择wxautox选项
 
 **注意**：程序会严格按照您的选择使用指定的库，不会自动切换。如果您选择了wxautox但未安装，程序将无法启动。
 

@@ -13,6 +13,9 @@ def create_app():
     from app.wechat_init import initialize as init_wechat
     init_wechat()
 
+    # 导入插件管理模块，确保它被初始化
+    from app import plugin_manager
+
     # 创建 Flask 应用
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -28,8 +31,10 @@ def create_app():
     # 注册蓝图
     from app.api.routes import api_bp
     from app.api.admin_routes import admin_bp
+    from app.api.plugin_routes import plugin_bp
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(plugin_bp, url_prefix='/admin/plugins')
 
     @app.route('/health')
     def health_check():
