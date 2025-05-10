@@ -655,6 +655,8 @@ class ChatWnd(WeChatBase):
             wxlog.debug(f"已激活聊天窗口到前台: {self.who}")
         except Exception as e:
             wxlog.error(f"激活聊天窗口失败: {str(e)}")
+            # 抛出异常，让上层处理
+            raise
 
         # 初始化usedmsgid（如果需要）
         if not self.usedmsgid:

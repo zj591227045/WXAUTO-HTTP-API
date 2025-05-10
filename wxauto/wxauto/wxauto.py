@@ -612,8 +612,15 @@ class WeChat(WeChatBase):
                     return msg
                 except Exception as e:
                     import traceback
-                    print(f"获取聊天对象 {who} 的新消息失败: {str(e)}")
+                    error_str = str(e)
+                    print(f"获取聊天对象 {who} 的新消息失败: {error_str}")
                     traceback.print_exc()
+
+                    # 如果是窗口激活失败的错误，重新抛出异常，让上层处理
+                    if "激活聊天窗口失败" in error_str or "SetWindowPos" in error_str or "无效的窗口句柄" in error_str:
+                        wxlog.warning(f"检测到窗口激活失败，重新抛出异常: {error_str}")
+                        raise
+
                     return []
 
             # 获取所有监听对象的新消息
@@ -639,8 +646,15 @@ class WeChat(WeChatBase):
                         msgs[chat] = msg
                 except Exception as e:
                     import traceback
-                    print(f"获取聊天对象 {chat_who} 的新消息失败: {str(e)}")
+                    error_str = str(e)
+                    print(f"获取聊天对象 {chat_who} 的新消息失败: {error_str}")
                     traceback.print_exc()
+
+                    # 如果是窗口激活失败的错误，重新抛出异常，让上层处理
+                    if "激活聊天窗口失败" in error_str or "SetWindowPos" in error_str or "无效的窗口句柄" in error_str:
+                        wxlog.warning(f"检测到窗口激活失败，重新抛出异常: {error_str}")
+                        raise
+
                     # 继续处理下一个聊天对象
                     continue
 
@@ -648,8 +662,15 @@ class WeChat(WeChatBase):
         except Exception as e:
             # 捕获所有异常，避免崩溃
             import traceback
-            print(f"获取监听消息失败: {str(e)}")
+            error_str = str(e)
+            print(f"获取监听消息失败: {error_str}")
             traceback.print_exc()
+
+            # 如果是窗口激活失败的错误，重新抛出异常，让上层处理
+            if "激活聊天窗口失败" in error_str or "SetWindowPos" in error_str or "无效的窗口句柄" in error_str:
+                wxlog.warning(f"检测到窗口激活失败，重新抛出异常: {error_str}")
+                raise
+
             return {}
 
     def SwitchToContact(self):

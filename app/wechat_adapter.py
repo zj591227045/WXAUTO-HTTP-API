@@ -422,6 +422,8 @@ class WeChatAdapter:
                 # wxauto的GetListenMessage方法内部会调用chat._show()来激活窗口
                 logger.debug(f"使用wxauto库内置功能激活聊天窗口: {who if who else '所有窗口'}")
 
+                # 不主动检测窗口句柄是否有效，直接尝试获取消息
+
                 # 调用原始方法，只传递who参数
                 if who:
                     result = self._instance.GetListenMessage(who)
@@ -469,8 +471,160 @@ class WeChatAdapter:
             except Exception as e:
                 # 捕获所有异常，避免崩溃
                 import traceback
-                logger.error(f"wxauto获取监听消息失败: {str(e)}")
+                error_str = str(e)
+                logger.error(f"wxauto获取监听消息失败: {error_str}")
                 traceback.print_exc()
+
+                # 检查是否是窗口激活失败的错误
+                if "激活聊天窗口失败" in error_str or "SetWindowPos" in error_str or "无效的窗口句柄" in error_str or "Find Control Timeout" in error_str:
+                    # 获取who参数
+                    who = args[0] if args else kwargs.get('who')
+
+                    if who:
+                        logger.warning(f"检测到窗口激活失败，尝试重新添加监听对象: {who}")
+                        try:
+                            # 先尝试移除可能存在的无效监听对象
+                            try:
+                                self.RemoveListenChat(who)
+                                logger.info(f"已移除无效的监听对象: {who}")
+                            except Exception as remove_e:
+                                logger.warning(f"移除无效监听对象失败: {str(remove_e)}")
+
+                            # 尝试先打开聊天窗口
+                            try:
+                                self.ChatWith(who)
+                                logger.info(f"已打开聊天窗口: {who}")
+                                # 等待窗口打开
+                                import time
+                                time.sleep(0.5)
+                            except Exception as chat_e:
+                                logger.warning(f"打开聊天窗口失败: {str(chat_e)}")
+
+                            # 重新添加监听对象
+                            # 构建基本参数
+                            add_params = {'who': who}
+                            if 'savepic' in kwargs:
+                                add_params['savepic'] = kwargs['savepic']
+                            if 'savefile' in kwargs:
+                                add_params['savefile'] = kwargs['savefile']
+                            if 'savevoice' in kwargs:
+                                add_params['savevoice'] = kwargs['savevoice']
+
+                            self.AddListenChat(**add_params)
+                            logger.info(f"已重新添加监听对象: {who}")
+
+                            # 再次尝试获取消息
+                            if who:
+                                result = self._instance.GetListenMessage(who)
+                            else:
+                                result = self._instance.GetListenMessage()
+                            return result
+                        except Exception as retry_e:
+                            logger.error(f"重新添加监听对象后获取消息仍然失败: {str(retry_e)}")
+                    else:
+                        # 如果没有指定who参数，尝试处理所有监听对象
+                        logger.warning("未指定who参数，尝试处理所有监听对象")
+                        try:
+                            # 获取当前所有监听对象
+                            listen_list = {}
+                            try:
+                                listen_list = self._instance.listen.copy()  # 复制一份以避免迭代过程中修改
+                            except Exception as list_e:
+                                logger.error(f"获取监听列表失败: {str(list_e)}")
+                                return {}
+
+                            # 如果监听列表为空，直接返回
+                            if not listen_list:
+                                logger.warning("监听列表为空")
+                                return {}
+
+                            # 遍历所有监听对象，尝试重新添加
+                            for chat_who, chat_obj in listen_list.items():
+                                try:
+                                    # 先移除
+                                    try:
+                                        self.RemoveListenChat(chat_who)
+                                        logger.info(f"已移除可能无效的监听对象: {chat_who}")
+                                    except Exception as remove_e:
+                                        logger.warning(f"移除监听对象失败: {str(remove_e)}")
+
+                                    # 尝试先打开聊天窗口
+                                    try:
+                                        self.ChatWith(chat_who)
+                                        logger.info(f"已打开聊天窗口: {chat_who}")
+                                        # 等待窗口打开
+                                        import time
+                                        time.sleep(0.5)
+                                    except Exception as chat_e:
+                                        logger.warning(f"打开聊天窗口失败: {str(chat_e)}")
+
+                                    # 重新添加
+                                    chat_params = {
+                                        'who': chat_who,
+                                        'savepic': getattr(chat_obj, 'savepic', False),
+                                        'savefile': getattr(chat_obj, 'savefile', False),
+                                        'savevoice': getattr(chat_obj, 'savevoice', False)
+                                    }
+                                    self.AddListenChat(**chat_params)
+                                    logger.info(f"已重新添加监听对象: {chat_who}")
+                                except Exception as chat_e:
+                                    logger.error(f"重新添加监听对象 {chat_who} 失败: {str(chat_e)}")
+                                    continue
+
+                            # 重新尝试获取所有监听对象的消息
+                            try:
+                                result = self._instance.GetListenMessage()
+                                return result
+                            except Exception as retry_e:
+                                logger.error(f"重新添加所有监听对象后获取消息仍然失败: {str(retry_e)}")
+                        except Exception as all_e:
+                            logger.error(f"处理所有监听对象失败: {str(all_e)}")
+                elif "激活聊天窗口失败" in traceback.format_exc() or "SetWindowPos" in traceback.format_exc() or "无效的窗口句柄" in traceback.format_exc():
+                    # 获取who参数
+                    who = args[0] if args else kwargs.get('who')
+
+                    if who:
+                        logger.warning(f"从堆栈跟踪中检测到窗口激活失败，尝试重新添加监听对象: {who}")
+                        try:
+                            # 先尝试移除可能存在的无效监听对象
+                            try:
+                                self.RemoveListenChat(who)
+                                logger.info(f"已移除无效的监听对象: {who}")
+                            except Exception as remove_e:
+                                logger.warning(f"移除无效监听对象失败: {str(remove_e)}")
+
+                            # 尝试先打开聊天窗口
+                            try:
+                                self.ChatWith(who)
+                                logger.info(f"已打开聊天窗口: {who}")
+                                # 等待窗口打开
+                                import time
+                                time.sleep(0.5)
+                            except Exception as chat_e:
+                                logger.warning(f"打开聊天窗口失败: {str(chat_e)}")
+
+                            # 重新添加监听对象
+                            # 构建基本参数
+                            add_params = {'who': who}
+                            if 'savepic' in kwargs:
+                                add_params['savepic'] = kwargs['savepic']
+                            if 'savefile' in kwargs:
+                                add_params['savefile'] = kwargs['savefile']
+                            if 'savevoice' in kwargs:
+                                add_params['savevoice'] = kwargs['savevoice']
+
+                            self.AddListenChat(**add_params)
+                            logger.info(f"已重新添加监听对象: {who}")
+
+                            # 再次尝试获取消息
+                            if who:
+                                result = self._instance.GetListenMessage(who)
+                            else:
+                                result = self._instance.GetListenMessage()
+                            return result
+                        except Exception as retry_e:
+                            logger.error(f"重新添加监听对象后获取消息仍然失败: {str(retry_e)}")
+
                 # 根据是否指定了who参数返回不同的空值
                 who = args[0] if args else kwargs.get('who')
                 return [] if who else {}

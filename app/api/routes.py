@@ -700,8 +700,68 @@ def get_listen_messages():
             }
             logger.debug(f"使用wxauto参数: {params}")
 
+        # 如果指定了who参数，检查该对象是否在监听列表中
+        if who:
+            try:
+                listen_list = wx_instance.listen
+
+                # 检查是否在监听列表中
+                if who not in listen_list:
+                    logger.warning(f"聊天对象 {who} 不在监听列表中，尝试自动添加")
+                    # 自动添加到监听列表
+                    add_params = params.copy()
+                    wx_instance.AddListenChat(**add_params)
+                    logger.info(f"已自动添加聊天对象 {who} 到监听列表")
+                else:
+                    # 对象已在监听列表中，不做任何操作
+                    logger.debug(f"聊天对象 {who} 已在监听列表中，直接获取消息")
+            except Exception as check_e:
+                logger.error(f"检查或添加监听对象失败: {str(check_e)}")
+                # 继续执行，让后续代码处理可能的错误
+
         # 调用GetListenMessage方法
-        messages = wx_instance.GetListenMessage(**params)
+        try:
+            messages = wx_instance.GetListenMessage(**params)
+        except Exception as e:
+            error_str = str(e)
+            logger.error(f"调用GetListenMessage方法失败: {error_str}")
+
+            # 检查是否是窗口激活失败的错误
+            if "激活聊天窗口失败" in error_str or "SetWindowPos" in error_str or "无效的窗口句柄" in error_str:
+                logger.warning(f"检测到窗口激活失败，尝试重新添加监听对象: {who}")
+
+                if who:
+                    # 先移除监听对象
+                    try:
+                        wx_instance.RemoveListenChat(who)
+                        logger.info(f"已移除监听对象: {who}")
+                    except Exception as e:
+                        logger.warning(f"移除监听对象失败: {str(e)}")
+
+                    # 尝试打开聊天窗口
+                    try:
+                        wx_instance.ChatWith(who)
+                        logger.info(f"已打开聊天窗口: {who}")
+                        # 等待窗口打开
+                        import time
+                        time.sleep(0.5)
+                    except Exception as e:
+                        logger.warning(f"打开聊天窗口失败: {str(e)}")
+
+                    # 重新添加监听对象
+                    wx_instance.AddListenChat(**params)
+                    logger.info(f"已重新添加监听对象: {who}")
+
+                    # 再次尝试获取消息
+                    try:
+                        messages = wx_instance.GetListenMessage(**params)
+                    except Exception as e:
+                        logger.error(f"重新添加监听对象后获取消息仍然失败: {str(e)}")
+                        messages = {}
+                else:
+                    messages = {}
+            else:
+                messages = {}
 
         if not messages:
             return jsonify({
@@ -1549,6 +1609,97 @@ def add_current_chat_to_listen():
             'data': None
         }), 500
 
+@api_bp.route('/message/listen/reactivate', methods=['POST'])
+@require_api_key
+def reactivate_listen_chat():
+    """重新激活监听对象，用于处理窗口激活失败的情况"""
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+
+    data = request.get_json()
+    who = data.get('who')
+
+    if not who:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数',
+            'data': None
+        }), 400
+
+    try:
+        # 获取当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"重新激活监听对象，当前使用的库: {lib_name}")
+
+        # 获取请求参数
+        savepic = data.get('savepic', True)
+        savevideo = data.get('savevideo', False)
+        savefile = data.get('savefile', True)
+        savevoice = data.get('savevoice', True)
+        parseurl = data.get('parseurl', False)
+
+        # 根据不同的库构建不同的参数
+        if lib_name == 'wxautox':
+            # wxautox支持所有参数
+            params = {
+                'who': who,
+                'savepic': savepic,
+                'savevideo': savevideo,
+                'savefile': savefile,
+                'savevoice': savevoice,
+                'parseurl': parseurl
+            }
+        else:
+            # wxauto不支持savevideo和parseurl参数
+            params = {
+                'who': who,
+                'savepic': savepic,
+                'savefile': savefile,
+                'savevoice': savevoice
+            }
+
+        # 无论窗口是否有效，都执行重新添加的操作
+        logger.info(f"准备重新激活聊天对象: {who}")
+
+        # 先移除监听对象
+        try:
+            wx_instance.RemoveListenChat(who)
+            logger.info(f"已移除监听对象: {who}")
+        except Exception as e:
+            logger.warning(f"移除监听对象失败: {str(e)}")
+
+        # 尝试打开聊天窗口
+        try:
+            wx_instance.ChatWith(who)
+            logger.info(f"已打开聊天窗口: {who}")
+            # 等待窗口打开
+            import time
+            time.sleep(0.5)
+        except Exception as e:
+            logger.warning(f"打开聊天窗口失败: {str(e)}")
+
+        # 重新添加监听对象
+        wx_instance.AddListenChat(**params)
+        logger.info(f"已重新添加监听对象: {who}")
+
+        return jsonify({
+            'code': 0,
+            'message': '重新激活监听对象成功',
+            'data': {'who': who}
+        })
+    except Exception as e:
+        logger.error(f"重新激活监听对象失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 3001,
+            'message': f'重新激活失败: {str(e)}',
+            'data': None
+        }), 500
+
 @api_bp.route('/file/download', methods=['POST'])
 @require_api_key
 def download_file():
@@ -1591,7 +1742,7 @@ def download_file():
             file_content,
             mimetype='application/octet-stream',
             headers={
-                'Content-Disposition': 'attachment; filename="file"'
+                'Content-Disposition': f'attachment; filename="{filename}"'
             }
         )
         return response
