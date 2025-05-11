@@ -1439,9 +1439,18 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
         # 启动服务
         try:
-            # 使用subprocess启动run.py
+            # 使用subprocess启动main.py，明确指定启动API服务
+            cmd = [sys.executable, "main.py", "--service", "api"]
+
+            # 添加调试参数，以获取更详细的日志
+            if getattr(sys, 'frozen', False):
+                cmd.append("--debug")
+
+            # 记录启动命令
+            self.add_log(f"启动命令: {' '.join(cmd)}")
+
             API_PROCESS = subprocess.Popen(
-                [sys.executable, "run.py"],
+                cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
