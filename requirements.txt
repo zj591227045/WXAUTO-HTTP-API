@@ -11,4 +11,10 @@ comtypes>=1.4.0
 pyperclip>=1.9.0
 tenacity>=9.1.0
 typing-extensions>=4.0.0
+uiautomation
+Pillow
+pywin32
+psutil
+pyperclip
+
 # wxauto库将在运行时安装
