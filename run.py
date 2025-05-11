@@ -5,10 +5,17 @@ import subprocess
 import atexit
 import signal
 import logging
+import argparse
 from app import create_app
 from app.logs import logger
 from app.config import Config
 from app.api_queue import start_queue_processors, stop_queue_processors
+
+# 导入互斥锁模块
+try:
+    import app_mutex
+except ImportError:
+    logger.warning("无法导入互斥锁模块，跳过互斥锁检查")
 
 # 配置 Werkzeug 日志
 werkzeug_logger = logging.getLogger('werkzeug')
@@ -94,16 +101,70 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 try:
+    # 记录启动环境信息
+    logger.info(f"Python版本: {sys.version}")
+    logger.info(f"当前工作目录: {os.getcwd()}")
+    logger.info(f"Python路径: {sys.path}")
+    logger.info(f"是否在PyInstaller环境中运行: {getattr(sys, 'frozen', False)}")
+    logger.info(f"进程类型: API服务")
+
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="启动wxauto_http_api API服务")
+    parser.add_argument("--no-mutex-check", action="store_true", help="禁用互斥锁检查")
+    parser.add_argument("--debug", action="store_true", help="启用调试模式")
+    args = parser.parse_args()
+
+    # 如果启用调试模式，设置更详细的日志级别
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+        logger.info("已启用调试模式")
+
+    # 检查互斥锁
+    if not args.no_mutex_check and 'app_mutex' in globals():
+        try:
+            # 获取端口号
+            port = Config.PORT
+            logger.info(f"API服务端口: {port}")
+
+            # 创建API服务互斥锁
+            api_mutex = app_mutex.create_api_mutex(port)
+
+            # 尝试获取API服务互斥锁
+            if not api_mutex.acquire():
+                logger.warning(f"端口 {port} 已被占用，API服务可能已在运行")
+                sys.exit(0)
+
+            logger.info(f"成功获取API服务互斥锁，端口: {port}")
+        except Exception as e:
+            logger.error(f"互斥锁检查失败: {str(e)}")
+            logger.error(traceback.format_exc())
+            # 继续执行，不要因为互斥锁检查失败而退出
+
     # 检查依赖
-    check_dependencies()
+    try:
+        check_dependencies()
+    except Exception as e:
+        logger.error(f"依赖检查失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        sys.exit(2)  # 返回码2表示依赖检查失败
 
     # 启动队列处理器
-    start_queue_processors()
-    logger.info("队列处理器已启动")
+    try:
+        start_queue_processors()
+        logger.info("队列处理器已启动")
+    except Exception as e:
+        logger.error(f"启动队列处理器失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        sys.exit(3)  # 返回码3表示队列处理器启动失败
 
     # 创建应用
-    app = create_app()
-    logger.info("正在启动Flask应用...")
+    try:
+        app = create_app()
+        logger.info("正在启动Flask应用...")
+    except Exception as e:
+        logger.error(f"创建Flask应用失败: {str(e)}")
+        logger.error(traceback.format_exc())
+        sys.exit(4)  # 返回码4表示创建Flask应用失败
 
     if __name__ == '__main__':
         logger.info(f"监听地址: {app.config['HOST']}:{app.config['PORT']}")

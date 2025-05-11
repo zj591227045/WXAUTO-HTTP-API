@@ -135,20 +135,60 @@ def start_api():
 
     # 创建并启动Flask应用
     try:
+        # 记录当前环境信息
+        logger.info(f"当前工作目录: {os.getcwd()}")
+        logger.info(f"Python路径: {sys.path}")
+
+        # 确保app目录在Python路径中
+        app_dir = os.path.join(os.getcwd(), "app")
+        if os.path.exists(app_dir) and app_dir not in sys.path:
+            sys.path.insert(0, app_dir)
+            logger.info(f"已将app目录添加到Python路径: {app_dir}")
+
         # 导入Flask应用创建函数
-        from app import create_app
+        try:
+            from app import create_app
+            logger.info("成功导入Flask应用创建函数")
+        except ImportError as e:
+            logger.error(f"导入Flask应用创建函数失败: {str(e)}")
+            logger.error(traceback.format_exc())
+
+            # 尝试直接导入app模块
+            try:
+                import app
+                logger.info("成功导入app模块")
+
+                # 尝试从app模块中获取create_app函数
+                if hasattr(app, 'create_app'):
+                    create_app = app.create_app
+                    logger.info("成功从app模块中获取create_app函数")
+                else:
+                    logger.error("app模块中没有create_app函数")
+                    sys.exit(1)
+            except ImportError as e:
+                logger.error(f"导入app模块失败: {str(e)}")
+                logger.error(traceback.format_exc())
+                sys.exit(1)
 
         # 创建应用
+        logger.info("正在创建Flask应用...")
         app = create_app()
-        logger.info("正在启动Flask应用...")
+        logger.info("成功创建Flask应用")
 
-        # 启动Flask应用
-        logger.info(f"监听地址: {app.config['HOST']}:{app.config['PORT']}")
+        # 获取配置信息
+        host = app.config.get('HOST', '0.0.0.0')
+        port = app.config.get('PORT', 5000)
+        debug = app.config.get('DEBUG', False)
+
+        logger.info(f"正在启动Flask应用...")
+        logger.info(f"监听地址: {host}:{port}")
+        logger.info(f"调试模式: {debug}")
+
         # 禁用 werkzeug 的重新加载器，避免可能的端口冲突
         app.run(
-            host=app.config['HOST'],
-            port=app.config['PORT'],
-            debug=app.config['DEBUG'],
+            host=host,
+            port=port,
+            debug=debug,
             use_reloader=False,
             threaded=True
         )

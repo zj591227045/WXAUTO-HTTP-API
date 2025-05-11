@@ -70,13 +70,26 @@ def main():
     # 设置环境
     setup_environment()
 
+    # 记录命令行参数
+    logger.info(f"命令行参数: {sys.argv}")
+
     # 解析命令行参数
     parser = argparse.ArgumentParser(description="wxauto_http_api")
     parser.add_argument("--service", choices=["ui", "api"], default="ui",
                       help="指定要启动的服务类型: ui 或 api")
     parser.add_argument("--debug", action="store_true", help="启用调试模式")
     parser.add_argument("--no-mutex-check", action="store_true", help="禁用互斥锁检查")
-    args = parser.parse_args()
+
+    # 在打包环境中，可能会有额外的参数，如main.py
+    if getattr(sys, 'frozen', False) and len(sys.argv) > 1 and sys.argv[1].endswith('.py'):
+        # 移除第一个参数（可能是main.py）
+        logger.info(f"检测到打包环境中的脚本参数: {sys.argv[1]}，将移除")
+        args = parser.parse_args(sys.argv[2:])
+    else:
+        args = parser.parse_args()
+
+    # 记录解析后的参数
+    logger.info(f"解析后的参数: service={args.service}, debug={args.debug}, no_mutex_check={args.no_mutex_check}")
 
     # 设置环境变量，标记服务类型
     os.environ["WXAUTO_SERVICE_TYPE"] = args.service

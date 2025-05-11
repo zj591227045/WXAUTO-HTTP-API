@@ -19,7 +19,7 @@ def check_dependencies():
         print("PyInstaller未安装，正在安装...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
         print("PyInstaller安装完成")
-    
+
     try:
         from PIL import Image, ImageDraw, ImageFont
         print("Pillow已安装")
@@ -42,24 +42,24 @@ def create_icon():
 def build_app(debug=False, onefile=False):
     """
     打包应用程序
-    
+
     Args:
         debug (bool): 是否为调试模式
         onefile (bool): 是否打包为单个文件
     """
     # 检查依赖
     check_dependencies()
-    
+
     # 创建图标
     icon_path = create_icon()
     if not icon_path:
         print("警告: 未能创建图标，将使用默认图标")
         icon_path = "icons/wxauto_icon.ico"
-    
+
     # 确保输出目录存在
     dist_dir = Path("dist")
     dist_dir.mkdir(exist_ok=True)
-    
+
     # 构建命令
     cmd = [
         sys.executable,
@@ -68,11 +68,11 @@ def build_app(debug=False, onefile=False):
         "--clean",
         "--noconfirm",
     ]
-    
+
     # 添加图标
     if os.path.exists(icon_path):
         cmd.extend(["--icon", icon_path])
-    
+
     # 添加调试选项
     if debug:
         cmd.append("--debug")
@@ -81,13 +81,13 @@ def build_app(debug=False, onefile=False):
     else:
         cmd.append("--windowed")
         app_name = "wxauto_http_api"
-    
+
     # 添加单文件选项
     if onefile:
         cmd.append("--onefile")
     else:
         cmd.append("--onedir")
-    
+
     # 添加数据文件
     data_files = [
         (".env", "."),
@@ -102,30 +102,35 @@ def build_app(debug=False, onefile=False):
         ("app_mutex.py", "."),
         ("ui_service.py", "."),
         ("api_service.py", "."),
+        ("main.py", "."),
+        ("run.py", "."),
         ("start_ui.bat", "."),
         ("start_api.bat", "."),
+        ("start_api_packaged.bat", "."),
+        ("initialize_wechat.bat", "."),
+        ("create_icon.py", "."),
         ("wxauto", "wxauto")
     ]
-    
+
     for src, dst in data_files:
         if os.path.exists(src):
             cmd.extend(["--add-data", f"{src}{os.pathsep}{dst}"])
-    
+
     # 排除wxautox库
     cmd.extend(["--exclude-module", "wxautox"])
-    
+
     # 添加名称
     cmd.extend(["--name", app_name])
-    
+
     # 添加入口点
     cmd.append("main.py")
-    
+
     # 执行命令
     print(f"执行命令: {' '.join(cmd)}")
     subprocess.check_call(cmd)
-    
+
     print(f"打包完成，输出目录: {dist_dir / app_name}")
-    
+
     # 复制wxautox wheel文件到输出目录
     wheel_files = [f for f in os.listdir() if f.startswith("wxautox-") and f.endswith(".whl")]
     if wheel_files:
@@ -133,7 +138,7 @@ def build_app(debug=False, onefile=False):
         wheel_dest = dist_dir / app_name / wheel_file
         shutil.copy2(wheel_file, wheel_dest)
         print(f"已复制wxautox wheel文件到输出目录: {wheel_dest}")
-    
+
     return dist_dir / app_name
 
 if __name__ == "__main__":
@@ -141,5 +146,5 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="是否为调试模式")
     parser.add_argument("--onefile", action="store_true", help="是否打包为单个文件")
     args = parser.parse_args()
-    
+
     build_app(debug=args.debug, onefile=args.onefile)

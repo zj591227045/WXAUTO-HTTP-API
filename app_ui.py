@@ -1439,12 +1439,18 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
         # 启动服务
         try:
-            # 使用subprocess启动main.py，明确指定启动API服务
-            cmd = [sys.executable, "main.py", "--service", "api"]
-
-            # 添加调试参数，以获取更详细的日志
+            # 在打包环境中，使用不同的启动方式
             if getattr(sys, 'frozen', False):
-                cmd.append("--debug")
+                # 如果是打包后的环境，直接使用可执行文件启动API服务
+                executable = sys.executable
+                cmd = [executable, "--service", "api", "--debug"]
+            else:
+                # 如果是开发环境，使用Python解释器启动main.py
+                cmd = [sys.executable, "main.py", "--service", "api"]
+
+                # 添加调试参数，以获取更详细的日志
+                if os.environ.get("WXAUTO_DEBUG") == "1":
+                    cmd.append("--debug")
 
             # 记录启动命令
             self.add_log(f"启动命令: {' '.join(cmd)}")
@@ -1482,48 +1488,17 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
             # 添加日志
             self.add_log(f"API服务已启动，监听地址: 0.0.0.0:{port}")
 
+            # 更新UI中的监听地址显示
+            self.api_address.config(text=f"0.0.0.0:{port}")
+
             # 等待服务启动完成
             time.sleep(2)
 
             # 自动初始化微信
             self.add_log("正在自动初始化微信...")
-            try:
-                response = requests.post(
-                    f"http://localhost:{port}/api/wechat/initialize",
-                    headers={"X-API-Key": self.get_api_key()},
-                    timeout=10
-                )
 
-                if response.status_code == 200 and response.json().get("code") == 0:
-                    init_data = response.json()
-                    self.add_log("微信自动初始化成功")
-
-                    # 获取微信窗口名称
-                    window_name = init_data.get("data", {}).get("window_name", "")
-
-                    # 设置连接状态
-                    self.wechat_status.config(text="已连接", style="Green.TLabel")
-
-                    # 无论如何都显示窗口名称（如果有）
-                    if window_name:
-                        # 更新窗口名称标签
-                        self.wechat_window_name.config(text=window_name, foreground="orange")
-                        self.add_log(f"已连接到微信窗口: {window_name}")
-                    else:
-                        # 尝试从日志中获取窗口名称
-                        self.add_log("尝试从日志中获取窗口名称...")
-                        # 清除窗口名称标签
-                        self.wechat_window_name.config(text="获取中...")
-                else:
-                    error_msg = response.json().get("message", "未知错误")
-                    self.add_log(f"微信自动初始化失败: {error_msg}")
-                    self.wechat_status.config(text="初始化失败", style="Red.TLabel")
-                    # 清除窗口名称（如果存在）
-                    if hasattr(self, 'wechat_window_name'):
-                        self.wechat_window_name.config(text="")
-            except Exception as e:
-                self.add_log(f"微信自动初始化请求失败: {str(e)}")
-                self.wechat_status.config(text="初始化失败", style="Red.TLabel")
+            # 使用线程执行初始化，避免阻塞UI
+            threading.Thread(target=self._initialize_wechat_thread, args=(port,), daemon=True).start()
 
         except Exception as e:
             messagebox.showerror("启动失败", f"启动API服务失败: {str(e)}")
@@ -1934,6 +1909,70 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         """检查微信连接状态"""
         # 使用线程执行HTTP请求，避免阻塞UI
         threading.Thread(target=self._check_wechat_connection_thread, daemon=True).start()
+
+    def _initialize_wechat_thread(self, port):
+        """在线程中执行微信初始化"""
+        # 最多尝试3次
+        max_retries = 3
+        retry_delay = 2  # 秒
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.add_log(f"微信初始化尝试 {attempt}/{max_retries}...")
+
+                response = requests.post(
+                    f"http://localhost:{port}/api/wechat/initialize",
+                    headers={"X-API-Key": self.get_api_key()},
+                    timeout=10
+                )
+
+                if response.status_code == 200 and response.json().get("code") == 0:
+                    init_data = response.json()
+                    self.add_log("微信自动初始化成功")
+
+                    # 获取微信窗口名称
+                    window_name = init_data.get("data", {}).get("window_name", "")
+
+                    # 在主线程中更新UI
+                    self.root.after(0, lambda: self.wechat_status.config(text="已连接", style="Green.TLabel"))
+
+                    # 无论如何都显示窗口名称（如果有）
+                    if window_name:
+                        # 更新窗口名称标签
+                        self.root.after(0, lambda wn=window_name: self.wechat_window_name.config(text=wn, foreground="orange"))
+                        self.add_log(f"已连接到微信窗口: {window_name}")
+                    else:
+                        # 尝试从日志中获取窗口名称
+                        self.add_log("尝试从日志中获取窗口名称...")
+                        # 清除窗口名称标签
+                        self.root.after(0, lambda: self.wechat_window_name.config(text="获取中..."))
+
+                    # 初始化成功，退出重试循环
+                    return
+                else:
+                    error_msg = response.json().get("message", "未知错误")
+                    self.add_log(f"微信自动初始化失败: {error_msg}")
+
+                    if attempt == max_retries:
+                        # 最后一次尝试失败，更新UI
+                        self.root.after(0, lambda: self.wechat_status.config(text="初始化失败", style="Red.TLabel"))
+                        # 清除窗口名称（如果存在）
+                        if hasattr(self, 'wechat_window_name'):
+                            self.root.after(0, lambda: self.wechat_window_name.config(text=""))
+                    else:
+                        # 等待一段时间后重试
+                        self.add_log(f"将在 {retry_delay} 秒后重试...")
+                        time.sleep(retry_delay)
+            except Exception as e:
+                self.add_log(f"微信自动初始化请求失败: {str(e)}")
+
+                if attempt == max_retries:
+                    # 最后一次尝试失败，更新UI
+                    self.root.after(0, lambda: self.wechat_status.config(text="初始化失败", style="Red.TLabel"))
+                else:
+                    # 等待一段时间后重试
+                    self.add_log(f"将在 {retry_delay} 秒后重试...")
+                    time.sleep(retry_delay)
 
     def _check_wechat_connection_thread(self):
         """在线程中执行微信连接状态检查"""
