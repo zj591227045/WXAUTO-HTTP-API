@@ -9,6 +9,8 @@
 
 </div>
 
+> **推荐搭配**：本项目建议配合 [WXAUTO-MGT](https://github.com/zj591227045/WXAUTO-MGT) 项目使用，可以获得最佳体验。
+
 基于wxauto的微信HTTP API接口，提供简单易用的HTTP API调用微信功能，同时支持可选的wxautox扩展功能。通过本项目，您可以轻松地将微信集成到您的应用程序中。
 
 ## ✨ 功能特点
@@ -30,6 +32,23 @@
 - **微信PC客户端**：确保已安装并登录微信PC客户端，建议使用微信3.9版本
 
 ### 安装步骤
+
+#### 方式一：使用打包版本（推荐）
+
+1. **下载最新发布版本**
+   - 从 [Releases](https://github.com/yourusername/wxauto_http_api/releases) 页面下载最新的 `wxauto_http_api.zip` 文件
+   - 解压到任意目录（路径中最好不要包含中文和特殊字符）
+
+2. **直接运行**
+   - 双击 `wxauto_http_api.exe` 启动图形界面（推荐）
+   - 或者使用 `start_ui.bat` 启动图形界面
+   - 或者使用 `start_api.bat` 仅启动API服务
+
+3. **安装wxautox（可选）**
+   - 如果需要使用wxautox增强功能，可以在图形界面中点击"安装wxautox"按钮
+   - 选择解压目录中的 `lib/wxautox-*.whl` 文件进行安装
+
+#### 方式二：从源码安装
 
 1. **克隆本仓库**
 
@@ -57,9 +76,16 @@ python main.py --service ui
 
 ### 启动方式
 
-本项目提供两种启动方式：
+本项目提供三种启动方式：
 
-1. **图形界面模式**（推荐）
+1. **可执行文件直接运行**（最简单）
+
+```bash
+# 直接双击可执行文件
+wxauto_http_api.exe
+```
+
+2. **图形界面模式**（开发环境）
 
 ```bash
 # 方式1：使用Python命令
@@ -69,7 +95,7 @@ python main.py --service ui
 start_ui.bat
 ```
 
-2. **仅API服务模式**
+3. **仅API服务模式**
 
 ```bash
 # 方式1：使用Python命令
@@ -239,28 +265,45 @@ wxauto_http_api/
 │   ├── config.py       # 配置模块
 │   ├── logs.py         # 日志模块
 │   ├── plugin_manager.py # 插件管理模块
-│   └── wechat/         # 微信功能实现
+│   ├── wechat/         # 微信功能实现
+│   ├── api_service.py  # API服务实现
+│   ├── app_ui.py       # UI界面实现
+│   ├── app_mutex.py    # 互斥锁机制
+│   ├── ui_service.py   # UI服务实现
+│   └── run.py          # API运行模块
 ├── build_tools/        # 打包工具
+│   ├── build_app.py    # 打包脚本
+│   ├── build_app.bat   # 打包批处理文件
+│   ├── create_icon.py  # 创建图标脚本
+│   └── *.spec          # PyInstaller规范文件
 ├── data/               # 数据文件
 │   ├── api/            # API数据
-│   └── logs/           # 日志文件
+│   │   ├── config/     # 配置文件
+│   │   ├── logs/       # API日志
+│   │   └── temp/       # 临时文件
+│   └── logs/           # 系统日志
 ├── docs/               # 文档
+│   ├── ARCHITECTURE_README.md # 架构说明
+│   └── PACKAGING_README.md    # 打包说明
 ├── lib/                # 第三方库
+│   └── wxautox-*.whl   # wxautox wheel文件
 ├── wxauto/             # wxauto库
 ├── .env                # 环境变量配置
 ├── main.py             # 主入口点
 ├── requirements.txt    # 依赖项列表
+├── initialize_wechat.bat # 初始化微信批处理文件
 ├── start_api.bat       # 启动API服务的批处理文件
 └── start_ui.bat        # 启动UI服务的批处理文件
 ```
 
 ## ⚠️ 注意事项
 
-- **微信客户端**：请确保微信PC客户端已登录
+- **微信客户端**：请确保微信PC客户端已登录，建议使用微信3.9版本
 - **窗口状态**：使用过程中请勿关闭微信窗口
 - **安全性**：API密钥请妥善保管，避免泄露
 - **兼容性**：本项目仅支持Windows操作系统
-- **依赖项**：确保已安装所有必要的依赖项
+- **依赖项**：使用打包版本无需安装依赖，从源码安装时需确保安装所有必要的依赖项
+- **打包版本**：打包版本已包含所有必要的依赖，但不包含wxautox库，需要单独安装
 
 ## 📝 许可证
 
