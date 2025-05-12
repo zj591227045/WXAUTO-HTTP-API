@@ -1498,7 +1498,8 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
             self.add_log("正在自动初始化微信...")
 
             # 使用线程执行初始化，避免阻塞UI
-            threading.Thread(target=self._initialize_wechat_thread, args=(port,), daemon=True).start()
+            # 延迟1秒执行初始化，确保API服务已完全启动
+            self.root.after(1000, lambda: threading.Thread(target=self._initialize_wechat_thread, args=(port,), daemon=True).start())
 
         except Exception as e:
             messagebox.showerror("启动失败", f"启动API服务失败: {str(e)}")
@@ -1942,12 +1943,11 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                         self.root.after(0, lambda wn=window_name: self.wechat_window_name.config(text=wn, foreground="orange"))
                         self.add_log(f"已连接到微信窗口: {window_name}")
                     else:
-                        # 尝试从日志中获取窗口名称
-                        self.add_log("尝试从日志中获取窗口名称...")
-                        # 清除窗口名称标签
-                        self.root.after(0, lambda: self.wechat_window_name.config(text="获取中..."))
+                        # 窗口名称为空，设置为空字符串
+                        self.root.after(0, lambda: self.wechat_window_name.config(text=""))
 
                     # 初始化成功，退出重试循环
+                    # 不要立即检查微信连接状态，等待下一个定时检查周期
                     return
                 else:
                     error_msg = response.json().get("message", "未知错误")
@@ -2034,6 +2034,8 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
                     # 设置连接状态
                     self.root.after(0, lambda: self.wechat_status.config(text="已连接", style="Green.TLabel"))
+
+                    # 不要立即检查微信连接状态，等待下一个定时检查周期
 
                     # 无论如何都显示窗口名称（如果有）
                     if window_name:
