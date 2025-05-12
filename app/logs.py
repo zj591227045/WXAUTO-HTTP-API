@@ -193,12 +193,16 @@ def setup_logger():
     )
     file_handler.setFormatter(formatter)
     file_handler.addFilter(http_filter)  # 添加过滤器
+    # 设置为立即刷新，确保日志及时写入文件
+    file_handler.setLevel(logging.DEBUG)
     logger.addHandler(file_handler)
 
     # 添加控制台处理器
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     console_handler.addFilter(http_filter)  # 添加过滤器
+    # 设置为立即刷新，确保日志及时显示在控制台
+    console_handler.setLevel(logging.DEBUG)
     logger.addHandler(console_handler)
 
     # 设置传播标志为False，避免日志重复

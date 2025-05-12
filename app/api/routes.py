@@ -21,9 +21,16 @@ def before_request():
     g.start_time = time.time()
     # 记录请求信息，但不记录详细的请求头和请求体
     logger.info(f"收到请求: {request.method} {request.path}")
+    # 确保日志立即刷新
+    for handler in logger.logger.handlers:
+        handler.flush()
+
     # 只在开发环境下记录请求体，且不记录请求头
     if Config.DEBUG and request.method in ['POST', 'PUT', 'PATCH'] and request.is_json:
         logger.debug(f"请求体: {request.get_json()}")
+        # 确保日志立即刷新
+        for handler in logger.logger.handlers:
+            handler.flush()
 
 @api_bp.after_request
 def after_request(response):
@@ -31,6 +38,9 @@ def after_request(response):
         duration = time.time() - g.start_time
         # 修改日志格式，确保API计数器能够正确识别 - 确保状态码周围有空格
         logger.info(f"请求处理完成: {request.method} {request.path} - 状态码: {response.status_code} - 耗时: {duration:.2f}秒")
+        # 确保日志立即刷新
+        for handler in logger.logger.handlers:
+            handler.flush()
     return response
 
 @api_bp.errorhandler(Exception)

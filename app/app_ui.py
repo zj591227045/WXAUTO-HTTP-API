@@ -1436,6 +1436,7 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
     def on_lib_change(self):
         """处理库选择变更"""
         selected_lib = self.lib_var.get()
+        self.add_log(f"库选择变更: {selected_lib}")
 
         # 检查所选库是否已安装
         if selected_lib == "wxauto" and not self.check_wxauto_status():
@@ -1450,13 +1451,37 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
         try:
             # 加载当前配置
+            self.add_log(f"正在加载配置文件...")
             config = config_manager.load_app_config()
+            self.add_log(f"当前配置: {config}")
 
             # 更新库配置
+            old_lib = config.get('wechat_lib', 'wxauto')
             config['wechat_lib'] = selected_lib
+            self.add_log(f"更新库配置: {old_lib} -> {selected_lib}")
 
             # 保存配置
+            self.add_log(f"正在保存配置文件...")
             config_manager.save_app_config(config)
+
+            # 验证配置是否成功保存
+            try:
+                new_config = config_manager.load_app_config()
+                saved_lib = new_config.get('wechat_lib', 'wxauto')
+                if saved_lib != selected_lib:
+                    self.add_log(f"警告：配置保存后验证失败，期望值: {selected_lib}，实际值: {saved_lib}")
+                    messagebox.showwarning("配置验证", f"配置可能未正确保存，请检查配置文件权限")
+                else:
+                    self.add_log(f"配置保存成功并验证通过: {saved_lib}")
+            except Exception as ve:
+                self.add_log(f"配置验证失败: {str(ve)}")
+
+            # 同时更新.env文件中的配置（作为备份）
+            try:
+                self.update_env_file('WECHAT_LIB', selected_lib)
+                self.add_log(f"已更新.env文件中的WECHAT_LIB配置")
+            except Exception as env_e:
+                self.add_log(f"更新.env文件失败: {str(env_e)}")
 
             # 标记配置已修改
             global CONFIG_MODIFIED
@@ -1474,6 +1499,31 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         # 如果服务正在运行，提示需要重启
         if self.api_running:
             messagebox.showinfo("需要重启", "库已切换，需要重启服务才能生效")
+
+    def update_env_file(self, key, value):
+        """更新.env文件中的配置"""
+        env_file = ".env"
+        lines = []
+        key_found = False
+
+        # 读取现有内容
+        if os.path.exists(env_file):
+            with open(env_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+        # 更新或添加配置
+        for i, line in enumerate(lines):
+            if line.strip().startswith(f"{key}="):
+                lines[i] = f"{key}={value}\n"
+                key_found = True
+                break
+
+        if not key_found:
+            lines.append(f"{key}={value}\n")
+
+        # 写回文件
+        with open(env_file, "w", encoding="utf-8") as f:
+            f.writelines(lines)
 
     # 这些方法已被移除，配置现在通过插件配置对话框进行管理
 

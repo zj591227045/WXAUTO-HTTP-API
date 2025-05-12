@@ -40,11 +40,11 @@ class DynamicPackageManager:
         # 将packages_dir添加到Python路径
         if self.packages_dir not in sys.path:
             sys.path.insert(0, self.packages_dir)
-            logger.info(f"【wxautox安装】已将包目录添加到Python路径: {self.packages_dir}")
+            #logger.info(f"【wxautox安装】已将包目录添加到Python路径: {self.packages_dir}")
 
         # 读取已安装的包信息
         self.installed_packages = self._load_installed_packages()
-        logger.info(f"【wxautox安装】已加载安装状态: {self.installed_packages}")
+        #logger.info(f"【wxautox安装】已加载安装状态: {self.installed_packages}")
 
     def _load_installed_packages(self):
         """加载已安装包的信息"""
@@ -52,7 +52,7 @@ class DynamicPackageManager:
             try:
                 with open(self.state_file, 'r') as f:
                     data = json.load(f)
-                    logger.info(f"【wxautox安装】从状态文件加载数据: {data}")
+                    #logger.info(f"【wxautox安装】从状态文件加载数据: {data}")
                     return data
             except (json.JSONDecodeError, IOError) as e:
                 logger.error(f"【wxautox安装】读取状态文件失败: {str(e)}")
@@ -65,14 +65,14 @@ class DynamicPackageManager:
         try:
             with open(self.state_file, 'w') as f:
                 json.dump(self.installed_packages, f, indent=4)
-            logger.info(f"【wxautox安装】已保存安装状态: {self.installed_packages}")
+            #logger.info(f"【wxautox安装】已保存安装状态: {self.installed_packages}")
         except Exception as e:
             logger.error(f"【wxautox安装】保存状态文件失败: {str(e)}")
 
     def is_package_installed(self, package_name):
         """检查包是否已安装"""
         is_installed = package_name in self.installed_packages
-        logger.info(f"【wxautox安装】检查包 {package_name} 是否已安装: {is_installed}")
+        #logger.info(f"【wxautox安装】检查包 {package_name} 是否已安装: {is_installed}")
 
         # 如果状态文件显示已安装，再验证一下包是否真的存在
         if is_installed:
@@ -81,11 +81,11 @@ class DynamicPackageManager:
                 # 只检查包目录是否存在
                 package_dir = os.path.join(self.packages_dir, package_name)
                 if os.path.exists(package_dir):
-                    logger.info(f"【wxautox安装】包目录存在: {package_dir}")
+                    #logger.info(f"【wxautox安装】包目录存在: {package_dir}")
                     # 检查__init__.py文件是否存在
                     init_file = os.path.join(package_dir, "__init__.py")
                     if os.path.exists(init_file):
-                        logger.info(f"【wxautox安装】__init__.py文件存在")
+                        #logger.info(f"【wxautox安装】__init__.py文件存在")
                         return True
                     else:
                         logger.warning(f"【wxautox安装】__init__.py文件不存在")
@@ -100,14 +100,14 @@ class DynamicPackageManager:
                 try:
                     # 尝试导入包来验证
                     importlib.import_module(package_name)
-                    logger.info(f"【wxautox安装】包 {package_name} 导入验证成功")
+                    #logger.info(f"【wxautox安装】包 {package_name} 导入验证成功")
                     return True
                 except ImportError:
                     logger.warning(f"【wxautox安装】包 {package_name} 在状态文件中标记为已安装，但无法导入")
                     # 如果导入失败，检查包目录是否存在
                     package_dir = os.path.join(self.packages_dir, package_name)
                     if os.path.exists(package_dir):
-                        logger.info(f"【wxautox安装】包目录存在: {package_dir}")
+                        #logger.info(f"【wxautox安装】包目录存在: {package_dir}")
                         return True
                     else:
                         logger.warning(f"【wxautox安装】包目录不存在: {package_dir}")
@@ -127,17 +127,17 @@ class DynamicPackageManager:
         返回:
             成功安装返回True，否则返回False
         """
-        logger.info(f"【wxautox安装】开始安装wheel文件: {wheel_path}")
+        #logger.info(f"【wxautox安装】开始安装wheel文件: {wheel_path}")
         wheel_file = os.path.basename(wheel_path)
 
         # 检查是否是wxautox wheel文件
         is_wxautox = 'wxautox-' in wheel_file
         if is_wxautox:
-            logger.info(f"【wxautox安装】检测到wxautox wheel文件，将检查必要的依赖项")
+            #logger.info(f"【wxautox安装】检测到wxautox wheel文件，将检查必要的依赖项")
             # 检查win32ui模块是否可用
             try:
                 import win32ui
-                logger.info(f"【wxautox安装】win32ui模块已可用")
+                #logger.info(f"【wxautox安装】win32ui模块已可用")
             except ImportError:
                 logger.warning(f"【wxautox安装】win32ui模块不可用，尝试从PyInstaller环境中查找")
 
@@ -149,7 +149,7 @@ class DynamicPackageManager:
                         break
 
                 if pywin32_path:
-                    logger.info(f"【wxautox安装】找到PyInstaller环境中的pywin32路径: {pywin32_path}")
+                    #logger.info(f"【wxautox安装】找到PyInstaller环境中的pywin32路径: {pywin32_path}")
 
                     # 将pywin32路径添加到Python路径
                     win32_path = os.path.join(pywin32_path, 'win32')
@@ -157,16 +157,16 @@ class DynamicPackageManager:
 
                     if win32_path not in sys.path:
                         sys.path.insert(0, win32_path)
-                        logger.info(f"【wxautox安装】已将win32路径添加到Python路径: {win32_path}")
+                        #logger.info(f"【wxautox安装】已将win32路径添加到Python路径: {win32_path}")
 
                     if pywin32_system32_path not in sys.path:
                         sys.path.insert(0, pywin32_system32_path)
-                        logger.info(f"【wxautox安装】已将pywin32_system32路径添加到Python路径: {pywin32_system32_path}")
+                        #logger.info(f"【wxautox安装】已将pywin32_system32路径添加到Python路径: {pywin32_system32_path}")
 
                     # 尝试再次导入win32ui
                     try:
                         import win32ui
-                        logger.info(f"【wxautox安装】成功导入win32ui模块")
+                        #logger.info(f"【wxautox安装】成功导入win32ui模块")
                     except ImportError as e:
                         logger.error(f"【wxautox安装】仍然无法导入win32ui模块: {str(e)}")
 
@@ -185,14 +185,14 @@ class DynamicPackageManager:
                                 dst_file = os.path.join(win32_target, file)
                                 if os.path.isfile(src_file) and not os.path.exists(dst_file):
                                     shutil.copy2(src_file, dst_file)
-                                    logger.info(f"【wxautox安装】已复制win32文件: {file}")
+                                    #logger.info(f"【wxautox安装】已复制win32文件: {file}")
 
                             for file in os.listdir(pywin32_system32_path):
                                 src_file = os.path.join(pywin32_system32_path, file)
                                 dst_file = os.path.join(pywin32_system32_target, file)
                                 if os.path.isfile(src_file) and not os.path.exists(dst_file):
                                     shutil.copy2(src_file, dst_file)
-                                    logger.info(f"【wxautox安装】已复制pywin32_system32文件: {file}")
+                                    #logger.info(f"【wxautox安装】已复制pywin32_system32文件: {file}")
 
                             # 将新路径添加到Python路径
                             if win32_target not in sys.path:
@@ -204,7 +204,7 @@ class DynamicPackageManager:
                             # 再次尝试导入win32ui
                             try:
                                 import win32ui
-                                logger.info(f"【wxautox安装】成功导入win32ui模块")
+                                #logger.info(f"【wxautox安装】成功导入win32ui模块")
                             except ImportError as e:
                                 logger.error(f"【wxautox安装】复制文件后仍然无法导入win32ui模块: {str(e)}")
                                 logger.warning(f"【wxautox安装】将继续安装wxautox，但可能无法正常工作")
@@ -220,29 +220,29 @@ class DynamicPackageManager:
         if os.path.abspath(wheel_path) != os.path.abspath(dest_wheel_path):
             try:
                 shutil.copy2(wheel_path, dest_wheel_path)
-                logger.info(f"【wxautox安装】已复制wheel文件到: {dest_wheel_path}")
+                #logger.info(f"【wxautox安装】已复制wheel文件到: {dest_wheel_path}")
             except Exception as e:
                 logger.error(f"【wxautox安装】复制wheel文件失败: {str(e)}")
                 return False
 
         try:
             # 在打包环境中，不能使用pip命令，改为直接解压wheel文件
-            logger.info(f"【wxautox安装】使用直接解压方式安装wheel文件")
+            #logger.info(f"【wxautox安装】使用直接解压方式安装wheel文件")
 
             # 尝试确定包名（从wheel文件名提取）
             package_name = wheel_file.split('-')[0].replace('_', '-')
-            logger.info(f"【wxautox安装】提取的包名: {package_name}")
+            #logger.info(f"【wxautox安装】提取的包名: {package_name}")
 
             # 创建临时目录
             import tempfile
             with tempfile.TemporaryDirectory() as temp_dir:
-                logger.info(f"【wxautox安装】创建临时目录: {temp_dir}")
+                #logger.info(f"【wxautox安装】创建临时目录: {temp_dir}")
 
                 # 解压wheel文件到临时目录
                 import zipfile
                 with zipfile.ZipFile(dest_wheel_path, 'r') as zip_ref:
                     zip_ref.extractall(temp_dir)
-                logger.info(f"【wxautox安装】已解压wheel文件到临时目录")
+                #logger.info(f"【wxautox安装】已解压wheel文件到临时目录")
 
                 # 查找包目录
                 package_found = False
@@ -254,11 +254,11 @@ class DynamicPackageManager:
 
                             # 如果目标目录已存在，先删除
                             if os.path.exists(dst_package_dir):
-                                logger.info(f"【wxautox安装】目标目录已存在，先删除: {dst_package_dir}")
+                                #logger.info(f"【wxautox安装】目标目录已存在，先删除: {dst_package_dir}")
                                 shutil.rmtree(dst_package_dir)
 
                             # 复制包目录
-                            logger.info(f"【wxautox安装】复制包目录: {src_package_dir} -> {dst_package_dir}")
+                            #logger.info(f"【wxautox安装】复制包目录: {src_package_dir} -> {dst_package_dir}")
                             shutil.copytree(src_package_dir, dst_package_dir)
 
                             # 记录安装信息
@@ -278,7 +278,7 @@ class DynamicPackageManager:
 
                 # 如果没有找到包目录，尝试查找.dist-info目录
                 if not package_found:
-                    logger.info(f"【wxautox安装】未找到包目录，尝试查找.dist-info目录")
+                    #logger.info(f"【wxautox安装】未找到包目录，尝试查找.dist-info目录")
                     dist_info_dirs = []
                     for root, dirs, files in os.walk(temp_dir):
                         for dir_name in dirs:
@@ -286,7 +286,7 @@ class DynamicPackageManager:
                                 dist_info_dirs.append(os.path.join(root, dir_name))
 
                     if dist_info_dirs:
-                        logger.info(f"【wxautox安装】找到.dist-info目录: {dist_info_dirs}")
+                        #logger.info(f"【wxautox安装】找到.dist-info目录: {dist_info_dirs}")
 
                         # 复制所有文件到site-packages目录
                         for root, dirs, files in os.walk(temp_dir):
@@ -300,7 +300,7 @@ class DynamicPackageManager:
                                     os.makedirs(os.path.dirname(dst_file), exist_ok=True)
 
                                     # 复制文件
-                                    logger.info(f"【wxautox安装】复制文件: {src_file} -> {dst_file}")
+                                    #logger.info(f"【wxautox安装】复制文件: {src_file} -> {dst_file}")
                                     shutil.copy2(src_file, dst_file)
 
                         # 记录安装信息
@@ -315,7 +315,7 @@ class DynamicPackageManager:
 
                 # 如果仍然没有找到包，尝试直接复制所有Python文件
                 if not package_found:
-                    logger.info(f"【wxautox安装】未找到包目录或.dist-info目录，尝试直接复制所有Python文件")
+                    #logger.info(f"【wxautox安装】未找到包目录或.dist-info目录，尝试直接复制所有Python文件")
 
                     # 创建包目录
                     dst_package_dir = os.path.join(self.packages_dir, package_name)
@@ -330,7 +330,7 @@ class DynamicPackageManager:
                                 dst_file = os.path.join(dst_package_dir, file)
 
                                 # 复制文件
-                                logger.info(f"【wxautox安装】复制文件: {src_file} -> {dst_file}")
+                                #logger.info(f"【wxautox安装】复制文件: {src_file} -> {dst_file}")
                                 shutil.copy2(src_file, dst_file)
                                 py_files_copied = True
 
@@ -338,7 +338,7 @@ class DynamicPackageManager:
                         # 创建__init__.py文件
                         init_file = os.path.join(dst_package_dir, "__init__.py")
                         if not os.path.exists(init_file):
-                            logger.info(f"【wxautox安装】创建__init__.py文件: {init_file}")
+                            #logger.info(f"【wxautox安装】创建__init__.py文件: {init_file}")
                             with open(init_file, 'w') as f:
                                 f.write("# Auto-generated __init__.py\n")
 
@@ -355,7 +355,7 @@ class DynamicPackageManager:
                 # 保存安装信息
                 if package_found:
                     self._save_installed_packages()
-                    logger.info(f"【wxautox安装】安装成功")
+                    #logger.info(f"【wxautox安装】安装成功")
                     return True
                 else:
                     logger.error(f"【wxautox安装】未能找到任何可安装的文件")
@@ -376,7 +376,7 @@ class DynamicPackageManager:
         返回:
             成功安装返回True，否则返回False
         """
-        logger.info(f"【wxautox安装】尝试安装依赖包: {package_name}")
+        #logger.info(f"【wxautox安装】尝试安装依赖包: {package_name}")
 
         try:
             # 使用pip安装包到指定目录
@@ -388,7 +388,7 @@ class DynamicPackageManager:
                 "--no-cache-dir",
                 package_name
             ]
-            logger.info(f"【wxautox安装】执行安装命令: {' '.join(cmd)}")
+            #logger.info(f"【wxautox安装】执行安装命令: {' '.join(cmd)}")
 
             result = subprocess.run(
                 cmd,
@@ -398,7 +398,7 @@ class DynamicPackageManager:
             )
 
             if result.returncode == 0:
-                logger.info(f"【wxautox安装】依赖包 {package_name} 安装成功")
+                #logger.info(f"【wxautox安装】依赖包 {package_name} 安装成功")
                 return True
             else:
                 logger.error(f"【wxautox安装】依赖包 {package_name} 安装失败: {result.stderr}")
@@ -425,7 +425,7 @@ class DynamicPackageManager:
             # 检查win32ui模块是否可用
             try:
                 import win32ui
-                logger.info(f"【wxautox安装】win32ui模块已可用")
+                #logger.info(f"【wxautox安装】win32ui模块已可用")
             except ImportError:
                 logger.warning(f"【wxautox安装】win32ui模块不可用，尝试从PyInstaller环境中查找")
 
@@ -437,7 +437,7 @@ class DynamicPackageManager:
                         break
 
                 if pywin32_path:
-                    logger.info(f"【wxautox安装】找到PyInstaller环境中的pywin32路径: {pywin32_path}")
+                    #logger.info(f"【wxautox安装】找到PyInstaller环境中的pywin32路径: {pywin32_path}")
 
                     # 将pywin32路径添加到Python路径
                     win32_path = os.path.join(pywin32_path, 'win32')
@@ -445,11 +445,11 @@ class DynamicPackageManager:
 
                     if win32_path not in sys.path:
                         sys.path.insert(0, win32_path)
-                        logger.info(f"【wxautox安装】已将win32路径添加到Python路径: {win32_path}")
+                        #logger.info(f"【wxautox安装】已将win32路径添加到Python路径: {win32_path}")
 
                     if pywin32_system32_path not in sys.path:
                         sys.path.insert(0, pywin32_system32_path)
-                        logger.info(f"【wxautox安装】已将pywin32_system32路径添加到Python路径: {pywin32_system32_path}")
+                        #logger.info(f"【wxautox安装】已将pywin32_system32路径添加到Python路径: {pywin32_system32_path}")
 
                     # 检查是否有复制的win32文件
                     win32_target = os.path.join(self.packages_dir, 'win32')
@@ -457,20 +457,20 @@ class DynamicPackageManager:
 
                     if os.path.exists(win32_target) and win32_target not in sys.path:
                         sys.path.insert(0, win32_target)
-                        logger.info(f"【wxautox安装】已将复制的win32路径添加到Python路径: {win32_target}")
+                        #logger.info(f"【wxautox安装】已将复制的win32路径添加到Python路径: {win32_target}")
 
                     if os.path.exists(pywin32_system32_target) and pywin32_system32_target not in sys.path:
                         sys.path.insert(0, pywin32_system32_target)
-                        logger.info(f"【wxautox安装】已将复制的pywin32_system32路径添加到Python路径: {pywin32_system32_target}")
+                        #logger.info(f"【wxautox安装】已将复制的pywin32_system32路径添加到Python路径: {pywin32_system32_target}")
 
         # 尝试导入包
         try:
             # 刷新importlib的缓存以确保能找到新安装的模块
             importlib.invalidate_caches()
 
-            logger.info(f"【wxautox安装】尝试导入包: {package_name}")
+            #logger.info(f"【wxautox安装】尝试导入包: {package_name}")
             module = importlib.import_module(package_name)
-            logger.info(f"【wxautox安装】成功导入包: {package_name}")
+            #logger.info(f"【wxautox安装】成功导入包: {package_name}")
             return module
         except ImportError as e:
             error_msg = str(e)
@@ -484,7 +484,7 @@ class DynamicPackageManager:
 
                 # 尝试安装缺少的依赖
                 if self.install_dependency(missing_module):
-                    logger.info(f"【wxautox安装】成功安装依赖模块: {missing_module}，重新尝试导入 {package_name}")
+                    #logger.info(f"【wxautox安装】成功安装依赖模块: {missing_module}，重新尝试导入 {package_name}")
 
                     # 刷新importlib的缓存
                     importlib.invalidate_caches()
@@ -492,7 +492,7 @@ class DynamicPackageManager:
                     # 再次尝试导入
                     try:
                         module = importlib.import_module(package_name)
-                        logger.info(f"【wxautox安装】成功导入包: {package_name}")
+                        #logger.info(f"【wxautox安装】成功导入包: {package_name}")
                         return module
                     except ImportError as e2:
                         logger.error(f"【wxautox安装】安装依赖后仍然无法导入 {package_name}: {str(e2)}")
@@ -504,22 +504,22 @@ class DynamicPackageManager:
                 # 尝试查找wxautox包的具体位置
                 package_dir = os.path.join(self.packages_dir, package_name)
                 if os.path.exists(package_dir):
-                    logger.info(f"【wxautox安装】wxautox包目录存在: {package_dir}")
+                    #logger.info(f"【wxautox安装】wxautox包目录存在: {package_dir}")
 
                     # 列出包目录中的文件
                     files = os.listdir(package_dir)
-                    logger.info(f"【wxautox安装】wxautox包目录中的文件: {files}")
+                    #logger.info(f"【wxautox安装】wxautox包目录中的文件: {files}")
 
                     # 检查__init__.py文件
                     init_file = os.path.join(package_dir, "__init__.py")
                     if os.path.exists(init_file):
-                        logger.info(f"【wxautox安装】__init__.py文件存在")
+                        #logger.info(f"【wxautox安装】__init__.py文件存在")
 
                         # 尝试读取文件内容
                         try:
                             with open(init_file, 'r') as f:
                                 content = f.read(1000)  # 只读取前1000个字符
-                                logger.info(f"【wxautox安装】__init__.py文件内容前1000个字符: {content}")
+                                #logger.info(f"【wxautox安装】__init__.py文件内容前1000个字符: {content}")
 
                                 # 分析导入语句，找出可能的依赖
                                 import re
@@ -530,21 +530,11 @@ class DynamicPackageManager:
                                         if name and name not in ['wxauto', 'elements', 'utils', package_name]:
                                             potential_deps.add(name)
 
-                                if potential_deps:
-                                    logger.info(f"【wxautox安装】检测到可能的依赖: {', '.join(potential_deps)}")
-
-                                    # 尝试安装这些依赖
-                                    for dep in potential_deps:
-                                        if self.install_dependency(dep):
-                                            logger.info(f"【wxautox安装】成功安装可能的依赖: {dep}")
-                                        else:
-                                            logger.warning(f"【wxautox安装】安装可能的依赖失败: {dep}")
-
                                     # 再次尝试导入
                                     importlib.invalidate_caches()
                                     try:
                                         module = importlib.import_module(package_name)
-                                        logger.info(f"【wxautox安装】安装依赖后成功导入包: {package_name}")
+                                        #logger.info(f"【wxautox安装】安装依赖后成功导入包: {package_name}")
                                         return module
                                     except ImportError as e3:
                                         logger.error(f"【wxautox安装】安装可能的依赖后仍然无法导入 {package_name}: {str(e3)}")
@@ -572,11 +562,11 @@ class DynamicPackageManager:
         if package_name is None:
             wheel_file = os.path.basename(wheel_path)
             package_name = wheel_file.split('-')[0].replace('_', '-')
-            logger.info(f"【wxautox安装】从文件名推断的包名: {package_name}")
+            #logger.info(f"【wxautox安装】从文件名推断的包名: {package_name}")
 
         # 如果包已安装，尝试直接导入
         if self.is_package_installed(package_name):
-            logger.info(f"【wxautox安装】包 {package_name} 已安装，尝试直接导入")
+            #logger.info(f"【wxautox安装】包 {package_name} 已安装，尝试直接导入")
             module = self.import_package(package_name)
             if module:
                 return module
@@ -585,7 +575,7 @@ class DynamicPackageManager:
 
         # 安装并导入
         if self.install_wheel(wheel_path):
-            logger.info(f"【wxautox安装】包 {package_name} 安装成功，尝试导入")
+            #logger.info(f"【wxautox安装】包 {package_name} 安装成功，尝试导入")
             return self.import_package(package_name)
 
         logger.error(f"【wxautox安装】包 {package_name} 安装失败")

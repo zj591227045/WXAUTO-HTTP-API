@@ -9,6 +9,11 @@ def create_app():
     werkzeug_logger = logging.getLogger('werkzeug')
     werkzeug_logger.setLevel(logging.ERROR)  # 只显示错误级别的日志
 
+    # 确保所有日志处理器立即刷新
+    for handler in logging.getLogger().handlers:
+        handler.setLevel(logging.DEBUG)
+        handler.flush()
+
     # 初始化微信相关配置
     from app.wechat_init import initialize as init_wechat
     init_wechat()
@@ -19,6 +24,11 @@ def create_app():
     # 创建 Flask 应用
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # 配置Flask日志处理
+    if not app.debug:
+        # 在非调试模式下，禁用自动重载器
+        app.config['USE_RELOADER'] = False
 
     # 初始化限流器
     limiter = Limiter(

@@ -51,12 +51,20 @@ class WeChatAdapter:
         self._lock = threading.Lock()
         self._listen = {}  # 添加listen属性
 
+        logger.info(f"初始化WeChatAdapter，请求的库名称: {lib_name}")
+        logger.info(f"当前工作目录: {os.getcwd()}")
+        logger.info(f"Python路径: {sys.path}")
+
         # 根据指定的库名称导入相应的库
         if lib_name.lower() == 'wxautox':
+            logger.info("尝试导入wxautox库")
             if not self._try_import_wxautox():
-                logger.error("无法导入wxautox库")
-                raise ImportError("无法导入wxautox库，请确保已正确安装")
+                logger.error("无法导入wxautox库，将尝试回退到wxauto")
+                if not self._try_import_wxauto():
+                    logger.error("无法导入wxauto库")
+                    raise ImportError("无法导入wxauto库，请确保已正确安装")
         else:  # 默认使用wxauto
+            logger.info("尝试导入wxauto库")
             if not self._try_import_wxauto():
                 logger.error("无法导入wxauto库")
                 raise ImportError("无法导入wxauto库，请确保已正确安装")
@@ -128,7 +136,13 @@ class WeChatAdapter:
             # 确保本地wxauto文件夹在Python路径中
             import sys
             import os
-            wxauto_path = os.path.join(os.getcwd(), "wxauto")
+
+            # 获取项目根目录（app目录的父目录）
+            app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            wxauto_path = os.path.join(app_root, "wxauto")
+
+            logger.info(f"尝试从路径导入wxauto: {wxauto_path}")
+
             if wxauto_path not in sys.path:
                 sys.path.insert(0, wxauto_path)
 
@@ -174,13 +188,20 @@ class WeChatAdapter:
                         # 确保本地wxauto文件夹在Python路径中
                         import sys
                         import os
-                        wxauto_path = os.path.join(os.getcwd(), "wxauto")
+
+                        # 获取项目根目录（app目录的父目录）
+                        app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                        wxauto_path = os.path.join(app_root, "wxauto")
+
+                        logger.info(f"初始化时使用wxauto路径: {wxauto_path}")
+
                         if wxauto_path not in sys.path:
                             sys.path.insert(0, wxauto_path)
 
                         # 直接从本地文件夹导入
                         from wxauto import WeChat
                         self._instance = WeChat()
+                        logger.info("成功创建wxauto.WeChat实例")
 
                     # 尝试获取窗口名称并保存
                     try:
@@ -809,8 +830,26 @@ class WeChatAdapter:
 # 导入配置
 try:
     from app.config import Config
+    # 记录配置信息
+    logger.info(f"从app.config导入配置成功，WECHAT_LIB={Config.WECHAT_LIB}")
+
     # 创建全局适配器实例
     wechat_adapter = WeChatAdapter(lib_name=Config.WECHAT_LIB)
-except ImportError:
+    logger.info(f"成功创建全局适配器实例，使用库: {wechat_adapter.get_lib_name()}")
+except ImportError as e:
     # 如果无法导入配置，则使用默认值
-    wechat_adapter = WeChatAdapter(lib_name='wxauto')
+    logger.error(f"导入app.config失败: {str(e)}，将使用默认值'wxauto'")
+
+    # 尝试从环境变量或.env文件读取配置
+    try:
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+        wechat_lib = os.getenv('WECHAT_LIB', 'wxauto').lower()
+        logger.info(f"从环境变量读取WECHAT_LIB={wechat_lib}")
+        wechat_adapter = WeChatAdapter(lib_name=wechat_lib)
+    except Exception as env_e:
+        logger.error(f"从环境变量读取配置失败: {str(env_e)}，将使用默认值'wxauto'")
+        wechat_adapter = WeChatAdapter(lib_name='wxauto')
+
+    logger.info(f"成功创建全局适配器实例，使用库: {wechat_adapter.get_lib_name()}")
