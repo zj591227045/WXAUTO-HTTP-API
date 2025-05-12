@@ -9,9 +9,16 @@
 
 </div>
 
+> **致谢**：本项目基于 [wxauto](https://github.com/cluic/wxauto) 项目做二次开发，感谢原作者的贡献。
+>
 > **推荐搭配**：本项目建议配合 [WXAUTO-MGT](https://github.com/zj591227045/WXAUTO-MGT) 项目使用，可以获得最佳体验。
 
 基于wxauto的微信HTTP API接口，提供简单易用的HTTP API调用微信功能，同时支持可选的wxautox扩展功能。通过本项目，您可以轻松地将微信集成到您的应用程序中。
+
+<div align="center">
+  <img src="docs/IMG/01.png" alt="wxauto_http_api界面预览" width="80%">
+  <p><i>wxauto_http_api 管理界面预览 - 提供直观的服务管理、配置和日志监控功能</i></p>
+</div>
 
 ## ✨ 功能特点
 
