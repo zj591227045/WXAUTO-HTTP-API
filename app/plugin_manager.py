@@ -55,10 +55,10 @@ def check_wxautox_status():
     """
     # 首先尝试使用动态包管理器检查
     if package_manager:
-        logger.info("使用动态包管理器检查wxautox状态")
+        #logger.info("使用动态包管理器检查wxautox状态")
         is_installed = package_manager.is_package_installed("wxautox")
         if is_installed:
-            logger.info("动态包管理器报告wxautox已安装")
+            #logger.info("动态包管理器报告wxautox已安装")
             return True
 
     # 如果动态包管理器不可用或报告未安装，尝试直接导入

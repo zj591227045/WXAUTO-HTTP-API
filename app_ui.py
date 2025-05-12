@@ -761,10 +761,10 @@ class WxAutoHttpUI:
         try:
             from dynamic_package_manager import get_package_manager
             package_manager = get_package_manager()
-            self.add_log("使用动态包管理器检查wxautox状态")
+            #self.add_log("使用动态包管理器检查wxautox状态")
 
             if package_manager.is_package_installed("wxautox"):
-                self.add_log("动态包管理器报告wxautox已安装")
+                #self.add_log("动态包管理器报告wxautox已安装")
                 self.wxautox_status.config(text="已安装", style="Green.TLabel")
                 return True
         except ImportError:
