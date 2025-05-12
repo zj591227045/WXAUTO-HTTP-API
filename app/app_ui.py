@@ -1520,7 +1520,11 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                 cmd = [executable, "--service", "api", "--debug"]
             else:
                 # 如果是开发环境，使用Python解释器启动main.py
-                cmd = [sys.executable, "main.py", "--service", "api"]
+                # 注意：main.py 现在位于项目根目录，而不是app目录
+                # 获取项目根目录
+                app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                main_py_path = os.path.join(app_dir, "main.py")
+                cmd = [sys.executable, main_py_path, "--service", "api"]
 
                 # 添加调试参数，以获取更详细的日志
                 if os.environ.get("WXAUTO_DEBUG") == "1":

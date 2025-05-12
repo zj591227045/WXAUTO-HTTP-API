@@ -10,12 +10,15 @@ import argparse
 import traceback
 
 # 配置日志
+import os
+os.makedirs('data/logs', exist_ok=True)  # 确保日志目录存在
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('wxauto_startup.log', 'w', 'utf-8')
+        logging.FileHandler('data/logs/wxauto_startup.log', 'w', 'utf-8')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -109,7 +112,9 @@ def main():
     try:
         # 先尝试直接导入
         try:
-            import fix_path
+            # 尝试从app目录导入
+            sys.path.insert(0, os.path.join(os.getcwd(), "app"))
+            from app import fix_path
             app_root = fix_path.fix_paths()
             logger.info(f"路径修复完成，应用根目录: {app_root}")
         except ImportError:
@@ -126,6 +131,12 @@ def main():
                     sys.path.insert(0, wxauto_path)
                     logger.info(f"已将wxauto目录添加到Python路径: {wxauto_path}")
 
+                # 确保app目录在Python路径中
+                app_path = os.path.join(app_root, "app")
+                if os.path.exists(app_path) and app_path not in sys.path:
+                    sys.path.insert(0, app_path)
+                    logger.info(f"已将app目录添加到Python路径: {app_path}")
+
                 return app_root
 
             app_root = fix_paths()
@@ -136,7 +147,7 @@ def main():
 
     # 初始化动态包管理器
     try:
-        from dynamic_package_manager import get_package_manager
+        from app.dynamic_package_manager import get_package_manager
         package_manager = get_package_manager()
         logger.info("成功初始化动态包管理器")
 
@@ -157,7 +168,7 @@ def main():
     if args.service == "ui":
         logger.info("正在启动UI服务...")
         try:
-            from ui_service import start_ui
+            from app.ui_service import start_ui
             start_ui()
         except ImportError as e:
             logger.error(f"导入UI服务模块失败: {str(e)}")
@@ -170,7 +181,7 @@ def main():
     elif args.service == "api":
         logger.info("正在启动API服务...")
         try:
-            from api_service import start_api
+            from app.api_service import start_api
             start_api()
         except ImportError as e:
             logger.error(f"导入API服务模块失败: {str(e)}")

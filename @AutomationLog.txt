@@ -1,3 +1,0 @@
-Can not load UIAutomationCore.dll.
-You may need to install Windows Update KB971513.
-https://github.com/yinkaisheng/WindowsUpdateKB971513ForIUIAutomation
