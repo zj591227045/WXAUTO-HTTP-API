@@ -8,6 +8,7 @@ import sys
 import shutil
 import subprocess
 import argparse
+import importlib
 from pathlib import Path
 
 def check_dependencies():
@@ -27,6 +28,38 @@ def check_dependencies():
         print("Pillow未安装，正在安装...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pillow"])
         print("Pillow安装完成")
+
+    # 检查pywin32是否已安装
+    try:
+        import win32ui
+        print("PyWin32已安装")
+    except ImportError:
+        print("PyWin32未安装或win32ui模块不可用，正在安装...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "pywin32"])
+        # 安装后运行pywin32的post-install脚本
+        try:
+            import site
+            site_packages = site.getsitepackages()[0]
+            post_install_script = os.path.join(site_packages, 'pywin32_system32', 'scripts', 'pywin32_postinstall.py')
+            if os.path.exists(post_install_script):
+                print("运行pywin32安装后脚本...")
+                subprocess.check_call([sys.executable, post_install_script, "-install"])
+            else:
+                print("找不到pywin32安装后脚本，可能需要手动运行")
+        except Exception as e:
+            print(f"运行pywin32安装后脚本失败: {e}")
+        print("PyWin32安装完成")
+
+    # 检查wxautox可能需要的依赖
+    dependencies = ["tenacity", "requests", "urllib3", "certifi", "idna", "charset_normalizer"]
+    for dep in dependencies:
+        try:
+            importlib.import_module(dep)
+            print(f"{dep}已安装")
+        except ImportError:
+            print(f"{dep}未安装，正在安装...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", dep])
+            print(f"{dep}安装完成")
 
 def create_icon():
     """创建图标"""
@@ -88,6 +121,48 @@ def build_app(debug=False, onefile=False):
     else:
         cmd.append("--onedir")
 
+    # 确保包含pywin32的所有必要组件
+    cmd.extend([
+        "--hidden-import", "win32api",
+        "--hidden-import", "win32con",
+        "--hidden-import", "win32gui",
+        "--hidden-import", "win32ui",
+        "--hidden-import", "win32wnet",
+        "--hidden-import", "win32com",
+        "--hidden-import", "win32com.client",
+        "--hidden-import", "pythoncom",
+        "--hidden-import", "pywintypes",
+    ])
+
+    # 添加wxautox可能需要的依赖
+    cmd.extend([
+        "--hidden-import", "tenacity",
+        "--hidden-import", "requests",
+        "--hidden-import", "urllib3",
+        "--hidden-import", "certifi",
+        "--hidden-import", "idna",
+        "--hidden-import", "charset_normalizer",
+    ])
+
+    # 添加pywin32的DLL文件
+    try:
+        import site
+        import win32api
+
+        # 获取pywin32的安装路径
+        site_packages = site.getsitepackages()[0]
+        pywin32_path = os.path.dirname(win32api.__file__)
+
+        # 添加pywin32的DLL文件
+        pywin32_system32_path = os.path.join(os.path.dirname(pywin32_path), 'pywin32_system32')
+        if os.path.exists(pywin32_system32_path):
+            for file in os.listdir(pywin32_system32_path):
+                if file.endswith('.dll'):
+                    cmd.extend(["--add-binary", f"{os.path.join(pywin32_system32_path, file)}{os.pathsep}."])
+                    print(f"添加pywin32 DLL文件: {file}")
+    except (ImportError, AttributeError) as e:
+        print(f"无法添加pywin32 DLL文件: {e}")
+
     # 添加数据文件
     data_files = [
         (".env", "."),
@@ -109,6 +184,7 @@ def build_app(debug=False, onefile=False):
         ("start_api_packaged.bat", "."),
         ("initialize_wechat.bat", "."),
         ("create_icon.py", "."),
+        ("dynamic_package_manager.py", "."),
         ("wxauto", "wxauto")
     ]
 

@@ -134,6 +134,25 @@ def main():
         logger.error(f"路径修复时出错: {str(e)}")
         logger.error(traceback.format_exc())
 
+    # 初始化动态包管理器
+    try:
+        from dynamic_package_manager import get_package_manager
+        package_manager = get_package_manager()
+        logger.info("成功初始化动态包管理器")
+
+        # 检查wxautox是否已安装
+        if package_manager.is_package_installed("wxautox"):
+            logger.info("动态包管理器检测到wxautox已安装")
+        else:
+            logger.info("动态包管理器未检测到wxautox，将使用wxauto")
+
+        # 注意：不再自动安装wxautox，它是可选的，只在用户手动选择时才安装
+    except ImportError as e:
+        logger.warning(f"导入动态包管理器失败: {str(e)}")
+    except Exception as e:
+        logger.error(f"初始化动态包管理器时出错: {str(e)}")
+        logger.error(traceback.format_exc())
+
     # 根据服务类型启动相应的服务
     if args.service == "ui":
         logger.info("正在启动UI服务...")

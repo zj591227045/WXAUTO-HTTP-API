@@ -757,6 +757,20 @@ class WxAutoHttpUI:
 
     def check_wxautox_status(self):
         """检查wxautox库的安装状态"""
+        # 首先尝试使用动态包管理器检查
+        try:
+            from dynamic_package_manager import get_package_manager
+            package_manager = get_package_manager()
+            self.add_log("使用动态包管理器检查wxautox状态")
+
+            if package_manager.is_package_installed("wxautox"):
+                self.add_log("动态包管理器报告wxautox已安装")
+                self.wxautox_status.config(text="已安装", style="Green.TLabel")
+                return True
+        except ImportError:
+            self.add_log("无法导入动态包管理器，使用传统方法检查wxautox状态")
+
+        # 如果动态包管理器不可用或报告未安装，尝试直接导入
         try:
             import wxautox
             self.wxautox_status.config(text="已安装", style="Green.TLabel")
@@ -853,6 +867,12 @@ class WxAutoHttpUI:
    (文件名格式为: wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl)
 3. 系统将自动安装并配置wxautox库
 4. 安装完成后，重启服务即可使用wxautox库
+
+注意事项:
+- wxautox可能依赖其他Python模块，如win32ui、tenacity等
+- 系统将尝试自动检测并安装缺失的依赖
+- 如果安装后仍无法正常使用wxautox，可能需要手动安装依赖:
+  pip install pywin32 tenacity
 
 您也可以通过命令行手动安装:
 pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
@@ -973,28 +993,82 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
                 # 更新进度
                 self.root.after(0, lambda: progress_var.set("正在安装wxautox..."))
 
-                # 导入插件管理模块
-                from app import plugin_manager
+                # 尝试使用动态包管理器安装
+                try:
+                    from dynamic_package_manager import get_package_manager
+                    package_manager = get_package_manager()
+                    self.root.after(0, lambda: self.add_log("使用动态包管理器安装wxautox..."))
 
-                # 安装wxautox
-                success, message = plugin_manager.install_wxautox(file_path)
+                    # 安装wheel文件
+                    success = package_manager.install_wheel(file_path)
 
-                # 在主线程中更新UI
-                if success:
-                    self.root.after(0, lambda: progress_var.set("安装成功！"))
-                    self.root.after(0, lambda: self.add_log(f"wxautox安装成功: {message}"))
-                    self.root.after(0, lambda: self.check_wxautox_status())
-                    self.root.after(0, lambda: progress.stop())  # 停止进度条
-                    self.root.after(1000, lambda: progress_dialog.destroy())
-                    self.root.after(1200, lambda: messagebox.showinfo("安装成功",
-                                                                   "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
-                                                                   "如需立即使用，请重启服务。"))
-                else:
-                    self.root.after(0, lambda: progress_var.set("安装失败！"))
-                    self.root.after(0, lambda: self.add_log(f"wxautox安装失败: {message}"))
-                    self.root.after(0, lambda: progress.stop())  # 停止进度条
-                    self.root.after(1000, lambda: progress_dialog.destroy())
-                    self.root.after(1200, lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
+                    if success:
+                        # 导入插件管理模块更新配置
+                        from app import plugin_manager
+                        plugin_manager.update_config_for_wxautox()
+
+                        self.root.after(0, lambda: progress_var.set("安装成功！"))
+                        self.root.after(0, lambda: self.add_log("wxautox安装成功"))
+                        self.root.after(0, lambda: self.check_wxautox_status())
+                        self.root.after(0, lambda: progress.stop())  # 停止进度条
+                        self.root.after(1000, lambda: progress_dialog.destroy())
+                        self.root.after(1200, lambda: messagebox.showinfo("安装成功",
+                                                                       "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
+                                                                       "如需立即使用，请重启服务。"))
+                    else:
+                        # 如果动态包管理器安装失败，尝试使用传统方法
+                        self.root.after(0, lambda: self.add_log("动态包管理器安装失败，尝试使用传统方法..."))
+
+                        # 导入插件管理模块
+                        from app import plugin_manager
+
+                        # 安装wxautox
+                        success, message = plugin_manager.install_wxautox(file_path)
+
+                        # 在主线程中更新UI
+                        if success:
+                            self.root.after(0, lambda: progress_var.set("安装成功！"))
+                            self.root.after(0, lambda: self.add_log(f"wxautox安装成功: {message}"))
+                            self.root.after(0, lambda: self.check_wxautox_status())
+                            self.root.after(0, lambda: progress.stop())  # 停止进度条
+                            self.root.after(1000, lambda: progress_dialog.destroy())
+                            self.root.after(1200, lambda: messagebox.showinfo("安装成功",
+                                                                           "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
+                                                                           "如需立即使用，请重启服务。"))
+                        else:
+                            self.root.after(0, lambda: progress_var.set("安装失败！"))
+                            self.root.after(0, lambda: self.add_log(f"wxautox安装失败: {message}"))
+                            self.root.after(0, lambda: progress.stop())  # 停止进度条
+                            self.root.after(1000, lambda: progress_dialog.destroy())
+                            self.root.after(1200, lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
+
+                except ImportError:
+                    # 如果无法导入动态包管理器，使用传统方法
+                    self.root.after(0, lambda: self.add_log("无法导入动态包管理器，使用传统方法安装..."))
+
+                    # 导入插件管理模块
+                    from app import plugin_manager
+
+                    # 安装wxautox
+                    success, message = plugin_manager.install_wxautox(file_path)
+
+                    # 在主线程中更新UI
+                    if success:
+                        self.root.after(0, lambda: progress_var.set("安装成功！"))
+                        self.root.after(0, lambda: self.add_log(f"wxautox安装成功: {message}"))
+                        self.root.after(0, lambda: self.check_wxautox_status())
+                        self.root.after(0, lambda: progress.stop())  # 停止进度条
+                        self.root.after(1000, lambda: progress_dialog.destroy())
+                        self.root.after(1200, lambda: messagebox.showinfo("安装成功",
+                                                                       "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
+                                                                       "如需立即使用，请重启服务。"))
+                    else:
+                        self.root.after(0, lambda: progress_var.set("安装失败！"))
+                        self.root.after(0, lambda: self.add_log(f"wxautox安装失败: {message}"))
+                        self.root.after(0, lambda: progress.stop())  # 停止进度条
+                        self.root.after(1000, lambda: progress_dialog.destroy())
+                        self.root.after(1200, lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
+
             except Exception as e:
                 self.root.after(0, lambda: progress_var.set("安装出错！"))
                 self.root.after(0, lambda: self.add_log(f"wxautox安装过程出错: {str(e)}"))

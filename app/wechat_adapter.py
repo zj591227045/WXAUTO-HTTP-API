@@ -12,6 +12,13 @@ import pythoncom
 import logging
 from typing import Optional, Union, List, Dict, Any
 
+# 尝试导入动态包管理器
+try:
+    from dynamic_package_manager import get_package_manager
+    package_manager = get_package_manager()
+except ImportError:
+    package_manager = None
+
 # 配置日志
 try:
     from app.logs import logger, WeChatLibAdapter
@@ -66,14 +73,53 @@ class WeChatAdapter:
 
     def _try_import_wxautox(self) -> bool:
         """尝试导入wxautox库"""
+        # 首先尝试使用动态包管理器
+        if package_manager:
+            logger.info("使用动态包管理器导入wxautox")
+            try:
+                module = package_manager.import_package("wxautox")
+                if module:
+                    logger.info("动态包管理器成功导入wxautox")
+                    self._lib_name = "wxautox"
+                    # 更新日志适配器中的库名称
+                    WeChatLibAdapter.set_lib_name_static("wxautox")
+                    return True
+                else:
+                    logger.warning("动态包管理器导入wxautox失败")
+
+                    # 检查是否是win32ui模块缺失问题
+                    try:
+                        import win32ui
+                        logger.info("win32ui模块已可用，但wxautox导入仍然失败")
+                    except ImportError:
+                        logger.error("缺少win32ui模块，这是wxautox的必要依赖")
+                        logger.error("请在系统Python环境中安装PyWin32包: pip install pywin32")
+            except Exception as e:
+                logger.error(f"动态包管理器导入wxautox时出错: {str(e)}")
+
+        # 如果动态包管理器不可用或失败，尝试直接导入
         try:
+            # 先检查win32ui模块是否可用
+            try:
+                import win32ui
+                logger.info("win32ui模块已可用")
+            except ImportError:
+                logger.error("缺少win32ui模块，这是wxautox的必要依赖")
+                logger.error("请在系统Python环境中安装PyWin32包: pip install pywin32")
+                return False
+
+            # 尝试导入wxautox
             import wxautox
+            logger.info("直接导入wxautox成功")
             self._lib_name = "wxautox"
             # 更新日志适配器中的库名称
             WeChatLibAdapter.set_lib_name_static("wxautox")
             return True
-        except ImportError:
-            logger.warning("无法导入wxautox库")
+        except ImportError as e:
+            logger.warning(f"无法导入wxautox库: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"导入wxautox时出现未知错误: {str(e)}")
             return False
 
     def _try_import_wxauto(self) -> bool:
@@ -106,8 +152,24 @@ class WeChatAdapter:
                     pythoncom.CoInitialize()
 
                     if self._lib_name == "wxautox":
-                        from wxautox import WeChat
-                        self._instance = WeChat()
+                        # 优先使用动态包管理器
+                        if package_manager:
+                            logger.info("使用动态包管理器导入wxautox.WeChat")
+                            module = package_manager.import_package("wxautox")
+                            if module:
+                                logger.info("动态包管理器成功导入wxautox")
+                                WeChat = getattr(module, 'WeChat')
+                                self._instance = WeChat()
+                            else:
+                                # 如果动态包管理器失败，尝试直接导入
+                                logger.warning("动态包管理器导入wxautox失败，尝试直接导入")
+                                from wxautox import WeChat
+                                self._instance = WeChat()
+                        else:
+                            # 如果动态包管理器不可用，尝试直接导入
+                            logger.info("动态包管理器不可用，尝试直接导入wxautox")
+                            from wxautox import WeChat
+                            self._instance = WeChat()
                     else:  # wxauto
                         # 确保本地wxauto文件夹在Python路径中
                         import sys
