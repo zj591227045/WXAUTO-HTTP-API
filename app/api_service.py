@@ -20,7 +20,14 @@ def check_mutex():
 
     try:
         # 导入互斥锁模块
-        import app_mutex
+        try:
+            # 首先尝试从app包导入
+            from app import app_mutex
+            logger.info("成功从app包导入 app_mutex 模块")
+        except ImportError:
+            # 如果失败，尝试直接导入（兼容旧版本）
+            import app_mutex
+            logger.info("成功直接导入 app_mutex 模块")
 
         # 导入配置模块
         from app.config import Config
@@ -119,85 +126,111 @@ def start_queue_processors():
 
 def start_api():
     """启动API服务"""
-    # 检查互斥锁
-    if not check_mutex():
-        sys.exit(0)
-
-    # 检查依赖项
-    if not check_dependencies():
-        logger.error("依赖项检查失败，无法启动API服务")
-        sys.exit(1)
-
-    # 启动队列处理器
-    if not start_queue_processors():
-        logger.error("队列处理器启动失败，无法启动API服务")
-        sys.exit(1)
-
-    # 创建并启动Flask应用
     try:
-        # 记录当前环境信息
-        logger.info(f"当前工作目录: {os.getcwd()}")
-        logger.info(f"Python路径: {sys.path}")
+        logger.info("===== 开始启动API服务 =====")
 
-        # 确保app目录在Python路径中
-        app_dir = os.path.join(os.getcwd(), "app")
-        if os.path.exists(app_dir) and app_dir not in sys.path:
-            sys.path.insert(0, app_dir)
-            logger.info(f"已将app目录添加到Python路径: {app_dir}")
+        # 检查互斥锁
+        logger.info("正在检查互斥锁...")
+        if not check_mutex():
+            logger.info("互斥锁检查失败，退出")
+            sys.exit(0)
+        logger.info("互斥锁检查通过")
 
-        # 导入Flask应用创建函数
+        # 检查依赖项
+        logger.info("正在检查依赖项...")
+        if not check_dependencies():
+            logger.error("依赖项检查失败，无法启动API服务")
+            sys.exit(1)
+        logger.info("依赖项检查通过")
+
+        # 启动队列处理器
+        logger.info("正在启动队列处理器...")
+        if not start_queue_processors():
+            logger.error("队列处理器启动失败，无法启动API服务")
+            sys.exit(1)
+        logger.info("队列处理器启动成功")
+
+        # 创建并启动Flask应用
         try:
-            from app import create_app
-            logger.info("成功导入Flask应用创建函数")
+            # 记录当前环境信息
+            logger.info(f"当前工作目录: {os.getcwd()}")
+            logger.info(f"Python路径: {sys.path}")
+
+            # 确保app目录在Python路径中
+            app_dir = os.path.join(os.getcwd(), "app")
+            if os.path.exists(app_dir) and app_dir not in sys.path:
+                sys.path.insert(0, app_dir)
+                logger.info(f"已将app目录添加到Python路径: {app_dir}")
+
+            # 导入Flask应用创建函数
+            logger.info("正在尝试导入Flask应用创建函数...")
+            try:
+                # 首先尝试从app包导入
+                from app import create_app
+                logger.info("成功从app包导入Flask应用创建函数")
+            except ImportError as e:
+                logger.warning(f"从app包导入Flask应用创建函数失败: {str(e)}")
+                logger.warning(traceback.format_exc())
+
+                # 尝试直接导入
+                try:
+                    import create_app
+                    logger.info("成功直接导入Flask应用创建函数")
+                except ImportError:
+                    # 尝试直接导入app模块
+                    try:
+                        import app
+                        logger.info("成功导入app模块")
+
+                        # 尝试从app模块中获取create_app函数
+                        if hasattr(app, 'create_app'):
+                            create_app = app.create_app
+                            logger.info("成功从app模块中获取create_app函数")
+                        else:
+                            # 尝试从app.__init__模块导入
+                            try:
+                                from app.__init__ import create_app
+                                logger.info("成功从app.__init__模块导入create_app函数")
+                            except ImportError:
+                                logger.error("app模块中没有create_app函数")
+                                sys.exit(1)
+                    except ImportError as e:
+                        logger.error(f"导入app模块失败: {str(e)}")
+                        logger.error(traceback.format_exc())
+                        sys.exit(1)
+
+            # 创建应用
+            logger.info("正在创建Flask应用...")
+            app = create_app()
+            logger.info("成功创建Flask应用")
+
+            # 获取配置信息
+            host = app.config.get('HOST', '0.0.0.0')
+            port = app.config.get('PORT', 5000)
+            debug = app.config.get('DEBUG', False)
+
+            logger.info(f"正在启动Flask应用...")
+            logger.info(f"监听地址: {host}:{port}")
+            logger.info(f"调试模式: {debug}")
+
+            # 禁用 werkzeug 的重新加载器，避免可能的端口冲突
+            app.run(
+                host=host,
+                port=port,
+                debug=debug,
+                use_reloader=False,
+                threaded=True
+            )
         except ImportError as e:
             logger.error(f"导入Flask应用创建函数失败: {str(e)}")
             logger.error(traceback.format_exc())
-
-            # 尝试直接导入app模块
-            try:
-                import app
-                logger.info("成功导入app模块")
-
-                # 尝试从app模块中获取create_app函数
-                if hasattr(app, 'create_app'):
-                    create_app = app.create_app
-                    logger.info("成功从app模块中获取create_app函数")
-                else:
-                    logger.error("app模块中没有create_app函数")
-                    sys.exit(1)
-            except ImportError as e:
-                logger.error(f"导入app模块失败: {str(e)}")
-                logger.error(traceback.format_exc())
-                sys.exit(1)
-
-        # 创建应用
-        logger.info("正在创建Flask应用...")
-        app = create_app()
-        logger.info("成功创建Flask应用")
-
-        # 获取配置信息
-        host = app.config.get('HOST', '0.0.0.0')
-        port = app.config.get('PORT', 5000)
-        debug = app.config.get('DEBUG', False)
-
-        logger.info(f"正在启动Flask应用...")
-        logger.info(f"监听地址: {host}:{port}")
-        logger.info(f"调试模式: {debug}")
-
-        # 禁用 werkzeug 的重新加载器，避免可能的端口冲突
-        app.run(
-            host=host,
-            port=port,
-            debug=debug,
-            use_reloader=False,
-            threaded=True
-        )
-    except ImportError as e:
-        logger.error(f"导入Flask应用创建函数失败: {str(e)}")
-        logger.error(traceback.format_exc())
-        sys.exit(1)
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"启动Flask应用时出错: {str(e)}")
+            logger.error(traceback.format_exc())
+            sys.exit(1)
     except Exception as e:
-        logger.error(f"启动Flask应用时出错: {str(e)}")
+        logger.error(f"API服务启动过程中发生未捕获的异常: {str(e)}")
         logger.error(traceback.format_exc())
         sys.exit(1)
 

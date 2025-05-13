@@ -100,7 +100,7 @@ def install_wxautox(wheel_file_path):
         try:
             module = package_manager.install_and_import(wheel_file_path, "wxautox")
             if module:
-                logger.info("动态包管理器成功安装并导入wxautox")
+                #logger.info("动态包管理器成功安装并导入wxautox")
 
                 # 更新配置文件
                 update_config_for_wxautox()

@@ -21,7 +21,14 @@ from datetime import datetime
 from pathlib import Path
 
 # 导入配置管理模块
-import config_manager
+try:
+    # 首先尝试从app包导入
+    from app import config_manager
+    print("成功从app包导入 config_manager 模块")
+except ImportError:
+    # 如果失败，尝试直接导入（兼容旧版本）
+    import config_manager
+    print("成功直接导入 config_manager 模块")
 
 # 确保当前目录在Python路径中，以便能够导入app模块
 current_dir = os.path.dirname(os.path.abspath(__file__))

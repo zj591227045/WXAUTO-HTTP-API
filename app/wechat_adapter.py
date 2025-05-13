@@ -87,7 +87,7 @@ class WeChatAdapter:
             try:
                 module = package_manager.import_package("wxautox")
                 if module:
-                    logger.info("动态包管理器成功导入wxautox")
+                    #logger.info("动态包管理器成功导入wxautox")
                     self._lib_name = "wxautox"
                     # 更新日志适配器中的库名称
                     WeChatLibAdapter.set_lib_name_static("wxautox")
@@ -171,7 +171,7 @@ class WeChatAdapter:
                             logger.info("使用动态包管理器导入wxautox.WeChat")
                             module = package_manager.import_package("wxautox")
                             if module:
-                                logger.info("动态包管理器成功导入wxautox")
+                                #logger.info("动态包管理器成功导入wxautox")
                                 WeChat = getattr(module, 'WeChat')
                                 self._instance = WeChat()
                             else:
