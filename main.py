@@ -11,16 +11,24 @@ import traceback
 
 # 配置日志
 import os
-os.makedirs('data/logs', exist_ok=True)  # 确保日志目录存在
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('data/logs/wxauto_startup.log', 'w', 'utf-8')
-    ]
-)
+# 确保日志目录存在
+os.makedirs('data/logs', exist_ok=True)
+
+# 创建日志处理器
+# 控制台处理器
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(console_formatter)
+
+# 配置根日志记录器 - 只使用控制台处理器，不创建额外的日志文件
+# 详细的日志会由app/logs.py模块处理
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(console_handler)
+
+# 获取当前模块的日志记录器
 logger = logging.getLogger(__name__)
 
 def setup_environment():

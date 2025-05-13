@@ -54,6 +54,8 @@ class Config:
     LOG_LEVEL = logging.INFO  # 设置为INFO级别，减少DEBUG日志
     LOG_FORMAT = '%(asctime)s - [%(wechat_lib)s] - %(levelname)s - %(message)s'
     LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # 统一的时间戳格式
+    LOG_MAX_BYTES = 20 * 1024 * 1024  # 20MB
+    LOG_BACKUP_COUNT = 5  # 保留5个备份文件
 
     # 日志文件路径
     DATA_DIR = Path("data")

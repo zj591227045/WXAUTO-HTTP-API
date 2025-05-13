@@ -377,8 +377,8 @@ class WxAutoHttpUI:
 
         # 过滤器设置
         self.filter_settings = {
-            'hide_status_check': tk.BooleanVar(value=False),  # 隐藏状态检查日志
-            'hide_debug': tk.BooleanVar(value=False),         # 隐藏DEBUG级别日志
+            'hide_status_check': tk.BooleanVar(value=True),  # 默认隐藏状态检查日志
+            'hide_debug': tk.BooleanVar(value=True),         # 默认隐藏DEBUG级别日志
             'custom_filter': tk.StringVar(value="")           # 自定义过滤关键词
         }
 
@@ -421,15 +421,18 @@ class WxAutoHttpUI:
     def load_filter_settings(self):
         """从配置文件加载过滤器设置"""
         try:
-            # 加载配置
+            # 加载配置，确保使用默认值
             config = config_manager.load_log_filter_config()
 
             # 更新UI变量
-            self.filter_settings['hide_status_check'].set(config.get('hide_status_check', False))
-            self.filter_settings['hide_debug'].set(config.get('hide_debug', False))
+            self.filter_settings['hide_status_check'].set(config.get('hide_status_check', True))
+            self.filter_settings['hide_debug'].set(config.get('hide_debug', True))
             self.filter_settings['custom_filter'].set(config.get('custom_filter', ""))
 
             self.add_log("日志过滤器设置已加载")
+
+            # 刷新日志显示，应用过滤器
+            self.refresh_log_display()
         except Exception as e:
             self.add_log(f"加载日志过滤器设置失败: {str(e)}")
 

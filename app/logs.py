@@ -1,7 +1,7 @@
 import sys
 import logging
 import re
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 from app.config import Config
 
 # 创建一个内存日志处理器，用于捕获最近的错误日志
@@ -183,26 +183,25 @@ def setup_logger():
     memory_handler.setLevel(logging.DEBUG)  # 捕获所有级别的日志，但只保存错误日志
     logger.addHandler(memory_handler)
 
-    # 添加文件处理器 - 使用按日期滚动的日志文件
-    file_handler = TimedRotatingFileHandler(
+    # 添加文件处理器 - 使用大小轮转的日志文件
+    file_handler = RotatingFileHandler(
         Config.LOG_FILE,
-        when='midnight',  # 每天午夜滚动
-        interval=1,       # 每1天滚动一次
-        backupCount=30,   # 保留30天的日志
+        maxBytes=Config.LOG_MAX_BYTES,
+        backupCount=Config.LOG_BACKUP_COUNT,
         encoding='utf-8'
     )
     file_handler.setFormatter(formatter)
     file_handler.addFilter(http_filter)  # 添加过滤器
-    # 设置为立即刷新，确保日志及时写入文件
-    file_handler.setLevel(logging.DEBUG)
+    # 设置为INFO级别，减少日志量
+    file_handler.setLevel(logging.INFO)
     logger.addHandler(file_handler)
 
     # 添加控制台处理器
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     console_handler.addFilter(http_filter)  # 添加过滤器
-    # 设置为立即刷新，确保日志及时显示在控制台
-    console_handler.setLevel(logging.DEBUG)
+    # 设置为INFO级别，减少日志量
+    console_handler.setLevel(logging.INFO)
     logger.addHandler(console_handler)
 
     # 设置传播标志为False，避免日志重复

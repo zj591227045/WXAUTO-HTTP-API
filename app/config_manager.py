@@ -28,8 +28,8 @@ def ensure_dirs():
 
 # 默认配置
 DEFAULT_LOG_FILTER = {
-    "hide_status_check": False,
-    "hide_debug": False,
+    "hide_status_check": True,  # 默认隐藏微信状态检查日志
+    "hide_debug": True,         # 默认隐藏DEBUG级别日志
     "custom_filter": ""
 }
 
@@ -40,17 +40,20 @@ DEFAULT_APP_CONFIG = {
     "wechat_lib": "wxauto"
 }
 
-def load_log_filter_config():
+def load_log_filter_config(force_defaults=False):
     """
     加载日志过滤器配置
+
+    Args:
+        force_defaults (bool): 是否强制使用默认值覆盖现有配置
 
     Returns:
         dict: 日志过滤器配置
     """
     ensure_dirs()
 
-    if not LOG_FILTER_CONFIG.exists():
-        # 如果配置文件不存在，创建默认配置
+    if not LOG_FILTER_CONFIG.exists() or force_defaults:
+        # 如果配置文件不存在或强制使用默认值，创建默认配置
         save_log_filter_config(DEFAULT_LOG_FILTER)
         return DEFAULT_LOG_FILTER
 
@@ -58,10 +61,21 @@ def load_log_filter_config():
         with open(LOG_FILTER_CONFIG, 'r', encoding='utf-8') as f:
             config = json.load(f)
 
-        # 确保所有必要的键都存在
+        # 确保所有必要的键都存在，并使用默认值
+        config_updated = False
         for key in DEFAULT_LOG_FILTER:
             if key not in config:
                 config[key] = DEFAULT_LOG_FILTER[key]
+                config_updated = True
+            # 对于特定的键，强制使用默认值
+            elif key in ['hide_status_check', 'hide_debug'] and not config[key]:
+                config[key] = DEFAULT_LOG_FILTER[key]
+                config_updated = True
+
+        # 如果配置被更新，保存回文件
+        if config_updated:
+            save_log_filter_config(config)
+            logging.info("日志过滤器配置已更新为默认值")
 
         return config
     except Exception as e:
