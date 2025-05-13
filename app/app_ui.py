@@ -132,6 +132,15 @@ class WxAutoHttpUI:
     """wxauto_http_api 管理界面"""
 
     def __init__(self, root):
+        # 确保使用UTF-8编码
+        import sys
+        if hasattr(sys, 'setdefaultencoding'):
+            sys.setdefaultencoding('utf-8')
+
+        # 设置环境变量，确保子进程使用UTF-8编码
+        import os
+        os.environ['PYTHONIOENCODING'] = 'utf-8'
+
         self.root = root
         self.root.title("wxauto_http_api 管理界面")
         self.root.geometry("900x600")
@@ -337,8 +346,37 @@ class WxAutoHttpUI:
         log_frame = ttk.LabelFrame(self.main_frame, text="API日志", padding="10")
         log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
-        # 日志显示区域
-        self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=10)
+        # 日志显示区域 - 使用支持中文的字体
+        # 尝试使用系统中常见的中文字体
+        try:
+            # 尝试获取系统中可用的字体
+            available_fonts = []
+            if hasattr(tk.font, 'families'):
+                available_fonts = tk.font.families()
+
+            # 优先选择的中文字体列表
+            chinese_fonts = ['Microsoft YaHei', '微软雅黑', 'SimHei', '黑体', 'SimSun', '宋体', 'NSimSun', '新宋体', 'FangSong', '仿宋', 'KaiTi', '楷体', 'Arial Unicode MS']
+
+            # 选择第一个可用的中文字体
+            selected_font = None
+            for font in chinese_fonts:
+                if font in available_fonts:
+                    selected_font = font
+                    break
+
+            # 如果找到了合适的字体，使用它
+            if selected_font:
+                self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=10, font=(selected_font, 10))
+                self.add_log(f"使用中文字体: {selected_font}")
+            else:
+                # 如果没有找到合适的字体，使用默认字体
+                self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=10)
+                self.add_log("未找到合适的中文字体，使用默认字体")
+        except Exception as e:
+            # 如果出错，使用默认字体
+            self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=10)
+            print(f"设置字体时出错: {str(e)}")
+
         self.log_text.pack(fill=tk.BOTH, expand=True)
         self.log_text.config(state=tk.DISABLED)
 
@@ -1593,13 +1631,30 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
             # 记录启动命令
             self.add_log(f"启动命令: {' '.join(cmd)}")
 
+            # 设置环境变量，确保子进程使用UTF-8编码
+            env = os.environ.copy()
+            env['PYTHONIOENCODING'] = 'utf-8'
+
+            # 在Windows系统上，设置控制台代码页为UTF-8
+            if sys.platform == 'win32':
+                # 尝试设置控制台代码页为65001 (UTF-8)
+                try:
+                    subprocess.run(['chcp', '65001'], shell=True, check=False)
+                    self.add_log("已设置控制台代码页为UTF-8 (65001)")
+                except Exception as e:
+                    self.add_log(f"设置控制台代码页失败: {str(e)}")
+
+            # 使用UTF-8编码创建进程，避免GBK编码错误
             API_PROCESS = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
                 bufsize=1,
-                universal_newlines=True
+                encoding='utf-8',  # 明确指定UTF-8编码
+                errors='replace',  # 如果遇到无法解码的字符，使用替代字符
+                text=True,
+                universal_newlines=True,
+                env=env  # 使用修改后的环境变量
             )
 
             # 启动日志读取线程
@@ -1682,53 +1737,95 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         if not API_PROCESS:
             return
 
-        for line in iter(API_PROCESS.stdout.readline, ''):
-            if line:
-                # 处理行内容，移除可能存在的时间戳
-                line_content = line.strip()
-
-                # 移除常见的时间戳格式
-                # 使用与APILogHandler._remove_timestamp相同的逻辑
-                import re
-
-                # 移除类似 "2025-05-08 11:50:17,850" 这样的时间戳
-                line_content = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(,\d{3})? - ', '', line_content)
-
-                # 移除类似 "[2025-05-08 11:50:17]" 这样的时间戳
-                line_content = re.sub(r'^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] ', '', line_content)
-
-                # 移除类似 "2025-05-08 12:04:46" 这样的时间戳（Flask日志格式）
-                line_content = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} - ', '', line_content)
-
-                # 移除类似 "127.0.0.1 - - [08/May/2025 12:04:46]" 这样的Werkzeug日志格式
-                if ' - - [' in line_content and '] "' in line_content:
-                    parts = line_content.split('] "', 1)
-                    if len(parts) > 1:
-                        ip_part = parts[0].split(' - - [')[0]
-                        request_part = parts[1]
-                        line_content = f"{ip_part} - {request_part}"
-
-                self.add_log(line_content)
-
-            # 检查进程是否还在运行
-            if API_PROCESS:
-                if isinstance(API_PROCESS, subprocess.Popen):
-                    # 如果是subprocess.Popen对象，使用poll()方法
-                    if API_PROCESS.poll() is not None:
-                        self.add_log(f"API服务已退出，返回码: {API_PROCESS.returncode}")
-                        self.root.after(0, self.update_status_stopped)
-                        break
-                else:
-                    # 如果是psutil.Process对象，检查是否存在
+        try:
+            # 使用UTF-8编码读取进程输出
+            for line in iter(API_PROCESS.stdout.readline, ''):
+                if line:
                     try:
-                        if not psutil.pid_exists(API_PROCESS.pid):
+                        # 处理行内容，移除可能存在的时间戳
+                        line_content = line.strip()
+
+                        # 检查是否包含乱码，如果包含乱码，尝试修复
+                        if '�' in line_content:
+                            self.add_log(f"检测到可能的乱码，尝试修复: {line_content}")
+                            # 记录原始行内容，用于调试
+                            self.add_log(f"原始行内容: {repr(line)}")
+
+                            # 尝试使用不同的编码解码
+                            try:
+                                # 如果line是字符串，先转换为bytes
+                                if isinstance(line, str):
+                                    # 假设line是UTF-8编码的字符串
+                                    line_bytes = line.encode('latin1')
+                                else:
+                                    line_bytes = line
+
+                                # 尝试使用不同的编码解码
+                                for encoding in ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5']:
+                                    try:
+                                        decoded = line_bytes.decode(encoding)
+                                        if '�' not in decoded:
+                                            line_content = decoded.strip()
+                                            self.add_log(f"成功使用 {encoding} 编码修复乱码")
+                                            break
+                                    except UnicodeDecodeError:
+                                        continue
+                            except Exception as e:
+                                self.add_log(f"修复乱码失败: {str(e)}")
+
+                        # 移除常见的时间戳格式
+                        # 使用与APILogHandler._remove_timestamp相同的逻辑
+                        import re
+
+                        # 移除类似 "2025-05-08 11:50:17,850" 这样的时间戳
+                        line_content = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(,\d{3})? - ', '', line_content)
+
+                        # 移除类似 "[2025-05-08 11:50:17]" 这样的时间戳
+                        line_content = re.sub(r'^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] ', '', line_content)
+
+                        # 移除类似 "2025-05-08 12:04:46" 这样的时间戳（Flask日志格式）
+                        line_content = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} - ', '', line_content)
+
+                        # 移除类似 "127.0.0.1 - - [08/May/2025 12:04:46]" 这样的Werkzeug日志格式
+                        if ' - - [' in line_content and '] "' in line_content:
+                            parts = line_content.split('] "', 1)
+                            if len(parts) > 1:
+                                ip_part = parts[0].split(' - - [')[0]
+                                request_part = parts[1]
+                                line_content = f"{ip_part} - {request_part}"
+
+                        self.add_log(line_content)
+                    except UnicodeDecodeError as e:
+                        # 如果遇到解码错误，记录错误信息
+                        self.add_log(f"读取进程输出时遇到编码错误: {str(e)}")
+                    except Exception as e:
+                        # 捕获其他可能的异常
+                        self.add_log(f"处理进程输出时出错: {str(e)}")
+
+                # 检查进程是否还在运行
+                if API_PROCESS:
+                    if isinstance(API_PROCESS, subprocess.Popen):
+                        # 如果是subprocess.Popen对象，使用poll()方法
+                        if API_PROCESS.poll() is not None:
+                            self.add_log(f"API服务已退出，返回码: {API_PROCESS.returncode}")
+                            self.root.after(0, self.update_status_stopped)
+                            break
+                    else:
+                        # 如果是psutil.Process对象，检查是否存在
+                        try:
+                            if not psutil.pid_exists(API_PROCESS.pid):
+                                self.add_log(f"API服务已退出")
+                                self.root.after(0, self.update_status_stopped)
+                                break
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
                             self.add_log(f"API服务已退出")
                             self.root.after(0, self.update_status_stopped)
                             break
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        self.add_log(f"API服务已退出")
-                        self.root.after(0, self.update_status_stopped)
-                        break
+        except Exception as e:
+            # 捕获读取进程输出时的异常
+            self.add_log(f"读取进程输出时出错: {str(e)}")
+            # 如果发生异常，尝试更新状态
+            self.root.after(0, self.update_status_stopped)
 
     def update_status_stopped(self):
         """更新状态为已停止"""
