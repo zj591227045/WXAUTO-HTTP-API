@@ -73,14 +73,8 @@ def initialize_wechat():
             wx_instance = wechat_manager.get_instance()
             window_name = ""
             try:
-                # 直接从实例中获取窗口名称
-                # 注意：WeChat()初始化时会自动打印窗口名称，我们需要从实例中获取
-                window_name = getattr(wx_instance._instance, "window_name", "")
-                if not window_name:
-                    # 尝试使用GetWindowName方法
-                    if hasattr(wx_instance._instance, "GetWindowName"):
-                        window_name = wx_instance._instance.GetWindowName()
-
+                # 使用适配器的get_window_name方法获取窗口名称（优先使用缓存）
+                window_name = wx_instance.get_window_name()
                 if window_name:
                     logger.info(f"初始化成功，获取到已登录窗口：{window_name}")
 
@@ -138,13 +132,8 @@ def get_wechat_status():
     window_name = ""
     if is_connected:
         try:
-            # 直接从实例中获取窗口名称
-            window_name = getattr(wx_instance._instance, "window_name", "")
-            if not window_name:
-                # 尝试使用GetWindowName方法
-                if hasattr(wx_instance._instance, "GetWindowName"):
-                    window_name = wx_instance._instance.GetWindowName()
-
+            # 使用适配器的get_window_name方法获取窗口名称（优先使用缓存）
+            window_name = wx_instance.get_window_name()
             if window_name:
                 logger.debug(f"状态检查：获取到已登录窗口：{window_name}")
         except Exception as e:

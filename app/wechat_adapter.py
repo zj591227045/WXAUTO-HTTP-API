@@ -50,6 +50,7 @@ class WeChatAdapter:
         self._lib_name = None
         self._lock = threading.Lock()
         self._listen = {}  # 添加listen属性
+        self._cached_window_name = ""  # 添加窗口名称缓存
 
         logger.info(f"初始化WeChatAdapter，请求的库名称: {lib_name}")
         logger.info(f"当前工作目录: {os.getcwd()}")
@@ -249,6 +250,8 @@ class WeChatAdapter:
                             window_name = ""
 
                         if window_name:
+                            # 保存到缓存
+                            self._cached_window_name = window_name
                             logger.info(f"微信实例初始化成功，获取到已登录窗口：{window_name}，使用库: {self._lib_name}")
                         else:
                             logger.info(f"微信实例初始化成功，但无法获取窗口名称，使用库: {self._lib_name}")
@@ -291,6 +294,47 @@ class WeChatAdapter:
     def get_lib_name(self) -> str:
         """获取当前使用的库名称"""
         return self._lib_name
+
+    def get_window_name(self) -> str:
+        """获取微信窗口名称，优先使用缓存"""
+        if not self._instance:
+            return ""
+
+        try:
+            # 尝试获取最新的窗口名称
+            window_name = ""
+            if hasattr(self._instance, "window_name"):
+                window_name = self._instance.window_name
+            elif hasattr(self._instance, "GetWindowName"):
+                window_name = self._instance.GetWindowName()
+
+            # 如果获取到了新的窗口名称，更新缓存
+            if window_name:
+                self._cached_window_name = window_name
+                return window_name
+
+            # 如果没有获取到新的窗口名称，但缓存中有值，使用缓存
+            if self._cached_window_name:
+                logger.debug(f"使用缓存的窗口名称: {self._cached_window_name}")
+                return self._cached_window_name
+
+            # 如果缓存也没有，尝试从nickname属性获取
+            if hasattr(self._instance, "nickname"):
+                nickname = self._instance.nickname
+                if nickname:
+                    self._cached_window_name = nickname
+                    logger.debug(f"从nickname属性获取窗口名称: {nickname}")
+                    return nickname
+
+            # 都没有获取到，返回空字符串
+            return ""
+        except Exception as e:
+            logger.warning(f"获取窗口名称失败: {str(e)}")
+            # 如果获取失败但缓存中有值，返回缓存
+            if self._cached_window_name:
+                logger.debug(f"获取失败，使用缓存的窗口名称: {self._cached_window_name}")
+                return self._cached_window_name
+            return ""
 
     def check_connection(self) -> bool:
         """检查微信连接状态"""

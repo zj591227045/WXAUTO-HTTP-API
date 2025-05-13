@@ -2176,7 +2176,7 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                     if window_name:
                         # 更新窗口名称标签
                         self.root.after(0, lambda wn=window_name: self.wechat_window_name.config(text=wn, foreground="orange"))
-                        self.add_log(f"已连接到微信窗口: {window_name}")
+                        #self.add_log(f"已连接到微信窗口: {window_name}")
                     else:
                         # 窗口名称为空，设置为空字符串
                         self.root.after(0, lambda: self.wechat_window_name.config(text=""))
@@ -2234,9 +2234,10 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                     if window_name:
                         # 更新窗口名称标签
                         self.root.after(0, lambda: self.wechat_window_name.config(text=window_name, foreground="orange"))
-                        self.root.after(0, lambda: self.add_log(f"已连接到微信窗口: {window_name}"))
-                    elif self.wechat_window_name.cget("text") == "":
-                        # 如果窗口名称为空，尝试设置为"获取中..."
+                        # 移除日志记录
+                    elif self.wechat_window_name.cget("text") == "" or self.wechat_window_name.cget("text") == "获取中...":
+                        # 如果窗口名称为空且当前显示为空或"获取中..."，才设置为"获取中..."
+                        # 这样可以避免覆盖之前成功获取的名称
                         self.root.after(0, lambda: self.wechat_window_name.config(text="获取中...", foreground="orange"))
 
                     # 更新API地址
@@ -2276,9 +2277,10 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                     if window_name:
                         # 更新窗口名称标签
                         self.root.after(0, lambda: self.wechat_window_name.config(text=window_name, foreground="orange"))
-                        self.root.after(0, lambda: self.add_log(f"已连接到微信窗口: {window_name}"))
+                        # 移除日志记录
                     elif self.wechat_window_name.cget("text") == "" or self.wechat_window_name.cget("text") == "获取中...":
-                        # 如果窗口名称为空，尝试设置为"获取中..."
+                        # 如果窗口名称为空且当前显示为空或"获取中..."，才设置为"获取中..."
+                        # 这样可以避免覆盖之前成功获取的名称
                         self.root.after(0, lambda: self.wechat_window_name.config(text="获取中...", foreground="orange"))
 
                     # 更新API地址
