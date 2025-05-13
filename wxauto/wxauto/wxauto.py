@@ -71,7 +71,21 @@ class WeChat(WeChatBase):
         self.nickname = self.A_MyIcon.Name
         msgs_ = self.GetAllMessage()
         self.usedmsgid = [i[-1] for i in msgs_]
-        print(f'初始化成功，获取到已登录窗口：{self.nickname}')
+        # 使用安全的打印方式，避免GBK编码错误
+        try:
+            print(f'初始化成功，获取到已登录窗口：{self.nickname}')
+        except UnicodeEncodeError:
+            # 如果是GBK编码错误，使用UTF-8编码输出
+            try:
+                import sys
+                if hasattr(sys.stdout, 'buffer'):
+                    message = f'初始化成功，获取到已登录窗口：{self.nickname}'
+                    sys.stdout.buffer.write(message.encode('utf-8'))
+                    sys.stdout.buffer.write(b'\n')
+                    sys.stdout.buffer.flush()
+            except Exception:
+                # 如果还是失败，忽略错误
+                pass
 
     def _checkversion(self):
         self.HWND = FindWindow(classname='WeChatMainWndForPC')

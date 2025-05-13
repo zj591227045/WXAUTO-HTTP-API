@@ -200,8 +200,43 @@ class WeChatAdapter:
 
                         # 直接从本地文件夹导入
                         from wxauto import WeChat
-                        self._instance = WeChat()
-                        logger.info("成功创建wxauto.WeChat实例")
+
+                        # 尝试创建WeChat实例，处理可能的Unicode编码错误
+                        try:
+                            self._instance = WeChat()
+                            logger.info("成功创建wxauto.WeChat实例")
+                        except UnicodeEncodeError as e:
+                            if 'gbk' in str(e).lower():
+                                logger.warning(f"捕获到GBK编码错误: {str(e)}")
+                                logger.info("尝试修复Unicode编码问题...")
+
+                                # 修补print函数，处理Unicode编码问题
+                                original_print = print
+                                def safe_print(*args, **kwargs):
+                                    try:
+                                        original_print(*args, **kwargs)
+                                    except UnicodeEncodeError:
+                                        # 如果是GBK编码错误，使用UTF-8编码输出
+                                        try:
+                                            import sys
+                                            if hasattr(sys.stdout, 'buffer'):
+                                                message = " ".join(str(arg) for arg in args)
+                                                sys.stdout.buffer.write(message.encode('utf-8'))
+                                                sys.stdout.buffer.write(b'\n')
+                                                sys.stdout.buffer.flush()
+                                        except Exception:
+                                            pass
+
+                                # 替换print函数
+                                import builtins
+                                builtins.print = safe_print
+
+                                # 再次尝试创建WeChat实例
+                                self._instance = WeChat()
+                                logger.info("成功创建wxauto.WeChat实例（已修复Unicode编码问题）")
+                            else:
+                                # 如果不是GBK编码错误，重新抛出
+                                raise
 
                     # 尝试获取窗口名称并保存
                     try:

@@ -153,6 +153,18 @@ def main():
         logger.error(f"路径修复时出错: {str(e)}")
         logger.error(traceback.format_exc())
 
+    # 导入Unicode编码修复模块
+    try:
+        logger.info("尝试导入Unicode编码修复模块")
+        from app import unicode_fix
+        logger.info("成功导入Unicode编码修复模块")
+    except ImportError as e:
+        logger.warning(f"导入Unicode编码修复模块失败: {str(e)}")
+        logger.warning("这可能会导致在处理包含Unicode表情符号的微信名称时出现问题")
+    except Exception as e:
+        logger.error(f"应用Unicode编码修复时出错: {str(e)}")
+        logger.error(traceback.format_exc())
+
     # 初始化动态包管理器
     try:
         from app.dynamic_package_manager import get_package_manager
