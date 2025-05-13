@@ -83,7 +83,7 @@ class WeChatAdapter:
         """尝试导入wxautox库"""
         # 首先尝试使用动态包管理器
         if package_manager:
-            logger.info("使用动态包管理器导入wxautox")
+            #logger.info("使用动态包管理器导入wxautox")
             try:
                 module = package_manager.import_package("wxautox")
                 if module:
@@ -168,7 +168,7 @@ class WeChatAdapter:
                     if self._lib_name == "wxautox":
                         # 优先使用动态包管理器
                         if package_manager:
-                            logger.info("使用动态包管理器导入wxautox.WeChat")
+                            #logger.info("使用动态包管理器导入wxautox.WeChat")
                             module = package_manager.import_package("wxautox")
                             if module:
                                 #logger.info("动态包管理器成功导入wxautox")
