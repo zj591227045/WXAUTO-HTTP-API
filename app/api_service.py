@@ -66,18 +66,12 @@ def check_dependencies():
             from app.wxauto_wrapper import get_wxauto
             wxauto = get_wxauto()
             if wxauto:
-                logger.info("wxauto库已成功导入")
-                logger.info(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
-                logger.info(f"wxauto库路径: {wxauto.__file__}")
 
                 # 尝试导入wxauto包装器
                 try:
                     from app.wxauto_wrapper.wrapper import get_wrapper
                     wrapper = get_wrapper()
-                    if wrapper:
-                        logger.info("wxauto包装器已成功初始化")
-                    else:
-                        logger.warning("wxauto包装器初始化失败")
+
                 except Exception as e:
                     logger.error(f"初始化wxauto包装器失败: {str(e)}")
             else:

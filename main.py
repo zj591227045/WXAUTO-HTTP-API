@@ -5,9 +5,23 @@ wxauto_http_api 主入口点
 
 import os
 import sys
+import io
 import logging
 import argparse
 import traceback
+
+# 设置标准输出和标准错误的编码为UTF-8
+try:
+    if hasattr(sys.stdout, 'buffer'):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'buffer'):
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+except Exception as e:
+    print(f"设置标准输出编码失败: {str(e)}")
+
+# 设置环境变量，确保Python使用UTF-8编码
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+os.environ['PYTHONLEGACYWINDOWSSTDIO'] = '0'  # 禁用旧版Windows标准IO处理
 
 # 配置日志
 import os
@@ -171,18 +185,12 @@ def main():
         from app.wxauto_wrapper import get_wxauto
         wxauto = get_wxauto()
         if wxauto:
-            logger.info("wxauto库已成功导入")
-            logger.info(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
-            logger.info(f"wxauto库路径: {wxauto.__file__}")
 
             # 尝试导入wxauto包装器
             try:
                 from app.wxauto_wrapper.wrapper import get_wrapper
                 wrapper = get_wrapper()
-                if wrapper:
-                    logger.info("wxauto包装器已成功初始化")
-                else:
-                    logger.warning("wxauto包装器初始化失败")
+
             except Exception as e:
                 logger.error(f"初始化wxauto包装器失败: {str(e)}")
                 logger.error(traceback.format_exc())

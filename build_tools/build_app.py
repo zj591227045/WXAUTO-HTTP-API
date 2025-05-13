@@ -162,6 +162,17 @@ def build_app(debug=False, onefile=False):
         "--hidden-import", "charset_normalizer",
     ])
 
+    # 添加编码模块，确保UTF-8编码支持
+    cmd.extend([
+        "--hidden-import", "encodings",
+        "--hidden-import", "encodings.utf_8",
+        "--hidden-import", "encodings.gbk",
+        "--hidden-import", "encodings.gb2312",
+        "--hidden-import", "encodings.gb18030",
+        "--hidden-import", "encodings.big5",
+        "--hidden-import", "encodings.latin_1",
+    ])
+
     # 添加pywin32的DLL文件
     try:
         import site

@@ -139,10 +139,6 @@ class WeChatAdapter:
                 from app.wxauto_wrapper import get_wxauto
                 wxauto = get_wxauto()
                 if wxauto:
-                    logger.info("wxauto库已成功导入")
-                    logger.info(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
-                    logger.info(f"wxauto库路径: {wxauto.__file__}")
-
                     # 设置库名称
                     self._lib_name = "wxauto"
                     # 更新日志适配器中的库名称
@@ -272,9 +268,6 @@ class WeChatAdapter:
                             from app.wxauto_wrapper import get_wxauto
                             wxauto = get_wxauto()
                             if wxauto:
-                                logger.info("初始化时wxauto库已成功导入")
-                                logger.info(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
-                                logger.info(f"wxauto库路径: {wxauto.__file__}")
 
                                 # 导入WeChat类
                                 if hasattr(wxauto, 'WeChat'):

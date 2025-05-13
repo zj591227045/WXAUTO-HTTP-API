@@ -98,11 +98,41 @@ class APILogHandler(logging.Handler):
             # 移除消息开头可能存在的时间戳格式 (yyyy-mm-dd HH:MM:SS)
             message = self._remove_timestamp(message)
 
+            # 检查是否包含乱码，如果包含乱码，尝试修复
+            if '�' in message:
+                # 记录原始消息内容，用于调试
+                print(f"APILogHandler检测到可能的乱码，原始消息: {repr(message)}")
+
+                # 尝试使用不同的编码解码
+                try:
+                    # 如果message是字符串，先转换为bytes
+                    if isinstance(message, str):
+                        # 假设message是latin1编码的字符串
+                        message_bytes = message.encode('latin1')
+
+                        # 尝试使用不同的编码解码
+                        for encoding in ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5']:
+                            try:
+                                decoded = message_bytes.decode(encoding)
+                                if '�' not in decoded:
+                                    message = decoded
+                                    print(f"APILogHandler成功使用 {encoding} 编码修复乱码")
+                                    break
+                            except UnicodeDecodeError:
+                                continue
+                except Exception as e:
+                    print(f"APILogHandler修复乱码失败: {str(e)}")
+
             # 只保留日志级别和消息内容
             formatted_msg = f"{record.levelname} - {message}"
             self.log_queue.put(formatted_msg)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"APILogHandler.emit出错: {str(e)}")
+            # 尝试添加错误信息到日志队列
+            try:
+                self.log_queue.put(f"ERROR - 日志处理出错: {str(e)}")
+            except:
+                pass
 
     def _remove_timestamp(self, message):
         """移除消息中可能存在的时间戳格式"""
@@ -693,39 +723,77 @@ class WxAutoHttpUI:
 
             has_new_visible_logs = False
             while not LOG_QUEUE.empty():
-                msg = LOG_QUEUE.get()
+                try:
+                    # 获取消息并处理可能的编码问题
+                    msg = LOG_QUEUE.get()
 
-                # 更新API调用计数
-                global API_COUNTER
-                old_success = API_COUNTER.success_count
-                old_error = API_COUNTER.error_count
+                    # 检查是否包含乱码，如果包含乱码，尝试修复
+                    if '�' in msg:
+                        # 记录原始消息内容，用于调试
+                        print(f"检测到可能的乱码，原始消息: {repr(msg)}")
 
-                API_COUNTER.count_request(msg)
+                        # 尝试使用不同的编码解码
+                        try:
+                            # 如果msg是字符串，先转换为bytes
+                            if isinstance(msg, str):
+                                # 假设msg是UTF-8编码的字符串
+                                msg_bytes = msg.encode('latin1')
+                            else:
+                                msg_bytes = msg
 
-                # 更新UI显示 - 每次都更新，确保显示最新的计数
-                self.request_count.config(text=str(API_COUNTER.success_count))
-                self.error_count.config(text=str(API_COUNTER.error_count))
+                            # 尝试使用不同的编码解码
+                            for encoding in ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5']:
+                                try:
+                                    decoded = msg_bytes.decode(encoding)
+                                    if '�' not in decoded:
+                                        msg = decoded
+                                        print(f"成功使用 {encoding} 编码修复乱码")
+                                        break
+                                except UnicodeDecodeError:
+                                    continue
+                        except Exception as e:
+                            print(f"修复乱码失败: {str(e)}")
 
-                # 如果计数发生变化，添加日志
-                if old_success != API_COUNTER.success_count or old_error != API_COUNTER.error_count:
-                    self.add_log(f"API计数更新 - 成功: {API_COUNTER.success_count}, 错误: {API_COUNTER.error_count}")
+                    # 更新API调用计数
+                    global API_COUNTER
+                    old_success = API_COUNTER.success_count
+                    old_error = API_COUNTER.error_count
 
-                # 应用过滤器
-                if not self.should_filter_log(msg):
-                    # 添加统一格式的时间戳，但不再添加库信息（因为日志中已经包含）
-                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    API_COUNTER.count_request(msg)
 
-                    # 检查消息中是否已经包含库信息标记 [wxauto] 或 [wxautox]
-                    if "[wxauto]" in msg or "[wxautox]" in msg:
-                        # 已经包含库信息，只添加时间戳
-                        formatted_msg = f"[{timestamp}] {msg}"
-                    else:
-                        # 不包含库信息，添加时间戳和库信息
-                        lib_name = getattr(self, 'current_lib', 'wxauto')  # 默认使用wxauto
-                        formatted_msg = f"[{timestamp}] [{lib_name}] {msg}"
+                    # 更新UI显示 - 每次都更新，确保显示最新的计数
+                    self.request_count.config(text=str(API_COUNTER.success_count))
+                    self.error_count.config(text=str(API_COUNTER.error_count))
 
-                    self.log_text.insert(tk.END, formatted_msg + "\n")
-                    has_new_visible_logs = True
+                    # 如果计数发生变化，添加日志
+                    if old_success != API_COUNTER.success_count or old_error != API_COUNTER.error_count:
+                        self.add_log(f"API计数更新 - 成功: {API_COUNTER.success_count}, 错误: {API_COUNTER.error_count}")
+
+                    # 应用过滤器
+                    if not self.should_filter_log(msg):
+                        # 添加统一格式的时间戳，但不再添加库信息（因为日志中已经包含）
+                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                        # 检查消息中是否已经包含库信息标记 [wxauto] 或 [wxautox]
+                        if "[wxauto]" in msg or "[wxautox]" in msg:
+                            # 已经包含库信息，只添加时间戳
+                            formatted_msg = f"[{timestamp}] {msg}"
+                        else:
+                            # 不包含库信息，添加时间戳和库信息
+                            lib_name = getattr(self, 'current_lib', 'wxauto')  # 默认使用wxauto
+                            formatted_msg = f"[{timestamp}] [{lib_name}] {msg}"
+
+                        self.log_text.insert(tk.END, formatted_msg + "\n")
+                        has_new_visible_logs = True
+                except Exception as e:
+                    # 捕获处理消息时的任何异常
+                    print(f"处理日志消息时出错: {str(e)}")
+                    # 尝试添加错误信息到日志
+                    try:
+                        self.log_text.insert(tk.END, f"[错误] 处理日志消息时出错: {str(e)}\n")
+                        has_new_visible_logs = True
+                    except:
+                        pass
 
             # 限制日志显示数量为最新的200条
             log_content = self.log_text.get(1.0, tk.END)
@@ -792,18 +860,12 @@ class WxAutoHttpUI:
             wxauto = get_wxauto()
             if wxauto:
                 self.wxauto_status.config(text="已安装", style="Green.TLabel")
-                self.add_log("wxauto库已成功导入")
-                self.add_log(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
-                self.add_log(f"wxauto库路径: {wxauto.__file__}")
 
                 # 尝试导入wxauto包装器
                 try:
                     from app.wxauto_wrapper.wrapper import get_wrapper
                     wrapper = get_wrapper()
-                    if wrapper:
-                        self.add_log("wxauto包装器已成功初始化")
-                    else:
-                        self.add_log("wxauto包装器初始化失败")
+
                 except Exception as e:
                     self.add_log(f"初始化wxauto包装器失败: {str(e)}")
 
@@ -861,19 +923,10 @@ class WxAutoHttpUI:
                 wxauto = get_wxauto()
 
                 if wxauto:
-                    self.root.after(0, lambda: self.add_log("wxauto库已成功导入"))
-                    self.root.after(0, lambda: self.wxauto_status.config(text="已安装", style="Green.TLabel"))
-                    self.root.after(0, lambda: self.add_log(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}"))
-                    self.root.after(0, lambda: self.add_log(f"wxauto库路径: {wxauto.__file__}"))
-
                     # 尝试导入wxauto包装器
                     try:
                         from app.wxauto_wrapper.wrapper import get_wrapper
                         wrapper = get_wrapper()
-                        if wrapper:
-                            self.root.after(0, lambda: self.add_log("wxauto包装器已成功初始化"))
-                        else:
-                            self.root.after(0, lambda: self.add_log("wxauto包装器初始化失败"))
                     except Exception as e:
                         self.root.after(0, lambda: self.add_log(f"初始化wxauto包装器失败: {str(e)}"))
                 else:
@@ -1651,6 +1704,7 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
             # 设置环境变量，确保子进程使用UTF-8编码
             env = os.environ.copy()
             env['PYTHONIOENCODING'] = 'utf-8'
+            env['PYTHONLEGACYWINDOWSSTDIO'] = '0'  # 禁用旧版Windows标准IO处理
 
             # 在Windows系统上，设置控制台代码页为UTF-8
             if sys.platform == 'win32':
@@ -1661,16 +1715,14 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                 except Exception as e:
                     self.add_log(f"设置控制台代码页失败: {str(e)}")
 
-            # 使用UTF-8编码创建进程，避免GBK编码错误
+            # 使用二进制模式创建进程，避免编码问题
             API_PROCESS = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 bufsize=1,
-                encoding='utf-8',  # 明确指定UTF-8编码
-                errors='replace',  # 如果遇到无法解码的字符，使用替代字符
-                text=True,
-                universal_newlines=True,
+                text=False,  # 使用二进制模式
+                universal_newlines=False,  # 不使用通用换行符
                 env=env  # 使用修改后的环境变量
             )
 
@@ -1755,40 +1807,30 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
             return
 
         try:
-            # 使用UTF-8编码读取进程输出
-            for line in iter(API_PROCESS.stdout.readline, ''):
-                if line:
+            # 使用二进制模式读取进程输出
+            for line_bytes in iter(API_PROCESS.stdout.readline, b''):
+                if line_bytes:
                     try:
-                        # 处理行内容，移除可能存在的时间戳
-                        line_content = line.strip()
+                        # 尝试使用不同的编码解码二进制数据
+                        line_content = None
+                        decode_success = False
 
-                        # 检查是否包含乱码，如果包含乱码，尝试修复
-                        if '�' in line_content:
-                            self.add_log(f"检测到可能的乱码，尝试修复: {line_content}")
-                            # 记录原始行内容，用于调试
-                            self.add_log(f"原始行内容: {repr(line)}")
-
-                            # 尝试使用不同的编码解码
+                        # 尝试使用不同的编码解码
+                        for encoding in ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5']:
                             try:
-                                # 如果line是字符串，先转换为bytes
-                                if isinstance(line, str):
-                                    # 假设line是UTF-8编码的字符串
-                                    line_bytes = line.encode('latin1')
-                                else:
-                                    line_bytes = line
+                                decoded = line_bytes.decode(encoding)
+                                if '�' not in decoded:
+                                    line_content = decoded.strip()
+                                    print(f"成功使用 {encoding} 编码解码: {line_content}")
+                                    decode_success = True
+                                    break
+                            except UnicodeDecodeError:
+                                continue
 
-                                # 尝试使用不同的编码解码
-                                for encoding in ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5']:
-                                    try:
-                                        decoded = line_bytes.decode(encoding)
-                                        if '�' not in decoded:
-                                            line_content = decoded.strip()
-                                            self.add_log(f"成功使用 {encoding} 编码修复乱码")
-                                            break
-                                    except UnicodeDecodeError:
-                                        continue
-                            except Exception as e:
-                                self.add_log(f"修复乱码失败: {str(e)}")
+                        # 如果所有编码都失败，使用utf-8并替换无法解码的字符
+                        if not decode_success:
+                            line_content = line_bytes.decode('utf-8', errors='replace').strip()
+                            print(f"使用替换模式解码: {line_content}")
 
                         # 移除常见的时间戳格式
                         # 使用与APILogHandler._remove_timestamp相同的逻辑
@@ -1811,36 +1853,41 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                                 request_part = parts[1]
                                 line_content = f"{ip_part} - {request_part}"
 
-                        self.add_log(line_content)
+                        # 将处理后的内容添加到日志队列，而不是直接添加到UI
+                        # 这样可以确保所有日志都经过相同的处理流程
+                        LOG_QUEUE.put(line_content)
                     except UnicodeDecodeError as e:
                         # 如果遇到解码错误，记录错误信息
-                        self.add_log(f"读取进程输出时遇到编码错误: {str(e)}")
+                        print(f"读取进程输出时遇到编码错误: {str(e)}")
+                        LOG_QUEUE.put(f"读取进程输出时遇到编码错误: {str(e)}")
                     except Exception as e:
                         # 捕获其他可能的异常
-                        self.add_log(f"处理进程输出时出错: {str(e)}")
+                        print(f"处理进程输出时出错: {str(e)}")
+                        LOG_QUEUE.put(f"处理进程输出时出错: {str(e)}")
 
                 # 检查进程是否还在运行
                 if API_PROCESS:
                     if isinstance(API_PROCESS, subprocess.Popen):
                         # 如果是subprocess.Popen对象，使用poll()方法
                         if API_PROCESS.poll() is not None:
-                            self.add_log(f"API服务已退出，返回码: {API_PROCESS.returncode}")
+                            LOG_QUEUE.put(f"API服务已退出，返回码: {API_PROCESS.returncode}")
                             self.root.after(0, self.update_status_stopped)
                             break
                     else:
                         # 如果是psutil.Process对象，检查是否存在
                         try:
                             if not psutil.pid_exists(API_PROCESS.pid):
-                                self.add_log(f"API服务已退出")
+                                LOG_QUEUE.put(f"API服务已退出")
                                 self.root.after(0, self.update_status_stopped)
                                 break
                         except (psutil.NoSuchProcess, psutil.AccessDenied):
-                            self.add_log(f"API服务已退出")
+                            LOG_QUEUE.put(f"API服务已退出")
                             self.root.after(0, self.update_status_stopped)
                             break
         except Exception as e:
             # 捕获读取进程输出时的异常
-            self.add_log(f"读取进程输出时出错: {str(e)}")
+            print(f"读取进程输出时出错: {str(e)}")
+            LOG_QUEUE.put(f"读取进程输出时出错: {str(e)}")
             # 如果发生异常，尝试更新状态
             self.root.after(0, self.update_status_stopped)
 

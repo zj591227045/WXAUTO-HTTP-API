@@ -49,7 +49,7 @@ def patch_print_function():
         import builtins
         builtins.print = safe_print
         
-        logger.info("成功修补print函数，解决Unicode编码问题")
+        #logger.info("成功修补print函数，解决Unicode编码问题")
         return True
     except Exception as e:
         logger.error(f"修补print函数失败: {str(e)}")
