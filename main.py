@@ -165,6 +165,35 @@ def main():
         logger.error(f"应用Unicode编码修复时出错: {str(e)}")
         logger.error(traceback.format_exc())
 
+    # 确保wxauto库能够被正确导入
+    try:
+        logger.info("尝试导入wxauto库")
+        from app.wxauto_wrapper import get_wxauto
+        wxauto = get_wxauto()
+        if wxauto:
+            logger.info("wxauto库已成功导入")
+            logger.info(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
+            logger.info(f"wxauto库路径: {wxauto.__file__}")
+
+            # 尝试导入wxauto包装器
+            try:
+                from app.wxauto_wrapper.wrapper import get_wrapper
+                wrapper = get_wrapper()
+                if wrapper:
+                    logger.info("wxauto包装器已成功初始化")
+                else:
+                    logger.warning("wxauto包装器初始化失败")
+            except Exception as e:
+                logger.error(f"初始化wxauto包装器失败: {str(e)}")
+                logger.error(traceback.format_exc())
+        else:
+            logger.warning("wxauto库导入失败，可能会导致功能不可用")
+    except ImportError as e:
+        logger.warning(f"导入wxauto_wrapper模块失败: {str(e)}")
+    except Exception as e:
+        logger.error(f"导入wxauto库时出错: {str(e)}")
+        logger.error(traceback.format_exc())
+
     # 初始化动态包管理器
     try:
         from app.dynamic_package_manager import get_package_manager

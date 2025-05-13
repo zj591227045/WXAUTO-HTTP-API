@@ -134,28 +134,109 @@ class WeChatAdapter:
     def _try_import_wxauto(self) -> bool:
         """尝试导入wxauto库"""
         try:
-            # 确保本地wxauto文件夹在Python路径中
-            import sys
-            import os
+            # 使用wxauto_wrapper模块确保wxauto库能够被正确导入
+            try:
+                from app.wxauto_wrapper import get_wxauto
+                wxauto = get_wxauto()
+                if wxauto:
+                    logger.info("wxauto库已成功导入")
+                    logger.info(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
+                    logger.info(f"wxauto库路径: {wxauto.__file__}")
 
-            # 获取项目根目录（app目录的父目录）
-            app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            wxauto_path = os.path.join(app_root, "wxauto")
+                    # 设置库名称
+                    self._lib_name = "wxauto"
+                    # 更新日志适配器中的库名称
+                    WeChatLibAdapter.set_lib_name_static("wxauto")
 
-            logger.info(f"尝试从路径导入wxauto: {wxauto_path}")
+                    return True
+                else:
+                    logger.error("wxauto库导入失败")
+                    return False
+            except ImportError as e:
+                logger.warning(f"导入wxauto_wrapper模块失败: {str(e)}")
+                logger.warning("尝试使用传统方式导入wxauto...")
 
-            if wxauto_path not in sys.path:
-                sys.path.insert(0, wxauto_path)
+                # 确保本地wxauto文件夹在Python路径中
+                import sys
+                import os
 
-            # 直接从本地文件夹导入
-            import wxauto
-            self._lib_name = "wxauto"
-            # 更新日志适配器中的库名称
-            WeChatLibAdapter.set_lib_name_static("wxauto")
-            logger.info(f"成功从本地文件夹导入wxauto: {wxauto_path}")
-            return True
+                # 获取应用根目录
+                if getattr(sys, 'frozen', False):
+                    # 如果是打包后的环境
+                    app_root = os.path.dirname(sys.executable)
+                    logger.info(f"检测到打包环境，应用根目录: {app_root}")
+
+                    # 在打包环境中，确保_MEIPASS目录也在Python路径中
+                    meipass = getattr(sys, '_MEIPASS', None)
+                    if meipass and meipass not in sys.path:
+                        sys.path.insert(0, meipass)
+                        logger.info(f"已将_MEIPASS目录添加到Python路径: {meipass}")
+                else:
+                    # 如果是开发环境
+                    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    logger.info(f"检测到开发环境，应用根目录: {app_root}")
+
+                # 尝试多种可能的wxauto路径
+                possible_paths = [
+                    os.path.join(app_root, "wxauto"),  # 标准路径
+                    os.path.join(app_root, "app", "wxauto"),  # 可能的子目录
+                ]
+
+                # 如果是打包环境，添加更多可能的路径
+                if getattr(sys, 'frozen', False):
+                    meipass = getattr(sys, '_MEIPASS', None)
+                    if meipass:
+                        possible_paths.extend([
+                            os.path.join(meipass, "wxauto"),  # PyInstaller临时目录中的wxauto
+                            os.path.join(meipass, "app", "wxauto"),  # PyInstaller临时目录中的app/wxauto
+                        ])
+
+                # 记录所有可能的路径
+                logger.info(f"尝试以下wxauto路径: {possible_paths}")
+
+                for wxauto_path in possible_paths:
+                    if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
+                        logger.info(f"找到wxauto路径: {wxauto_path}")
+
+                        # 检查wxauto路径下是否有wxauto子目录
+                        wxauto_inner_path = os.path.join(wxauto_path, "wxauto")
+                        if os.path.exists(wxauto_inner_path) and os.path.isdir(wxauto_inner_path):
+                            logger.info(f"找到wxauto内部目录: {wxauto_inner_path}")
+
+                            # 将wxauto/wxauto目录添加到路径
+                            if wxauto_inner_path not in sys.path:
+                                sys.path.insert(0, wxauto_inner_path)
+                                logger.info(f"已将wxauto/wxauto目录添加到Python路径: {wxauto_inner_path}")
+
+                        # 将wxauto目录添加到路径
+                        if wxauto_path not in sys.path:
+                            sys.path.insert(0, wxauto_path)
+                            logger.info(f"已将wxauto目录添加到Python路径: {wxauto_path}")
+
+                        # 尝试导入
+                        try:
+                            import wxauto
+                            self._lib_name = "wxauto"
+                            # 更新日志适配器中的库名称
+                            WeChatLibAdapter.set_lib_name_static("wxauto")
+                            logger.info(f"成功从路径导入wxauto: {wxauto_path}")
+                            return True
+                        except ImportError as inner_e:
+                            logger.warning(f"从路径 {wxauto_path} 导入wxauto失败: {str(inner_e)}")
+                            # 继续尝试下一个路径
+
+                # 如果所有路径都失败，尝试直接导入
+                logger.info("所有路径尝试失败，尝试直接导入wxauto")
+                import wxauto
+                self._lib_name = "wxauto"
+                WeChatLibAdapter.set_lib_name_static("wxauto")
+                logger.info("成功直接导入wxauto")
+                return True
         except ImportError as e:
             logger.warning(f"无法导入wxauto库: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"尝试导入wxauto时出现未知错误: {str(e)}")
             return False
 
     def initialize(self) -> bool:
@@ -186,21 +267,103 @@ class WeChatAdapter:
                             from wxautox import WeChat
                             self._instance = WeChat()
                     else:  # wxauto
-                        # 确保本地wxauto文件夹在Python路径中
-                        import sys
-                        import os
+                        # 使用wxauto_wrapper模块确保wxauto库能够被正确导入
+                        try:
+                            from app.wxauto_wrapper import get_wxauto
+                            wxauto = get_wxauto()
+                            if wxauto:
+                                logger.info("初始化时wxauto库已成功导入")
+                                logger.info(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
+                                logger.info(f"wxauto库路径: {wxauto.__file__}")
 
-                        # 获取项目根目录（app目录的父目录）
-                        app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                        wxauto_path = os.path.join(app_root, "wxauto")
+                                # 导入WeChat类
+                                if hasattr(wxauto, 'WeChat'):
+                                    WeChat = wxauto.WeChat
+                                    logger.info("成功从wxauto_wrapper获取WeChat类")
+                                else:
+                                    logger.error("wxauto模块中没有WeChat类")
+                                    raise ImportError("wxauto模块中没有WeChat类")
+                            else:
+                                logger.error("wxauto库导入失败")
+                                raise ImportError("无法导入wxauto库")
+                        except ImportError as e:
+                            logger.warning(f"导入wxauto_wrapper模块失败: {str(e)}")
+                            logger.warning("尝试使用传统方式导入wxauto.WeChat...")
 
-                        logger.info(f"初始化时使用wxauto路径: {wxauto_path}")
+                            # 使用与_try_import_wxauto相同的逻辑来确保wxauto库已正确导入
+                            import sys
+                            import os
 
-                        if wxauto_path not in sys.path:
-                            sys.path.insert(0, wxauto_path)
+                            # 获取应用根目录
+                            if getattr(sys, 'frozen', False):
+                                # 如果是打包后的环境
+                                app_root = os.path.dirname(sys.executable)
+                                logger.info(f"初始化时检测到打包环境，应用根目录: {app_root}")
 
-                        # 直接从本地文件夹导入
-                        from wxauto import WeChat
+                                # 在打包环境中，确保_MEIPASS目录也在Python路径中
+                                meipass = getattr(sys, '_MEIPASS', None)
+                                if meipass and meipass not in sys.path:
+                                    sys.path.insert(0, meipass)
+                                    logger.info(f"初始化时已将_MEIPASS目录添加到Python路径: {meipass}")
+                            else:
+                                # 如果是开发环境
+                                app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                                logger.info(f"初始化时检测到开发环境，应用根目录: {app_root}")
+
+                            # 尝试多种可能的wxauto路径
+                            possible_paths = [
+                                os.path.join(app_root, "wxauto"),  # 标准路径
+                                os.path.join(app_root, "app", "wxauto"),  # 可能的子目录
+                            ]
+
+                            # 如果是打包环境，添加更多可能的路径
+                            if getattr(sys, 'frozen', False):
+                                meipass = getattr(sys, '_MEIPASS', None)
+                                if meipass:
+                                    possible_paths.extend([
+                                        os.path.join(meipass, "wxauto"),  # PyInstaller临时目录中的wxauto
+                                        os.path.join(meipass, "app", "wxauto"),  # PyInstaller临时目录中的app/wxauto
+                                    ])
+
+                            # 记录所有可能的路径
+                            logger.info(f"初始化时尝试以下wxauto路径: {possible_paths}")
+
+                            # 标记是否找到了wxauto模块
+                            found_wxauto = False
+
+                            for wxauto_path in possible_paths:
+                                if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
+                                    logger.info(f"初始化时找到wxauto路径: {wxauto_path}")
+
+                                    # 检查wxauto路径下是否有wxauto子目录
+                                    wxauto_inner_path = os.path.join(wxauto_path, "wxauto")
+                                    if os.path.exists(wxauto_inner_path) and os.path.isdir(wxauto_inner_path):
+                                        logger.info(f"初始化时找到wxauto内部目录: {wxauto_inner_path}")
+
+                                        # 将wxauto/wxauto目录添加到路径
+                                        if wxauto_inner_path not in sys.path:
+                                            sys.path.insert(0, wxauto_inner_path)
+                                            logger.info(f"初始化时已将wxauto/wxauto目录添加到Python路径: {wxauto_inner_path}")
+
+                                    # 将wxauto目录添加到路径
+                                    if wxauto_path not in sys.path:
+                                        sys.path.insert(0, wxauto_path)
+                                        logger.info(f"初始化时已将wxauto目录添加到Python路径: {wxauto_path}")
+
+                                    # 尝试导入
+                                    try:
+                                        from wxauto import WeChat
+                                        found_wxauto = True
+                                        logger.info(f"初始化时成功从路径导入wxauto.WeChat: {wxauto_path}")
+                                        break  # 成功导入，跳出循环
+                                    except ImportError as inner_e:
+                                        logger.warning(f"初始化时从路径 {wxauto_path} 导入wxauto.WeChat失败: {str(inner_e)}")
+                                        # 继续尝试下一个路径
+
+                            # 如果所有路径都失败，尝试直接导入
+                            if not found_wxauto:
+                                logger.info("初始化时所有路径尝试失败，尝试直接导入wxauto.WeChat")
+                                from wxauto import WeChat
 
                         # 尝试创建WeChat实例，处理可能的Unicode编码错误
                         try:
@@ -403,7 +566,71 @@ class WeChatAdapter:
         try:
             # 导入配置管理器
             import config_manager
-            from wxauto.elements import WxParam
+
+            # 尝试导入wxauto.elements模块
+            try:
+                # 首先尝试直接导入
+                from wxauto.elements import WxParam
+                logger.debug("成功直接导入wxauto.elements.WxParam")
+            except ImportError as e:
+                logger.warning(f"直接导入wxauto.elements.WxParam失败: {str(e)}")
+
+                # 尝试使用与_try_import_wxauto相同的逻辑查找wxauto路径
+                import sys
+                import os
+
+                # 获取应用根目录
+                if getattr(sys, 'frozen', False):
+                    # 如果是打包后的环境
+                    app_root = os.path.dirname(sys.executable)
+                    meipass = getattr(sys, '_MEIPASS', None)
+                else:
+                    # 如果是开发环境
+                    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+                # 尝试多种可能的wxauto路径
+                possible_paths = [
+                    os.path.join(app_root, "wxauto"),
+                    os.path.join(app_root, "app", "wxauto"),
+                ]
+
+                # 如果是打包环境，添加更多可能的路径
+                if getattr(sys, 'frozen', False) and meipass:
+                    possible_paths.extend([
+                        os.path.join(meipass, "wxauto"),
+                        os.path.join(meipass, "app", "wxauto"),
+                    ])
+
+                # 尝试从每个路径导入
+                WxParam = None
+                for wxauto_path in possible_paths:
+                    if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
+                        # 检查wxauto路径下是否有wxauto子目录
+                        wxauto_inner_path = os.path.join(wxauto_path, "wxauto")
+                        elements_path = os.path.join(wxauto_inner_path, "elements.py")
+
+                        if os.path.exists(elements_path):
+                            logger.debug(f"找到elements.py文件: {elements_path}")
+
+                            # 将wxauto/wxauto目录添加到路径
+                            if wxauto_inner_path not in sys.path:
+                                sys.path.insert(0, wxauto_inner_path)
+
+                            # 将wxauto目录添加到路径
+                            if wxauto_path not in sys.path:
+                                sys.path.insert(0, wxauto_path)
+
+                            try:
+                                # 尝试导入
+                                from wxauto.elements import WxParam
+                                logger.debug(f"成功从路径导入wxauto.elements.WxParam: {wxauto_path}")
+                                break
+                            except ImportError as inner_e:
+                                logger.warning(f"从路径 {wxauto_path} 导入wxauto.elements.WxParam失败: {str(inner_e)}")
+
+                # 如果仍然无法导入，抛出异常
+                if WxParam is None:
+                    raise ImportError("无法导入wxauto.elements.WxParam")
 
             # 确保目录存在
             config_manager.ensure_dirs()
@@ -564,7 +791,71 @@ class WeChatAdapter:
         try:
             # 导入配置管理器
             import config_manager
-            from wxauto.elements import WxParam
+
+            # 尝试导入wxauto.elements模块
+            try:
+                # 首先尝试直接导入
+                from wxauto.elements import WxParam
+                logger.debug("成功直接导入wxauto.elements.WxParam")
+            except ImportError as e:
+                logger.warning(f"直接导入wxauto.elements.WxParam失败: {str(e)}")
+
+                # 尝试使用与_try_import_wxauto相同的逻辑查找wxauto路径
+                import sys
+                import os
+
+                # 获取应用根目录
+                if getattr(sys, 'frozen', False):
+                    # 如果是打包后的环境
+                    app_root = os.path.dirname(sys.executable)
+                    meipass = getattr(sys, '_MEIPASS', None)
+                else:
+                    # 如果是开发环境
+                    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+                # 尝试多种可能的wxauto路径
+                possible_paths = [
+                    os.path.join(app_root, "wxauto"),
+                    os.path.join(app_root, "app", "wxauto"),
+                ]
+
+                # 如果是打包环境，添加更多可能的路径
+                if getattr(sys, 'frozen', False) and meipass:
+                    possible_paths.extend([
+                        os.path.join(meipass, "wxauto"),
+                        os.path.join(meipass, "app", "wxauto"),
+                    ])
+
+                # 尝试从每个路径导入
+                WxParam = None
+                for wxauto_path in possible_paths:
+                    if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
+                        # 检查wxauto路径下是否有wxauto子目录
+                        wxauto_inner_path = os.path.join(wxauto_path, "wxauto")
+                        elements_path = os.path.join(wxauto_inner_path, "elements.py")
+
+                        if os.path.exists(elements_path):
+                            logger.debug(f"找到elements.py文件: {elements_path}")
+
+                            # 将wxauto/wxauto目录添加到路径
+                            if wxauto_inner_path not in sys.path:
+                                sys.path.insert(0, wxauto_inner_path)
+
+                            # 将wxauto目录添加到路径
+                            if wxauto_path not in sys.path:
+                                sys.path.insert(0, wxauto_path)
+
+                            try:
+                                # 尝试导入
+                                from wxauto.elements import WxParam
+                                logger.debug(f"成功从路径导入wxauto.elements.WxParam: {wxauto_path}")
+                                break
+                            except ImportError as inner_e:
+                                logger.warning(f"从路径 {wxauto_path} 导入wxauto.elements.WxParam失败: {str(inner_e)}")
+
+                # 如果仍然无法导入，抛出异常
+                if WxParam is None:
+                    raise ImportError("无法导入wxauto.elements.WxParam")
 
             # 确保目录存在
             config_manager.ensure_dirs()

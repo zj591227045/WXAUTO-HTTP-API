@@ -787,20 +787,38 @@ class WxAutoHttpUI:
     def check_wxauto_status(self):
         """检查wxauto库的安装状态"""
         try:
-            # 确保本地wxauto文件夹在Python路径中
-            import sys
-            import os
-            wxauto_path = os.path.join(os.getcwd(), "wxauto")
-            if wxauto_path not in sys.path:
-                sys.path.insert(0, wxauto_path)
+            # 使用wxauto_wrapper模块确保wxauto库能够被正确导入
+            from app.wxauto_wrapper import get_wxauto
+            wxauto = get_wxauto()
+            if wxauto:
+                self.wxauto_status.config(text="已安装", style="Green.TLabel")
+                self.add_log("wxauto库已成功导入")
+                self.add_log(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
+                self.add_log(f"wxauto库路径: {wxauto.__file__}")
 
-            # 直接从本地文件夹导入
-            import wxauto
-            self.wxauto_status.config(text="已安装", style="Green.TLabel")
-            return True
+                # 尝试导入wxauto包装器
+                try:
+                    from app.wxauto_wrapper.wrapper import get_wrapper
+                    wrapper = get_wrapper()
+                    if wrapper:
+                        self.add_log("wxauto包装器已成功初始化")
+                    else:
+                        self.add_log("wxauto包装器初始化失败")
+                except Exception as e:
+                    self.add_log(f"初始化wxauto包装器失败: {str(e)}")
+
+                return True
+            else:
+                self.wxauto_status.config(text="未安装", style="Red.TLabel")
+                self.add_log("wxauto库导入失败")
+                return False
         except ImportError as e:
             self.wxauto_status.config(text="未安装", style="Red.TLabel")
-            self.add_log(f"wxauto导入失败: {str(e)}")
+            self.add_log(f"导入wxauto_wrapper模块失败: {str(e)}")
+            return False
+        except Exception as e:
+            self.wxauto_status.config(text="检查失败", style="Red.TLabel")
+            self.add_log(f"检查wxauto状态时出现未知错误: {str(e)}")
             return False
 
     def check_wxautox_status(self):
@@ -828,56 +846,55 @@ class WxAutoHttpUI:
             return False
 
     def install_wxauto(self):
-        """检查本地wxauto文件夹"""
+        """检查本地wxauto文件夹并安装wxauto库"""
         # 禁用按钮，避免重复点击
         self.install_wxauto_button.config(state=tk.DISABLED)
         self.wxauto_status.config(text="检查中...", style="Bold.TLabel")
-        self.add_log("正在检查本地wxauto文件夹...")
+        self.add_log("正在检查wxauto库...")
 
         def check_thread():
             try:
-                # 检查本地wxauto文件夹是否存在
-                wxauto_path = os.path.join(os.getcwd(), "wxauto")
-                if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
-                    # 检查wxauto文件夹中是否包含必要的文件
-                    init_file = os.path.join(wxauto_path, "wxauto", "__init__.py")
-                    wxauto_file = os.path.join(wxauto_path, "wxauto", "wxauto.py")
+                # 使用wxauto_wrapper模块确保wxauto库能够被正确导入
+                self.root.after(0, lambda: self.add_log("使用wxauto_wrapper模块导入wxauto库..."))
 
-                    if os.path.exists(init_file) and os.path.exists(wxauto_file):
-                        # 确保本地wxauto文件夹在Python路径中
-                        import sys
-                        if wxauto_path not in sys.path:
-                            sys.path.insert(0, wxauto_path)
+                from app.wxauto_wrapper import get_wxauto
+                wxauto = get_wxauto()
 
-                        # 尝试导入
-                        try:
-                            import wxauto
-                            self.root.after(0, lambda: self.add_log(f"成功从本地文件夹导入wxauto: {wxauto_path}"))
-                            self.root.after(0, lambda: self.wxauto_status.config(text="已安装", style="Green.TLabel"))
-                        except ImportError as e:
-                            self.root.after(0, lambda: self.add_log(f"从本地文件夹导入wxauto失败: {str(e)}"))
-                            self.root.after(0, lambda: self.wxauto_status.config(text="导入失败", style="Red.TLabel"))
-                            self.root.after(0, lambda: messagebox.showerror("导入失败",
-                                f"从本地文件夹导入wxauto失败: {str(e)}\n\n请确保wxauto文件夹包含正确的wxauto模块"))
-                    else:
-                        self.root.after(0, lambda: self.add_log(f"wxauto文件夹结构不完整，缺少必要文件"))
-                        self.root.after(0, lambda: self.wxauto_status.config(text="结构不完整", style="Red.TLabel"))
-                        self.root.after(0, lambda: messagebox.showerror("文件夹结构不完整",
-                            f"wxauto文件夹结构不完整，缺少必要文件\n\n请确保wxauto文件夹包含完整的wxauto模块"))
+                if wxauto:
+                    self.root.after(0, lambda: self.add_log("wxauto库已成功导入"))
+                    self.root.after(0, lambda: self.wxauto_status.config(text="已安装", style="Green.TLabel"))
+                    self.root.after(0, lambda: self.add_log(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}"))
+                    self.root.after(0, lambda: self.add_log(f"wxauto库路径: {wxauto.__file__}"))
+
+                    # 尝试导入wxauto包装器
+                    try:
+                        from app.wxauto_wrapper.wrapper import get_wrapper
+                        wrapper = get_wrapper()
+                        if wrapper:
+                            self.root.after(0, lambda: self.add_log("wxauto包装器已成功初始化"))
+                        else:
+                            self.root.after(0, lambda: self.add_log("wxauto包装器初始化失败"))
+                    except Exception as e:
+                        self.root.after(0, lambda: self.add_log(f"初始化wxauto包装器失败: {str(e)}"))
                 else:
-                    self.root.after(0, lambda: self.add_log(f"本地wxauto文件夹不存在: {wxauto_path}"))
-                    self.root.after(0, lambda: self.wxauto_status.config(text="文件夹不存在", style="Red.TLabel"))
-                    self.root.after(0, lambda: messagebox.showerror("文件夹不存在",
-                        f"本地wxauto文件夹不存在: {wxauto_path}\n\n请确保项目根目录下存在wxauto文件夹"))
+                    self.root.after(0, lambda: self.add_log("wxauto库导入失败"))
+                    self.root.after(0, lambda: self.wxauto_status.config(text="未安装", style="Red.TLabel"))
+                    self.root.after(0, lambda: messagebox.showerror("安装失败",
+                        "无法导入wxauto库\n\n请确保项目根目录下存在wxauto文件夹，且包含完整的wxauto模块"))
+            except ImportError as e:
+                self.root.after(0, lambda: self.add_log(f"导入wxauto_wrapper模块失败: {str(e)}"))
+                self.root.after(0, lambda: self.wxauto_status.config(text="未安装", style="Red.TLabel"))
+                self.root.after(0, lambda: messagebox.showerror("安装失败",
+                    f"导入wxauto_wrapper模块失败: {str(e)}\n\n请确保app/wxauto_wrapper目录存在"))
             except Exception as e:
-                self.root.after(0, lambda: self.add_log(f"检查过程出错: {str(e)}"))
-                self.root.after(0, lambda: self.wxauto_status.config(text="检查失败", style="Red.TLabel"))
-                self.root.after(0, lambda: messagebox.showerror("检查失败", f"检查wxauto文件夹失败: {str(e)}"))
+                self.root.after(0, lambda: self.add_log(f"安装过程出错: {str(e)}"))
+                self.root.after(0, lambda: self.wxauto_status.config(text="安装失败", style="Red.TLabel"))
+                self.root.after(0, lambda: messagebox.showerror("安装失败", f"安装wxauto库失败: {str(e)}"))
             finally:
                 # 恢复按钮状态
                 self.root.after(0, lambda: self.install_wxauto_button.config(state=tk.NORMAL))
 
-        # 在新线程中运行检查过程
+        # 在新线程中执行检查
         threading.Thread(target=check_thread, daemon=True).start()
 
     def show_wxautox_install(self):

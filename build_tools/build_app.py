@@ -134,6 +134,24 @@ def build_app(debug=False, onefile=False):
         "--hidden-import", "pywintypes",
     ])
 
+    # 添加wxauto模块及其子模块
+    cmd.extend([
+        "--hidden-import", "wxauto",
+        "--hidden-import", "wxauto.wxauto",
+        "--hidden-import", "wxauto.elements",
+        "--hidden-import", "wxauto.languages",
+        "--hidden-import", "wxauto.utils",
+        "--hidden-import", "wxauto.color",
+        "--hidden-import", "wxauto.errors",
+        "--hidden-import", "wxauto.uiautomation",
+    ])
+
+    # 添加wxauto_wrapper模块及其子模块
+    cmd.extend([
+        "--hidden-import", "app.wxauto_wrapper",
+        "--hidden-import", "app.wxauto_wrapper.wrapper",
+    ])
+
     # 添加wxautox可能需要的依赖
     cmd.extend([
         "--hidden-import", "tenacity",
@@ -185,8 +203,37 @@ def build_app(debug=False, onefile=False):
         ("initialize_wechat.bat", "."),
         ("create_icon.py", "."),
         ("dynamic_package_manager.py", "."),
-        ("wxauto", "wxauto")
+        ("wxauto_import.py", "."),  # 添加wxauto导入辅助模块
     ]
+
+    # 特殊处理wxauto文件夹
+    wxauto_path = os.path.join(os.getcwd(), "wxauto")
+    if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
+        print(f"找到wxauto文件夹: {wxauto_path}")
+        # 添加wxauto文件夹
+        data_files.append(("wxauto", "wxauto"))
+
+        # 检查wxauto/wxauto子目录
+        wxauto_inner_path = os.path.join(wxauto_path, "wxauto")
+        if os.path.exists(wxauto_inner_path) and os.path.isdir(wxauto_inner_path):
+            print(f"找到wxauto内部目录: {wxauto_inner_path}")
+            # 确保wxauto/wxauto目录中的所有文件都被包含
+            for root, dirs, files in os.walk(wxauto_inner_path):
+                for file in files:
+                    if file.endswith('.py'):
+                        rel_dir = os.path.relpath(root, wxauto_path)
+                        src_file = os.path.join(root, file)
+                        dst_dir = os.path.join("wxauto", rel_dir)
+                        data_files.append((src_file, dst_dir))
+                        print(f"添加wxauto模块文件: {src_file} -> {dst_dir}")
+
+            # 直接将wxauto模块复制到site-packages目录
+            print("将wxauto模块复制到site-packages目录，确保能够被正确导入")
+            cmd.extend([
+                "--add-data", f"{wxauto_path}{os.pathsep}.",
+            ])
+    else:
+        print("警告: 找不到wxauto文件夹，将无法包含wxauto库")
 
     for src, dst in data_files:
         if os.path.exists(src):

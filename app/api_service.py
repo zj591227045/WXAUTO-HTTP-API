@@ -61,12 +61,31 @@ def check_dependencies():
         import requests
         import psutil
 
-        # 检查wxauto是否可用
+        # 使用wxauto_wrapper模块确保wxauto库能够被正确导入
         try:
-            import wxauto
-            logger.info("wxauto库已安装")
-        except ImportError:
-            logger.warning("wxauto库未安装，将尝试从本地目录导入")
+            from app.wxauto_wrapper import get_wxauto
+            wxauto = get_wxauto()
+            if wxauto:
+                logger.info("wxauto库已成功导入")
+                logger.info(f"wxauto库版本: {getattr(wxauto, 'VERSION', '未知')}")
+                logger.info(f"wxauto库路径: {wxauto.__file__}")
+
+                # 尝试导入wxauto包装器
+                try:
+                    from app.wxauto_wrapper.wrapper import get_wrapper
+                    wrapper = get_wrapper()
+                    if wrapper:
+                        logger.info("wxauto包装器已成功初始化")
+                    else:
+                        logger.warning("wxauto包装器初始化失败")
+                except Exception as e:
+                    logger.error(f"初始化wxauto包装器失败: {str(e)}")
+            else:
+                logger.error("wxauto库导入失败，无法启动API服务")
+                return False
+        except ImportError as e:
+            logger.error(f"导入wxauto_wrapper模块失败: {str(e)}")
+            logger.error("尝试使用传统方式导入wxauto...")
 
             # 尝试从本地目录导入
             wxauto_path = os.path.join(os.getcwd(), "wxauto")
