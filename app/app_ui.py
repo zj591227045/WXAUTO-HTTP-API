@@ -765,10 +765,6 @@ class WxAutoHttpUI:
                     self.request_count.config(text=str(API_COUNTER.success_count))
                     self.error_count.config(text=str(API_COUNTER.error_count))
 
-                    # 如果计数发生变化，添加日志
-                    if old_success != API_COUNTER.success_count or old_error != API_COUNTER.error_count:
-                        self.add_log(f"API计数更新 - 成功: {API_COUNTER.success_count}, 错误: {API_COUNTER.error_count}")
-
                     # 应用过滤器
                     if not self.should_filter_log(msg):
                         # 添加统一格式的时间戳，但不再添加库信息（因为日志中已经包含）
