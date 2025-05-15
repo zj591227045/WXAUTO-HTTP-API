@@ -2426,7 +2426,7 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         # 检查服务是否已在运行
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
-                if proc.info['name'] == 'python.exe' and any('run.py' in cmd for cmd in proc.info['cmdline'] if cmd):
+                if proc.info['name'] == 'python.exe' and proc.info.get('cmdline') and any('run.py' in cmd for cmd in proc.info['cmdline'] if cmd):
                     # 找到了运行中的服务
                     global API_PROCESS
                     API_PROCESS = proc
