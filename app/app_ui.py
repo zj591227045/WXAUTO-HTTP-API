@@ -24,10 +24,12 @@ from pathlib import Path
 try:
     # 首先尝试从app包导入
     from app import config_manager
+
     print("成功从app包导入 config_manager 模块")
 except ImportError:
     # 如果失败，尝试直接导入（兼容旧版本）
     import config_manager
+
     print("成功直接导入 config_manager 模块")
 
 # 确保当前目录在Python路径中，以便能够导入app模块
@@ -47,6 +49,7 @@ except ImportError:
 API_PROCESS = None
 LOG_QUEUE = queue.Queue()
 CONFIG_MODIFIED = False
+
 
 # API调用计数器
 class ApiCounter:
@@ -72,14 +75,17 @@ class ApiCounter:
             self.success_count += 1
             print(f"API成功计数增加: {self.success_count}, 日志: {log_line}")
         # 计算失败的API调用 - 确保状态码周围有空格，避免误匹配
-        elif ((" 400 " in log_line or " 401 " in log_line or " 404 " in log_line or " 500 " in log_line) and "状态码:" in log_line):
+        elif ((
+                      " 400 " in log_line or " 401 " in log_line or " 404 " in log_line or " 500 " in log_line) and "状态码:" in log_line):
             self.error_count += 1
             print(f"API错误计数增加: {self.error_count}, 日志: {log_line}")
 
         # 打印当前计数
         print(f"当前API计数 - 成功: {self.success_count}, 错误: {self.error_count}")
 
+
 API_COUNTER = ApiCounter()
+
 
 class APILogHandler(logging.Handler):
     """API日志处理器，用于捕获API日志并发送到UI"""
@@ -158,6 +164,7 @@ class APILogHandler(logging.Handler):
 
         return message
 
+
 class WxAutoHttpUI:
     """wxauto_http_api 管理界面"""
 
@@ -173,7 +180,21 @@ class WxAutoHttpUI:
 
         self.root = root
         self.root.title("wxauto_http_api 管理界面")
-        self.root.geometry("900x600")
+
+        # 设置窗口大小
+        window_width = 900
+        window_height = 600
+
+        # 获取屏幕尺寸
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        # 计算居中位置
+        position_top = int(screen_height / 2 - window_height / 2)
+        position_right = int(screen_width / 2 - window_width / 2)
+
+        # 设置窗口大小和位置
+        self.root.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
         self.root.minsize(800, 500)
 
         # 设置样式
@@ -189,21 +210,21 @@ class WxAutoHttpUI:
         try:
             # 尝试使用更现代的样式
             self.style.configure("Accent.TButton",
-                                padding=8,
-                                relief="raised",
-                                background="#4a86e8",
-                                foreground="#ffffff",
-                                font=("TkDefaultFont", 10, "bold"))
+                                 padding=8,
+                                 relief="raised",
+                                 background="#4a86e8",
+                                 foreground="#ffffff",
+                                 font=("TkDefaultFont", 10, "bold"))
 
             # 设置鼠标悬停效果
             self.style.map("Accent.TButton",
-                        background=[('active', '#3a76d8'), ('pressed', '#2a66c8')],
-                        relief=[('pressed', 'sunken')])
+                           background=[('active', '#3a76d8'), ('pressed', '#2a66c8')],
+                           relief=[('pressed', 'sunken')])
         except Exception:
             # 如果样式设置失败，使用基本样式
             self.style.configure("Accent.TButton",
-                                padding=8,
-                                font=("TkDefaultFont", 10, "bold"))
+                                 padding=8,
+                                 font=("TkDefaultFont", 10, "bold"))
 
         # 创建主框架
         self.main_frame = ttk.Frame(self.root, padding="10")
@@ -221,7 +242,7 @@ class WxAutoHttpUI:
         # 初始化状态
         self.api_running = False
         self.current_lib = "wxauto"  # 默认使用wxauto
-        self.current_port = 5000     # 默认端口号
+        self.current_port = 5000  # 默认端口号
 
         # 启动状态更新定时器
         self.update_status()
@@ -238,6 +259,8 @@ class WxAutoHttpUI:
         self.add_log("===== 自动启动服务 =====")
         self.add_log(f"将在 {self.countdown_seconds} 秒后自动启动服务...")
         self.start_countdown()
+        # 启动管理工具状态检查定时器
+        self.check_management_tool_status()
 
     def create_control_panel(self):
         """创建顶部控制面板"""
@@ -254,9 +277,11 @@ class WxAutoHttpUI:
 
         ttk.Label(lib_frame, text="微信库选择:").pack(side=tk.LEFT, padx=5)
         self.lib_var = tk.StringVar(value="wxauto")
-        self.wxauto_radio = ttk.Radiobutton(lib_frame, text="wxauto", variable=self.lib_var, value="wxauto", command=self.on_lib_change)
+        self.wxauto_radio = ttk.Radiobutton(lib_frame, text="wxauto", variable=self.lib_var, value="wxauto",
+                                            command=self.on_lib_change)
         self.wxauto_radio.pack(side=tk.LEFT, padx=5)
-        self.wxautox_radio = ttk.Radiobutton(lib_frame, text="wxautox", variable=self.lib_var, value="wxautox", command=self.on_lib_change)
+        self.wxautox_radio = ttk.Radiobutton(lib_frame, text="wxautox", variable=self.lib_var, value="wxautox",
+                                             command=self.on_lib_change)
         self.wxautox_radio.pack(side=tk.LEFT, padx=5)
 
         # 初始化变量，但不在主界面显示
@@ -266,6 +291,9 @@ class WxAutoHttpUI:
         # 服务控制区域
         service_frame = ttk.Frame(row1)
         service_frame.pack(side=tk.RIGHT, padx=5)
+
+        self.mgt_button = ttk.Button(service_frame, text="启动管理工具", command=self.start_management_tool)
+        self.mgt_button.pack(side=tk.LEFT, padx=5)
 
         self.start_button = ttk.Button(service_frame, text="启动服务", command=self.start_api_service)
         self.start_button.pack(side=tk.LEFT, padx=5)
@@ -306,6 +334,7 @@ class WxAutoHttpUI:
             command=self.show_wxautox_install
         )
         self.install_wxautox_button.pack(side=tk.LEFT, padx=5)
+
 
     def create_status_panel(self):
         """创建状态面板"""
@@ -385,7 +414,8 @@ class WxAutoHttpUI:
                 available_fonts = tk.font.families()
 
             # 优先选择的中文字体列表
-            chinese_fonts = ['Microsoft YaHei', '微软雅黑', 'SimHei', '黑体', 'SimSun', '宋体', 'NSimSun', '新宋体', 'FangSong', '仿宋', 'KaiTi', '楷体', 'Arial Unicode MS']
+            chinese_fonts = ['Microsoft YaHei', '微软雅黑', 'SimHei', '黑体', 'SimSun', '宋体', 'NSimSun', '新宋体',
+                             'FangSong', '仿宋', 'KaiTi', '楷体', 'Arial Unicode MS']
 
             # 选择第一个可用的中文字体
             selected_font = None
@@ -446,8 +476,8 @@ class WxAutoHttpUI:
         # 过滤器设置
         self.filter_settings = {
             'hide_status_check': tk.BooleanVar(value=True),  # 默认隐藏状态检查日志
-            'hide_debug': tk.BooleanVar(value=True),         # 默认隐藏DEBUG级别日志
-            'custom_filter': tk.StringVar(value="")           # 自定义过滤关键词
+            'hide_debug': tk.BooleanVar(value=True),  # 默认隐藏DEBUG级别日志
+            'custom_filter': tk.StringVar(value="")  # 自定义过滤关键词
         }
 
         # 加载过滤器设置
@@ -529,7 +559,8 @@ class WxAutoHttpUI:
         filter_dialog.resizable(False, False)
         filter_dialog.transient(self.root)  # 设置为主窗口的子窗口
         filter_dialog.grab_set()  # 模态对话框
-
+        # 居中显示
+        self.center_window(filter_dialog)
         # 创建设置框架
         settings_frame = ttk.Frame(filter_dialog, padding=10)
         settings_frame.pack(fill=tk.BOTH, expand=True)
@@ -563,12 +594,12 @@ class WxAutoHttpUI:
         ).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
         ttk.Label(settings_frame, text="多个关键词用逗号分隔，包含任一关键词的日志将被隐藏",
-                 font=("TkDefaultFont", 8)).pack(anchor=tk.W, pady=2)
+                  font=("TkDefaultFont", 8)).pack(anchor=tk.W, pady=2)
 
         # 说明文本
         ttk.Separator(settings_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
         ttk.Label(settings_frame, text="注意: 过滤器设置将自动保存，并在下次启动时自动加载",
-                 wraplength=380).pack(pady=5)
+                  wraplength=380).pack(pady=5)
 
         # 按钮区域
         button_frame = ttk.Frame(settings_frame)
@@ -661,7 +692,7 @@ class WxAutoHttpUI:
                     file_handler = logging.FileHandler(log_file, encoding='utf-8')
                     # 使用与UI相同的时间戳格式
                     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
-                                                               '%Y-%m-%d %H:%M:%S'))
+                                                                '%Y-%m-%d %H:%M:%S'))
                     original_logger.addHandler(file_handler)
 
                     self.add_log(f"日志将保存到: {log_file}")
@@ -681,7 +712,7 @@ class WxAutoHttpUI:
                     file_handler = logging.FileHandler(log_file, encoding='utf-8')
                     # 使用与UI相同的时间戳格式
                     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
-                                                               '%Y-%m-%d %H:%M:%S'))
+                                                                '%Y-%m-%d %H:%M:%S'))
                     logger.addHandler(file_handler)
 
                     self.add_log(f"日志将保存到: {log_file}")
@@ -701,7 +732,7 @@ class WxAutoHttpUI:
                 file_handler = logging.FileHandler(log_file, encoding='utf-8')
                 # 使用与UI相同的时间戳格式
                 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
-                                                           '%Y-%m-%d %H:%M:%S'))
+                                                            '%Y-%m-%d %H:%M:%S'))
                 logger.addHandler(file_handler)
 
                 self.add_log(f"日志将保存到: {log_file}")
@@ -885,10 +916,10 @@ class WxAutoHttpUI:
         try:
             from dynamic_package_manager import get_package_manager
             package_manager = get_package_manager()
-            #self.add_log("使用动态包管理器检查wxautox状态")
+            # self.add_log("使用动态包管理器检查wxautox状态")
 
             if package_manager.is_package_installed("wxautox"):
-                #self.add_log("动态包管理器报告wxautox已安装")
+                # self.add_log("动态包管理器报告wxautox已安装")
                 self.wxautox_status.config(text="已安装", style="Green.TLabel")
                 return True
         except ImportError:
@@ -929,12 +960,12 @@ class WxAutoHttpUI:
                     self.root.after(0, lambda: self.add_log("wxauto库导入失败"))
                     self.root.after(0, lambda: self.wxauto_status.config(text="未安装", style="Red.TLabel"))
                     self.root.after(0, lambda: messagebox.showerror("安装失败",
-                        "无法导入wxauto库\n\n请确保项目根目录下存在wxauto文件夹，且包含完整的wxauto模块"))
+                                                                    "无法导入wxauto库\n\n请确保项目根目录下存在wxauto文件夹，且包含完整的wxauto模块"))
             except ImportError as e:
                 self.root.after(0, lambda: self.add_log(f"导入wxauto_wrapper模块失败: {str(e)}"))
                 self.root.after(0, lambda: self.wxauto_status.config(text="未安装", style="Red.TLabel"))
                 self.root.after(0, lambda: messagebox.showerror("安装失败",
-                    f"导入wxauto_wrapper模块失败: {str(e)}\n\n请确保app/wxauto_wrapper目录存在"))
+                                                                f"导入wxauto_wrapper模块失败: {str(e)}\n\n请确保app/wxauto_wrapper目录存在"))
             except Exception as e:
                 self.root.after(0, lambda: self.add_log(f"安装过程出错: {str(e)}"))
                 self.root.after(0, lambda: self.wxauto_status.config(text="安装失败", style="Red.TLabel"))
@@ -999,8 +1030,8 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
         text_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
         info_area = tk.Text(text_frame, wrap=tk.WORD, height=12, width=50,
-                           font=("TkDefaultFont", 10),
-                           yscrollcommand=text_scroll.set)
+                            font=("TkDefaultFont", 10),
+                            yscrollcommand=text_scroll.set)
         info_area.insert(tk.END, info_text)
         info_area.config(state=tk.DISABLED)  # 设置为只读
         info_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -1127,8 +1158,8 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
                         self.root.after(0, lambda: progress.stop())  # 停止进度条
                         self.root.after(1000, lambda: progress_dialog.destroy())
                         self.root.after(1200, lambda: messagebox.showinfo("安装成功",
-                                                                       "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
-                                                                       "如需立即使用，请重启服务。"))
+                                                                          "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
+                                                                          "如需立即使用，请重启服务。"))
                     else:
                         # 如果动态包管理器安装失败，尝试使用传统方法
                         self.root.after(0, lambda: self.add_log("动态包管理器安装失败，尝试使用传统方法..."))
@@ -1147,14 +1178,15 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
                             self.root.after(0, lambda: progress.stop())  # 停止进度条
                             self.root.after(1000, lambda: progress_dialog.destroy())
                             self.root.after(1200, lambda: messagebox.showinfo("安装成功",
-                                                                           "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
-                                                                           "如需立即使用，请重启服务。"))
+                                                                              "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
+                                                                              "如需立即使用，请重启服务。"))
                         else:
                             self.root.after(0, lambda: progress_var.set("安装失败！"))
                             self.root.after(0, lambda: self.add_log(f"wxautox安装失败: {message}"))
                             self.root.after(0, lambda: progress.stop())  # 停止进度条
                             self.root.after(1000, lambda: progress_dialog.destroy())
-                            self.root.after(1200, lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
+                            self.root.after(1200,
+                                            lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
 
                 except ImportError:
                     # 如果无法导入动态包管理器，使用传统方法
@@ -1174,14 +1206,15 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
                         self.root.after(0, lambda: progress.stop())  # 停止进度条
                         self.root.after(1000, lambda: progress_dialog.destroy())
                         self.root.after(1200, lambda: messagebox.showinfo("安装成功",
-                                                                       "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
-                                                                       "如需立即使用，请重启服务。"))
+                                                                          "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
+                                                                          "如需立即使用，请重启服务。"))
                     else:
                         self.root.after(0, lambda: progress_var.set("安装失败！"))
                         self.root.after(0, lambda: self.add_log(f"wxautox安装失败: {message}"))
                         self.root.after(0, lambda: progress.stop())  # 停止进度条
                         self.root.after(1000, lambda: progress_dialog.destroy())
-                        self.root.after(1200, lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
+                        self.root.after(1200,
+                                        lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
 
             except Exception as e:
                 self.root.after(0, lambda: progress_var.set("安装出错！"))
@@ -1198,9 +1231,10 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
         # 创建一个新窗口
         api_window = tk.Toplevel(self.root)
         api_window.title("微信API功能说明")
-        api_window.geometry("900x600")
+        api_window.geometry("800x500")
         api_window.minsize(800, 500)
-
+        # 居中显示
+        self.center_window(api_window)
         # 创建一个Notebook（选项卡控件）
         notebook = ttk.Notebook(api_window)
         notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -1263,7 +1297,8 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
         # 创建功能对比表格
         headers = ["功能类别", "API接口", "功能描述", "wxauto", "wxautox"]
         for i, header in enumerate(headers):
-            ttk.Label(scrollable_frame, text=header, font=("TkDefaultFont", 9, "bold")).grid(row=0, column=i, padx=5, pady=5, sticky="w")
+            ttk.Label(scrollable_frame, text=header, font=("TkDefaultFont", 9, "bold")).grid(row=0, column=i, padx=5,
+                                                                                             pady=5, sticky="w")
 
         # 功能对比数据（根据官方文档 https://docs.wxauto.org/plus/about）
         comparison_data = [
@@ -1329,9 +1364,14 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
             for j, cell in enumerate(row):
                 if j >= 3:  # 对于wxauto和wxautox列，使用特殊颜色
                     fg_color = "green" if cell == "✓" else "red"
-                    ttk.Label(scrollable_frame, text=cell, foreground=fg_color, background=bg_color).grid(row=i, column=j, padx=5, pady=2, sticky="w")
+                    ttk.Label(scrollable_frame, text=cell, foreground=fg_color, background=bg_color).grid(row=i,
+                                                                                                          column=j,
+                                                                                                          padx=5,
+                                                                                                          pady=2,
+                                                                                                          sticky="w")
                 else:
-                    ttk.Label(scrollable_frame, text=cell, background=bg_color).grid(row=i, column=j, padx=5, pady=2, sticky="w")
+                    ttk.Label(scrollable_frame, text=cell, background=bg_color).grid(row=i, column=j, padx=5, pady=2,
+                                                                                     sticky="w")
 
         # 创建API调用示例选项卡
         example_frame = ttk.Frame(notebook, padding=10)
@@ -1547,6 +1587,15 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         # 设置默认选项卡
         notebook.select(0)
 
+    def center_window(self, window):
+        """将窗口居中显示"""
+        window.update_idletasks()
+        width = window.winfo_width()
+        height = window.winfo_height()
+        x = (window.winfo_screenwidth() // 2) - (width // 2)
+        y = (window.winfo_screenheight() // 2) - (height // 2)
+        window.geometry(f'{width}x{height}+{x}+{y}')
+
     def on_lib_change(self):
         """处理库选择变更"""
         selected_lib = self.lib_var.get()
@@ -1757,7 +1806,8 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
 
             # 使用线程执行初始化，避免阻塞UI
             # 延迟1秒执行初始化，确保API服务已完全启动
-            self.root.after(1000, lambda: threading.Thread(target=self._initialize_wechat_thread, args=(port,), daemon=True).start())
+            self.root.after(1000, lambda: threading.Thread(target=self._initialize_wechat_thread, args=(port,),
+                                                           daemon=True).start())
 
         except Exception as e:
             messagebox.showerror("启动失败", f"启动API服务失败: {str(e)}")
@@ -1949,7 +1999,8 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         config_dialog.resizable(False, False)
         config_dialog.transient(self.root)  # 设置为主窗口的子窗口
         config_dialog.grab_set()  # 模态对话框
-
+        # 居中显示
+        self.center_window(config_dialog)
         # 创建设置框架
         settings_frame = ttk.Frame(config_dialog, padding=10)
         settings_frame.pack(fill=tk.BOTH, expand=True)
@@ -1976,7 +2027,7 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         # 说明文本
         ttk.Separator(settings_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
         ttk.Label(settings_frame, text="注意: 配置将在保存后自动应用，但需要重启服务才能生效",
-                 wraplength=380).pack(pady=5)
+                  wraplength=380).pack(pady=5)
 
         # 按钮区域
         button_frame = ttk.Frame(settings_frame)
@@ -2235,12 +2286,14 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                     # 无论如何都显示窗口名称（如果有）
                     if window_name:
                         # 更新窗口名称标签
-                        self.root.after(0, lambda wn=window_name: self.wechat_window_name.config(text=wn, foreground="orange"))
-                        #self.add_log(f"已连接到微信窗口: {window_name}")
+                        self.root.after(0, lambda wn=window_name: self.wechat_window_name.config(text=wn,
+                                                                                                 foreground="orange"))
+                        # self.add_log(f"已连接到微信窗口: {window_name}")
                     else:
                         # 窗口名称为空，设置为空字符串
                         self.root.after(0, lambda: self.wechat_window_name.config(text=""))
 
+                    self.start_management_tool()
                     # 初始化成功，退出重试循环
                     # 不要立即检查微信连接状态，等待下一个定时检查周期
                     return
@@ -2293,12 +2346,15 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                     # 无论如何都显示窗口名称（如果有）
                     if window_name:
                         # 更新窗口名称标签
-                        self.root.after(0, lambda: self.wechat_window_name.config(text=window_name, foreground="orange"))
+                        self.root.after(0,
+                                        lambda: self.wechat_window_name.config(text=window_name, foreground="orange"))
                         # 移除日志记录
-                    elif self.wechat_window_name.cget("text") == "" or self.wechat_window_name.cget("text") == "获取中...":
+                    elif self.wechat_window_name.cget("text") == "" or self.wechat_window_name.cget(
+                            "text") == "获取中...":
                         # 如果窗口名称为空且当前显示为空或"获取中..."，才设置为"获取中..."
                         # 这样可以避免覆盖之前成功获取的名称
-                        self.root.after(0, lambda: self.wechat_window_name.config(text="获取中...", foreground="orange"))
+                        self.root.after(0,
+                                        lambda: self.wechat_window_name.config(text="获取中...", foreground="orange"))
 
                     # 更新API地址
                     self.root.after(0, lambda: self.api_address.config(text=f"0.0.0.0:{self.current_port}"))
@@ -2336,12 +2392,15 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                     # 无论如何都显示窗口名称（如果有）
                     if window_name:
                         # 更新窗口名称标签
-                        self.root.after(0, lambda: self.wechat_window_name.config(text=window_name, foreground="orange"))
+                        self.root.after(0,
+                                        lambda: self.wechat_window_name.config(text=window_name, foreground="orange"))
                         # 移除日志记录
-                    elif self.wechat_window_name.cget("text") == "" or self.wechat_window_name.cget("text") == "获取中...":
+                    elif self.wechat_window_name.cget("text") == "" or self.wechat_window_name.cget(
+                            "text") == "获取中...":
                         # 如果窗口名称为空且当前显示为空或"获取中..."，才设置为"获取中..."
                         # 这样可以避免覆盖之前成功获取的名称
-                        self.root.after(0, lambda: self.wechat_window_name.config(text="获取中...", foreground="orange"))
+                        self.root.after(0,
+                                        lambda: self.wechat_window_name.config(text="获取中...", foreground="orange"))
 
                     # 更新API地址
                     self.root.after(0, lambda: self.api_address.config(text=f"0.0.0.0:{self.current_port}"))
@@ -2426,7 +2485,8 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         # 检查服务是否已在运行
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
-                if proc.info['name'] == 'python.exe' and proc.info.get('cmdline') and any('run.py' in cmd for cmd in proc.info['cmdline'] if cmd):
+                if proc.info['name'] == 'python.exe' and proc.info.get('cmdline') and any(
+                        'run.py' in cmd for cmd in proc.info['cmdline'] if cmd):
                     # 找到了运行中的服务
                     global API_PROCESS
                     API_PROCESS = proc
@@ -2438,6 +2498,61 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
                     break
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
+
+    def check_management_tool_status(self):
+        """定时检查管理工具状态"""
+        # import psutil
+        # import tkinter as tk
+
+        is_running = False
+        for proc in psutil.process_iter(['name', 'status']):
+            if proc.info['name'] == "WxAuto管理工具.exe" and proc.info['status'] == 'running':
+                is_running = True
+                break
+
+        if is_running:
+            self.mgt_button.config(state=tk.DISABLED)
+            self.add_log("WxAuto管理工具正在运行")
+        else:
+            self.mgt_button.config(state=tk.NORMAL)
+            self.add_log("WxAuto管理工具已经关闭")
+
+        # 每5秒检查一次
+        self.root.after(15000, self.check_management_tool_status)
+
+    def start_management_tool(self):
+        """启动管理工具"""
+        try:
+            # 获取项目根目录，兼容开发模式和打包后的EXE模式
+            if getattr(sys, 'frozen', False):
+                project_root = os.path.dirname(sys.executable)
+            else:
+                project_root = os.path.dirname(os.path.abspath(__file__))
+
+            mgp_dir = os.path.join(project_root, "mgp")
+            if not os.path.exists(mgp_dir):
+                os.makedirs(mgp_dir)
+
+            mgt_tool_path = os.path.join(mgp_dir, "WxAuto管理工具.exe")
+
+            if not os.path.exists(mgt_tool_path):
+                messagebox.showerror("错误", f"管理工具未找到: {mgt_tool_path}")
+                return
+
+            # 检查是否已运行
+            for proc in psutil.process_iter(['name']):
+                if proc.info['name'] == "WxAuto管理工具.exe":
+                    # self.add_log(f"管理工具已在运行: {mgt_tool_path}")
+                    return
+
+            # 启动程序
+            subprocess.Popen([str(mgt_tool_path)])
+            self.add_log(f"管理工具已启动: {mgt_tool_path}")
+            self.mgt_button.config(state=tk.DISABLED)
+
+        except Exception as e:
+            messagebox.showerror("错误", f"启动管理工具失败: {str(e)}")
+            self.add_log(f"启动管理工具失败: {str(e)}")
 
     def start_countdown(self):
         """开始倒计时"""
@@ -2492,11 +2607,13 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         else:
             self.root.destroy()
 
+
 # 主函数
 def main():
     root = tk.Tk()
     app = WxAutoHttpUI(root)
     root.mainloop()
+
 
 if __name__ == "__main__":
     # 确保当前目录在Python路径中

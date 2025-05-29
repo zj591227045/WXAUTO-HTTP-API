@@ -100,7 +100,8 @@ def build_app(debug=False, onefile=False):
         "PyInstaller",
         "--clean",
         "--noconfirm",
-        "--paths", "wxauto",
+         "--paths", 
+         "wxauto",
     ]
 
     # 添加图标
