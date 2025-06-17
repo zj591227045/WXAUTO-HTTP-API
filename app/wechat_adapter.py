@@ -1190,6 +1190,54 @@ class WeChatAdapter:
             # 重新抛出异常，让上层处理
             raise
 
+    def get_friend_list(self):
+        """
+        获取好友列表
+        
+        Returns:
+            list: 好友昵称列表
+        """
+        if not self._instance:
+            raise AttributeError("微信实例未初始化")
+        
+        try:
+            # 使用GetAllFriends方法获取好友详细信息
+            return self._instance.GetAllFriends()
+        except Exception as e:
+            logger.error(f"获取好友列表失败: {str(e)}")
+            # 重新抛出异常，让上层处理
+            raise
+
+    def get_group_list(self):
+        """
+        获取群聊列表
+        
+        Returns:
+            list: 群聊名称列表，每个元素为包含群名称和人数的字典
+        """
+        if not self._instance:
+            raise AttributeError("微信实例未初始化")
+        
+        try:
+            # 使用GetAllGroups方法获取群组详细信息
+            groups_info = self._instance.GetAllGroups()
+            
+            # 提取群聊名称和人数
+            group_list = []
+            for group in groups_info:
+                group_list.append({
+                    'name': group['name'],
+                    'member_count': group['member_count']
+                })
+            
+            logger.debug(f"获取到 {len(group_list)} 个群聊")
+            return group_list
+        except Exception as e:
+            logger.error(f"获取群聊列表失败: {str(e)}")
+            # 重新抛出异常，让上层处理
+            raise
+
+
 # 导入配置
 try:
     from app.config import Config
