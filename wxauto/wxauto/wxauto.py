@@ -308,13 +308,13 @@ class WeChat(WeChatBase):
             SessionElement: 聊天对象列表
 
         Example:
-            >>> wx = WeChat()
-            >>> sessions = wx.GetSession()
-            >>> for session in sessions:
-            ...     print(f"聊天对象名称: {session.name}")
-            ...     print(f"最后一条消息时间: {session.time}")
-            ...     print(f"最后一条消息内容: {session.content}")
-            ...     print(f"是否有新消息: {session.isnew}", end='\n\n')
+            # >>> wx = WeChat()
+            # >>> sessions = wx.GetSession()
+            # >>> for session in sessions:
+            # ...     print(f"聊天对象名称: {session.name}")
+            # ...     print(f"最后一条消息时间: {session.time}")
+            # ...     print(f"最后一条消息内容: {session.content}")
+            # ...     print(f"是否有新消息: {session.isnew}", end='\n\n')
         """
         sessions = self.SessionBox.ListControl()
         return [SessionElement(i) for i in sessions.GetChildren()]
