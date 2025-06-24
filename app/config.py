@@ -61,8 +61,12 @@ class Config:
     DATA_DIR = Path("data")
     API_DIR = DATA_DIR / "api"
     LOGS_DIR = API_DIR / "logs"
-    LOG_FILENAME = f"api_{datetime.now().strftime('%Y%m%d')}.log"
-    LOG_FILE = str(LOGS_DIR / LOG_FILENAME)
+
+    @staticmethod
+    def get_current_log_file():
+        """获取当前日期的日志文件路径"""
+        log_filename = f"api_{datetime.now().strftime('%Y%m%d')}.log"
+        return str(Config.LOGS_DIR / log_filename)
 
     # 微信监控配置
     WECHAT_CHECK_INTERVAL = int(os.getenv('WECHAT_CHECK_INTERVAL', 60))  # 连接检查间隔（秒）

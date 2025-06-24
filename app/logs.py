@@ -1,8 +1,84 @@
 import sys
 import logging
 import re
+import os
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from app.config import Config
+
+# 创建一个动态日志文件处理器，支持跨天自动切换日志文件
+class DailyRotatingFileHandler(logging.Handler):
+    """动态日志文件处理器，支持跨天自动切换日志文件"""
+
+    def __init__(self, log_dir, filename_prefix="api", max_bytes=20*1024*1024, backup_count=5):
+        super().__init__()
+        self.log_dir = log_dir
+        self.filename_prefix = filename_prefix
+        self.max_bytes = max_bytes
+        self.backup_count = backup_count
+        self.current_date = None
+        self.current_handler = None
+
+    def _get_current_log_file(self):
+        """获取当前日期的日志文件路径"""
+        current_date = datetime.now().strftime('%Y%m%d')
+        filename = f"{self.filename_prefix}_{current_date}.log"
+        return os.path.join(self.log_dir, filename)
+
+    def _ensure_handler(self):
+        """确保当前有有效的文件处理器"""
+        current_date = datetime.now().strftime('%Y%m%d')
+
+        # 如果日期发生变化或者还没有处理器，创建新的处理器
+        if self.current_date != current_date or self.current_handler is None:
+            # 关闭旧的处理器
+            if self.current_handler:
+                self.current_handler.close()
+
+            # 创建新的处理器
+            log_file = self._get_current_log_file()
+            self.current_handler = RotatingFileHandler(
+                log_file,
+                maxBytes=self.max_bytes,
+                backupCount=self.backup_count,
+                encoding='utf-8'
+            )
+
+            # 设置格式化器和过滤器
+            if hasattr(self, 'formatter') and self.formatter:
+                self.current_handler.setFormatter(self.formatter)
+            if hasattr(self, 'filters'):
+                for filter_obj in self.filters:
+                    self.current_handler.addFilter(filter_obj)
+
+            self.current_date = current_date
+
+    def emit(self, record):
+        """发送日志记录"""
+        try:
+            self._ensure_handler()
+            if self.current_handler:
+                self.current_handler.emit(record)
+        except Exception:
+            self.handleError(record)
+
+    def setFormatter(self, formatter):
+        """设置格式化器"""
+        super().setFormatter(formatter)
+        if self.current_handler:
+            self.current_handler.setFormatter(formatter)
+
+    def addFilter(self, filter_obj):
+        """添加过滤器"""
+        super().addFilter(filter_obj)
+        if self.current_handler:
+            self.current_handler.addFilter(filter_obj)
+
+    def close(self):
+        """关闭处理器"""
+        if self.current_handler:
+            self.current_handler.close()
+        super().close()
 
 # 创建一个内存日志处理器，用于捕获最近的错误日志
 class MemoryLogHandler(logging.Handler):
@@ -183,12 +259,12 @@ def setup_logger():
     memory_handler.setLevel(logging.DEBUG)  # 捕获所有级别的日志，但只保存错误日志
     logger.addHandler(memory_handler)
 
-    # 添加文件处理器 - 使用大小轮转的日志文件
-    file_handler = RotatingFileHandler(
-        Config.LOG_FILE,
-        maxBytes=Config.LOG_MAX_BYTES,
-        backupCount=Config.LOG_BACKUP_COUNT,
-        encoding='utf-8'
+    # 添加动态日志文件处理器 - 支持跨天自动切换
+    file_handler = DailyRotatingFileHandler(
+        log_dir=str(Config.LOGS_DIR),
+        filename_prefix="api",
+        max_bytes=Config.LOG_MAX_BYTES,
+        backup_count=Config.LOG_BACKUP_COUNT
     )
     file_handler.setFormatter(formatter)
     file_handler.addFilter(http_filter)  # 添加过滤器

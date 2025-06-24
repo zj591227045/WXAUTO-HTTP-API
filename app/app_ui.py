@@ -685,20 +685,26 @@ class WxAutoHttpUI:
                 # 添加处理器到原始logger
                 original_logger.addHandler(self.log_handler)
 
-                # 添加文件处理器，将日志保存到文件
+                # 添加动态日志文件处理器，将日志保存到文件
                 try:
-                    # 生成日志文件名
-                    timestamp = datetime.now().strftime("%Y%m%d")
-                    log_file = config_manager.LOGS_DIR / f"api_{timestamp}.log"
+                    # 导入动态日志文件处理器
+                    from app.logs import DailyRotatingFileHandler
 
-                    # 创建文件处理器 - 文件中使用完整时间戳格式
-                    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+                    # 创建动态文件处理器 - 支持跨天自动切换
+                    file_handler = DailyRotatingFileHandler(
+                        log_dir=str(config_manager.LOGS_DIR),
+                        filename_prefix="api",
+                        max_bytes=20*1024*1024,
+                        backup_count=5
+                    )
                     # 使用与UI相同的时间戳格式
                     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
                                                                 '%Y-%m-%d %H:%M:%S'))
                     original_logger.addHandler(file_handler)
 
-                    self.add_log(f"日志将保存到: {log_file}")
+                    # 获取当前日志文件路径用于显示
+                    current_log_file = file_handler._get_current_log_file()
+                    self.add_log(f"日志将保存到: {current_log_file}")
                 except Exception as e:
                     self.add_log(f"设置日志文件失败: {str(e)}")
             else:
@@ -725,20 +731,26 @@ class WxAutoHttpUI:
             # 如果无法导入WeChatLibAdapter，直接使用logger
             logger.addHandler(self.log_handler)
 
-            # 添加文件处理器，将日志保存到文件
+            # 添加动态日志文件处理器，将日志保存到文件
             try:
-                # 生成日志文件名
-                timestamp = datetime.now().strftime("%Y%m%d")
-                log_file = config_manager.LOGS_DIR / f"api_{timestamp}.log"
+                # 导入动态日志文件处理器
+                from app.logs import DailyRotatingFileHandler
 
-                # 创建文件处理器 - 文件中使用完整时间戳格式
-                file_handler = logging.FileHandler(log_file, encoding='utf-8')
+                # 创建动态文件处理器 - 支持跨天自动切换
+                file_handler = DailyRotatingFileHandler(
+                    log_dir=str(config_manager.LOGS_DIR),
+                    filename_prefix="api",
+                    max_bytes=20*1024*1024,
+                    backup_count=5
+                )
                 # 使用与UI相同的时间戳格式
                 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
                                                             '%Y-%m-%d %H:%M:%S'))
                 logger.addHandler(file_handler)
 
-                self.add_log(f"日志将保存到: {log_file}")
+                # 获取当前日志文件路径用于显示
+                current_log_file = file_handler._get_current_log_file()
+                self.add_log(f"日志将保存到: {current_log_file}")
             except Exception as e:
                 self.add_log(f"设置日志文件失败: {str(e)}")
 
