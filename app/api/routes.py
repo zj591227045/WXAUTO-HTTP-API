@@ -1370,7 +1370,7 @@ def get_chat_window_info():
 @api_bp.route('/group/list', methods=['GET'])
 @require_api_key
 def get_group_list():
-    global wx_instance
+    wx_instance = wechat_manager.get_instance()
     if not wx_instance:
         return jsonify({
             'code': 2001,
@@ -1379,12 +1379,12 @@ def get_group_list():
         }), 400
 
     try:
-        groups = wx_instance.GetGroupList()
+        groups = wx_instance.get_group_list()
         return jsonify({
             'code': 0,
             'message': '获取成功',
             'data': {
-                'groups': [{'name': group} for group in groups]
+                'groups': groups
             }
         })
     except Exception as e:
@@ -1450,7 +1450,7 @@ def manage_group():
 @api_bp.route('/contact/list', methods=['GET'])
 @require_api_key
 def get_contact_list():
-    global wx_instance
+    wx_instance = wechat_manager.get_instance()
     if not wx_instance:
         return jsonify({
             'code': 2001,
@@ -1459,12 +1459,12 @@ def get_contact_list():
         }), 400
 
     try:
-        contacts = wx_instance.GetFriendList()
+        contacts = wx_instance.get_friend_list()
         return jsonify({
             'code': 0,
             'message': '获取成功',
             'data': {
-                'friends': [{'nickname': contact} for contact in contacts]
+                'friends': contacts
             }
         })
     except Exception as e:
