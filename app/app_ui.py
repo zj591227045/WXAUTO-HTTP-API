@@ -328,12 +328,12 @@ class WxAutoHttpUI:
         self.wxautox_status = ttk.Label(wxautox_frame, text="检测中...", style="Bold.TLabel")
         self.wxautox_status.pack(side=tk.LEFT, padx=5)
         # 使用ttk.Button与其他按钮保持一致的风格
-        self.install_wxautox_button = ttk.Button(
+        self.activate_wxautox_button = ttk.Button(
             wxautox_frame,
-            text="安装wxautox",
-            command=self.show_wxautox_install
+            text="激活wxautox",
+            command=self.show_wxautox_activation
         )
-        self.install_wxautox_button.pack(side=tk.LEFT, padx=5)
+        self.activate_wxautox_button.pack(side=tk.LEFT, padx=5)
 
 
     def create_status_panel(self):
@@ -882,28 +882,13 @@ class WxAutoHttpUI:
     def check_wxauto_status(self):
         """检查wxauto库的安装状态"""
         try:
-            # 使用wxauto_wrapper模块确保wxauto库能够被正确导入
-            from app.wxauto_wrapper import get_wxauto
-            wxauto = get_wxauto()
-            if wxauto:
-                self.wxauto_status.config(text="已安装", style="Green.TLabel")
-
-                # 尝试导入wxauto包装器
-                try:
-                    from app.wxauto_wrapper.wrapper import get_wrapper
-                    wrapper = get_wrapper()
-
-                except Exception as e:
-                    self.add_log(f"初始化wxauto包装器失败: {str(e)}")
-
-                return True
-            else:
-                self.wxauto_status.config(text="未安装", style="Red.TLabel")
-                self.add_log("wxauto库导入失败")
-                return False
+            # 尝试导入pip安装的wxauto包
+            import wxauto
+            self.wxauto_status.config(text="已安装", style="Green.TLabel")
+            return True
         except ImportError as e:
             self.wxauto_status.config(text="未安装", style="Red.TLabel")
-            self.add_log(f"导入wxauto_wrapper模块失败: {str(e)}")
+            self.add_log(f"无法导入wxauto库: {str(e)}")
             return False
         except Exception as e:
             self.wxauto_status.config(text="检查失败", style="Red.TLabel")
@@ -912,21 +897,8 @@ class WxAutoHttpUI:
 
     def check_wxautox_status(self):
         """检查wxautox库的安装状态"""
-        # 首先尝试使用动态包管理器检查
         try:
-            from dynamic_package_manager import get_package_manager
-            package_manager = get_package_manager()
-            # self.add_log("使用动态包管理器检查wxautox状态")
-
-            if package_manager.is_package_installed("wxautox"):
-                # self.add_log("动态包管理器报告wxautox已安装")
-                self.wxautox_status.config(text="已安装", style="Green.TLabel")
-                return True
-        except ImportError:
-            self.add_log("无法导入动态包管理器，使用传统方法检查wxautox状态")
-
-        # 如果动态包管理器不可用或报告未安装，尝试直接导入
-        try:
+            # 尝试导入pip安装的wxautox包
             import wxautox
             self.wxautox_status.config(text="已安装", style="Green.TLabel")
             return True
@@ -935,37 +907,38 @@ class WxAutoHttpUI:
             return False
 
     def install_wxauto(self):
-        """检查本地wxauto文件夹并安装wxauto库"""
+        """安装wxauto库"""
         # 禁用按钮，避免重复点击
         self.install_wxauto_button.config(state=tk.DISABLED)
-        self.wxauto_status.config(text="检查中...", style="Bold.TLabel")
-        self.add_log("正在检查wxauto库...")
+        self.wxauto_status.config(text="安装中...", style="Bold.TLabel")
+        self.add_log("正在安装wxauto库...")
 
-        def check_thread():
+        def install_thread():
             try:
-                # 使用wxauto_wrapper模块确保wxauto库能够被正确导入
-                self.root.after(0, lambda: self.add_log("使用wxauto_wrapper模块导入wxauto库..."))
+                # 使用pip安装wxauto
+                import subprocess
+                import sys
 
-                from app.wxauto_wrapper import get_wxauto
-                wxauto = get_wxauto()
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "wxauto"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
 
-                if wxauto:
-                    # 尝试导入wxauto包装器
-                    try:
-                        from app.wxauto_wrapper.wrapper import get_wrapper
-                        wrapper = get_wrapper()
-                    except Exception as e:
-                        self.root.after(0, lambda: self.add_log(f"初始化wxauto包装器失败: {str(e)}"))
+                if result.returncode == 0:
+                    self.root.after(0, lambda: self.add_log("wxauto库安装成功"))
+                    self.root.after(0, lambda: self.check_wxauto_status())
+                    self.root.after(0, lambda: messagebox.showinfo("安装成功", "wxauto库安装成功"))
                 else:
-                    self.root.after(0, lambda: self.add_log("wxauto库导入失败"))
-                    self.root.after(0, lambda: self.wxauto_status.config(text="未安装", style="Red.TLabel"))
-                    self.root.after(0, lambda: messagebox.showerror("安装失败",
-                                                                    "无法导入wxauto库\n\n请确保项目根目录下存在wxauto文件夹，且包含完整的wxauto模块"))
-            except ImportError as e:
-                self.root.after(0, lambda: self.add_log(f"导入wxauto_wrapper模块失败: {str(e)}"))
-                self.root.after(0, lambda: self.wxauto_status.config(text="未安装", style="Red.TLabel"))
-                self.root.after(0, lambda: messagebox.showerror("安装失败",
-                                                                f"导入wxauto_wrapper模块失败: {str(e)}\n\n请确保app/wxauto_wrapper目录存在"))
+                    self.root.after(0, lambda: self.add_log(f"wxauto库安装失败: {result.stderr}"))
+                    self.root.after(0, lambda: self.wxauto_status.config(text="安装失败", style="Red.TLabel"))
+                    self.root.after(0, lambda: messagebox.showerror("安装失败", f"wxauto库安装失败:\n{result.stderr}"))
+
+            except subprocess.CalledProcessError as e:
+                self.root.after(0, lambda: self.add_log(f"wxauto库安装过程出错: {e.stderr}"))
+                self.root.after(0, lambda: self.wxauto_status.config(text="安装失败", style="Red.TLabel"))
+                self.root.after(0, lambda: messagebox.showerror("安装失败", f"wxauto库安装过程出错:\n{e.stderr}"))
             except Exception as e:
                 self.root.after(0, lambda: self.add_log(f"安装过程出错: {str(e)}"))
                 self.root.after(0, lambda: self.wxauto_status.config(text="安装失败", style="Red.TLabel"))
@@ -974,260 +947,133 @@ class WxAutoHttpUI:
                 # 恢复按钮状态
                 self.root.after(0, lambda: self.install_wxauto_button.config(state=tk.NORMAL))
 
-        # 在新线程中执行检查
-        threading.Thread(target=check_thread, daemon=True).start()
+        # 在新线程中执行安装
+        threading.Thread(target=install_thread, daemon=True).start()
 
-    def show_wxautox_install(self):
-        """显示wxautox安装说明"""
-        # 创建一个新窗口显示详细的安装说明
-        install_info = tk.Toplevel(self.root)
-        install_info.title("wxautox安装向导")
-        install_info.geometry("500x400")
-        install_info.resizable(True, True)
-        install_info.transient(self.root)
-        install_info.grab_set()
+    def show_wxautox_activation(self):
+        """显示wxautox激活对话框"""
+        # 创建激活对话框
+        activation_dialog = tk.Toplevel(self.root)
+        activation_dialog.title("wxautox激活")
+        activation_dialog.geometry("450x300")
+        activation_dialog.resizable(False, False)
+        activation_dialog.transient(self.root)
+        activation_dialog.grab_set()
 
-        # 确保窗口在屏幕中央
-        install_info.update_idletasks()
-        width = install_info.winfo_width()
-        height = install_info.winfo_height()
-        x = (install_info.winfo_screenwidth() // 2) - (width // 2)
-        y = (install_info.winfo_screenheight() // 2) - (height // 2)
-        install_info.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+        # 居中显示
+        self.center_window(activation_dialog)
 
         # 创建主框架
-        main_frame = tk.Frame(install_info, padx=20, pady=20)
+        main_frame = ttk.Frame(activation_dialog, padding=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # 添加标题
-        title_label = tk.Label(main_frame, text="wxautox安装向导", font=("TkDefaultFont", 14, "bold"))
+        title_label = ttk.Label(main_frame, text="wxautox激活", font=("TkDefaultFont", 14, "bold"))
         title_label.pack(pady=(0, 15))
 
-        # 添加详细说明
-        info_text = """wxautox是付费增强库，需要单独购买并安装。
+        # 添加说明
+        info_text = """请输入您的wxautox激活码。激活码将被保存，
+在每次启动服务时自动激活wxautox。
 
-安装步骤:
-1. 点击下方的【开始安装】按钮
-2. 在文件选择对话框中找到并选择wxautox的wheel文件
-   (文件名格式为: wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl)
-3. 系统将自动安装并配置wxautox库
-4. 安装完成后，重启服务即可使用wxautox库
+注意：
+- 请确保已安装wxautox库 (pip install wxautox)
+- 激活码将安全保存在本地配置文件中
+- 激活成功后无需重复输入"""
 
-注意事项:
-- wxautox可能依赖其他Python模块，如win32ui、tenacity等
-- 系统将尝试自动检测并安装缺失的依赖
-- 如果安装后仍无法正常使用wxautox，可能需要手动安装依赖:
-  pip install pywin32 tenacity
+        info_label = ttk.Label(main_frame, text=info_text, wraplength=400, justify="left")
+        info_label.pack(pady=(0, 15))
 
-您也可以通过命令行手动安装:
-pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
+        # 激活码输入框
+        code_frame = ttk.Frame(main_frame)
+        code_frame.pack(fill=tk.X, pady=10)
 
-        # 创建滚动文本区域
-        text_frame = tk.Frame(main_frame)
-        text_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        ttk.Label(code_frame, text="激活码:").pack(side=tk.LEFT, padx=(0, 10))
 
-        text_scroll = tk.Scrollbar(text_frame)
-        text_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        # 创建激活码输入变量
+        activation_code_var = tk.StringVar()
 
-        info_area = tk.Text(text_frame, wrap=tk.WORD, height=12, width=50,
-                            font=("TkDefaultFont", 10),
-                            yscrollcommand=text_scroll.set)
-        info_area.insert(tk.END, info_text)
-        info_area.config(state=tk.DISABLED)  # 设置为只读
-        info_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # 加载已保存的激活码
+        try:
+            from app.wxautox_activation import get_activation_code
+            saved_code = get_activation_code()
+            if saved_code:
+                activation_code_var.set(saved_code)
+        except Exception as e:
+            self.add_log(f"加载已保存的激活码失败: {str(e)}")
 
-        text_scroll.config(command=info_area.yview)
+        code_entry = ttk.Entry(code_frame, textvariable=activation_code_var, width=30, show="*")
+        code_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        # 添加文档链接
-        link_frame = tk.Frame(main_frame)
-        link_frame.pack(fill=tk.X, pady=(5, 15))
+        # 显示/隐藏激活码按钮
+        show_code_var = tk.BooleanVar()
+        def toggle_code_visibility():
+            if show_code_var.get():
+                code_entry.config(show="")
+            else:
+                code_entry.config(show="*")
 
-        link_label = tk.Label(link_frame, text="更多信息请访问: ", font=("TkDefaultFont", 9))
-        link_label.pack(side=tk.LEFT)
+        show_button = ttk.Checkbutton(code_frame, text="显示", variable=show_code_var, command=toggle_code_visibility)
+        show_button.pack(side=tk.LEFT, padx=(10, 0))
 
-        # 创建一个可点击的链接
-        link_button = tk.Label(
-            link_frame,
-            text="https://docs.wxauto.org/",
-            fg="blue",
-            cursor="hand2",
-            font=("TkDefaultFont", 9, "underline")
-        )
-        link_button.pack(side=tk.LEFT)
+        # 按钮框架
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(20, 0))
 
-        # 添加点击事件
-        def open_url(event):
-            import webbrowser
-            webbrowser.open_new("https://docs.wxauto.org/")
+        # 激活按钮
+        def activate_action():
+            code = activation_code_var.get().strip()
+            if not code:
+                messagebox.showerror("错误", "请输入激活码")
+                return
 
-        link_button.bind("<Button-1>", open_url)
+            # 禁用按钮，显示进度
+            activate_button.config(state=tk.DISABLED, text="激活中...")
+            cancel_button.config(state=tk.DISABLED)
 
-        # 添加按钮框架
-        button_frame = tk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
-
-        # 添加安装按钮 - 使用ttk.Button与主界面按钮保持一致
-        install_button = ttk.Button(
-            button_frame,
-            text="开始安装",
-            command=lambda: [install_info.destroy(), self.select_wxautox_file()]
-        )
-        install_button.pack(side=tk.LEFT, padx=(0, 10))
-
-        # 添加取消按钮 - 使用ttk.Button与主界面按钮保持一致
-        cancel_button = ttk.Button(
-            button_frame,
-            text="取消",
-            command=install_info.destroy
-        )
-        cancel_button.pack(side=tk.LEFT)
-
-    def select_wxautox_file(self):
-        """选择并安装wxautox wheel文件"""
-        # 打开文件选择对话框
-        file_path = filedialog.askopenfilename(
-            title="选择wxautox wheel文件",
-            filetypes=[("Wheel文件", "*.whl"), ("所有文件", "*.*")],
-            initialdir=os.getcwd()
-        )
-
-        if not file_path:
-            return  # 用户取消了选择
-
-        # 检查文件名是否包含wxautox
-        if 'wxautox-' not in os.path.basename(file_path):
-            messagebox.showerror("错误", "所选文件不是wxautox wheel文件")
-            return
-
-        # 显示安装中对话框
-        progress_dialog = tk.Toplevel(self.root)
-        progress_dialog.title("wxautox安装中...")
-        progress_dialog.geometry("400x200")
-        progress_dialog.resizable(False, False)
-        progress_dialog.transient(self.root)
-        progress_dialog.grab_set()
-
-        # 居中显示
-        progress_dialog.update_idletasks()
-        width = progress_dialog.winfo_width()
-        height = progress_dialog.winfo_height()
-        x = (progress_dialog.winfo_screenwidth() // 2) - (width // 2)
-        y = (progress_dialog.winfo_screenheight() // 2) - (height // 2)
-        progress_dialog.geometry('{}x{}+{}+{}'.format(width, height, x, y))
-
-        # 创建主框架
-        main_frame = ttk.Frame(progress_dialog, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        # 创建进度提示
-        ttk.Label(main_frame, text="正在安装wxautox，请稍候...", font=("TkDefaultFont", 12)).pack(pady=20)
-
-        # 创建进度条
-        progress = ttk.Progressbar(main_frame, mode="indeterminate", length=300)
-        progress.pack(pady=10)
-        progress.start()
-
-        # 创建进度文本
-        progress_var = tk.StringVar(value="安装准备中...")
-        progress_label = ttk.Label(main_frame, textvariable=progress_var, font=("TkDefaultFont", 10))
-        progress_label.pack(pady=10)
-
-        # 在新线程中执行安装
-        def install_thread():
-            try:
-                # 更新进度
-                self.root.after(0, lambda: progress_var.set("正在安装wxautox..."))
-
-                # 尝试使用动态包管理器安装
+            def activate_thread():
                 try:
-                    from dynamic_package_manager import get_package_manager
-                    package_manager = get_package_manager()
-                    self.root.after(0, lambda: self.add_log("使用动态包管理器安装wxautox..."))
+                    from app.wxautox_activation import activate_wxautox, save_activation_code
 
-                    # 安装wheel文件
-                    success = package_manager.install_wheel(file_path)
+                    # 保存激活码
+                    save_activation_code(code)
 
-                    if success:
-                        # 导入插件管理模块更新配置
-                        from app import plugin_manager
-                        plugin_manager.update_config_for_wxautox()
-
-                        self.root.after(0, lambda: progress_var.set("安装成功！"))
-                        self.root.after(0, lambda: self.add_log("wxautox安装成功"))
-                        self.root.after(0, lambda: self.check_wxautox_status())
-                        self.root.after(0, lambda: progress.stop())  # 停止进度条
-                        self.root.after(1000, lambda: progress_dialog.destroy())
-                        self.root.after(1200, lambda: messagebox.showinfo("安装成功",
-                                                                          "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
-                                                                          "如需立即使用，请重启服务。"))
-                    else:
-                        # 如果动态包管理器安装失败，尝试使用传统方法
-                        self.root.after(0, lambda: self.add_log("动态包管理器安装失败，尝试使用传统方法..."))
-
-                        # 导入插件管理模块
-                        from app import plugin_manager
-
-                        # 安装wxautox
-                        success, message = plugin_manager.install_wxautox(file_path)
-
-                        # 在主线程中更新UI
-                        if success:
-                            self.root.after(0, lambda: progress_var.set("安装成功！"))
-                            self.root.after(0, lambda: self.add_log(f"wxautox安装成功: {message}"))
-                            self.root.after(0, lambda: self.check_wxautox_status())
-                            self.root.after(0, lambda: progress.stop())  # 停止进度条
-                            self.root.after(1000, lambda: progress_dialog.destroy())
-                            self.root.after(1200, lambda: messagebox.showinfo("安装成功",
-                                                                              "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
-                                                                              "如需立即使用，请重启服务。"))
-                        else:
-                            self.root.after(0, lambda: progress_var.set("安装失败！"))
-                            self.root.after(0, lambda: self.add_log(f"wxautox安装失败: {message}"))
-                            self.root.after(0, lambda: progress.stop())  # 停止进度条
-                            self.root.after(1000, lambda: progress_dialog.destroy())
-                            self.root.after(1200,
-                                            lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
-
-                except ImportError:
-                    # 如果无法导入动态包管理器，使用传统方法
-                    self.root.after(0, lambda: self.add_log("无法导入动态包管理器，使用传统方法安装..."))
-
-                    # 导入插件管理模块
-                    from app import plugin_manager
-
-                    # 安装wxautox
-                    success, message = plugin_manager.install_wxautox(file_path)
+                    # 执行激活
+                    success, message, output = activate_wxautox(code)
 
                     # 在主线程中更新UI
                     if success:
-                        self.root.after(0, lambda: progress_var.set("安装成功！"))
-                        self.root.after(0, lambda: self.add_log(f"wxautox安装成功: {message}"))
+                        self.root.after(0, lambda: self.add_log(f"wxautox激活成功: {message}"))
+                        self.root.after(0, lambda: messagebox.showinfo("激活成功", "wxautox激活成功！"))
+                        self.root.after(0, lambda: activation_dialog.destroy())
                         self.root.after(0, lambda: self.check_wxautox_status())
-                        self.root.after(0, lambda: progress.stop())  # 停止进度条
-                        self.root.after(1000, lambda: progress_dialog.destroy())
-                        self.root.after(1200, lambda: messagebox.showinfo("安装成功",
-                                                                          "wxautox库安装成功，已自动配置为使用wxautox库。\n\n"
-                                                                          "如需立即使用，请重启服务。"))
                     else:
-                        self.root.after(0, lambda: progress_var.set("安装失败！"))
-                        self.root.after(0, lambda: self.add_log(f"wxautox安装失败: {message}"))
-                        self.root.after(0, lambda: progress.stop())  # 停止进度条
-                        self.root.after(1000, lambda: progress_dialog.destroy())
-                        self.root.after(1200,
-                                        lambda: messagebox.showerror("安装失败", f"wxautox库安装失败:\n{message}"))
+                        self.root.after(0, lambda: self.add_log(f"wxautox激活失败: {message}"))
+                        self.root.after(0, lambda: messagebox.showerror("激活失败", f"wxautox激活失败:\n{message}"))
 
-            except Exception as e:
-                self.root.after(0, lambda: progress_var.set("安装出错！"))
-                self.root.after(0, lambda: self.add_log(f"wxautox安装过程出错: {str(e)}"))
-                self.root.after(0, lambda: progress.stop())  # 停止进度条
-                self.root.after(1000, lambda: progress_dialog.destroy())
-                self.root.after(1200, lambda: messagebox.showerror("安装错误", f"wxautox安装过程出错:\n{str(e)}"))
+                except Exception as e:
+                    self.root.after(0, lambda: self.add_log(f"wxautox激活过程出错: {str(e)}"))
+                    self.root.after(0, lambda: messagebox.showerror("激活错误", f"激活过程出错:\n{str(e)}"))
+                finally:
+                    # 恢复按钮状态
+                    self.root.after(0, lambda: activate_button.config(state=tk.NORMAL, text="激活"))
+                    self.root.after(0, lambda: cancel_button.config(state=tk.NORMAL))
 
-        # 启动安装线程
-        threading.Thread(target=install_thread, daemon=True).start()
+            # 在新线程中执行激活
+            threading.Thread(target=activate_thread, daemon=True).start()
+
+        activate_button = ttk.Button(button_frame, text="激活", command=activate_action)
+        activate_button.pack(side=tk.RIGHT, padx=(10, 0))
+
+        # 取消按钮
+        cancel_button = ttk.Button(button_frame, text="取消", command=activation_dialog.destroy)
+        cancel_button.pack(side=tk.RIGHT)
+
+        # 焦点设置到输入框
+        code_entry.focus_set()
+
+
 
     def show_api_documentation(self):
-<<<<<<< HEAD
         """打开API文档页面"""
         import webbrowser
         try:
@@ -1237,19 +1083,6 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
 
             # 构建API文档URL
             api_docs_url = f"http://localhost:{port}/api-docs"
-=======
-        """显示API功能说明和对比"""
-        # 创建一个新窗口
-        api_window = tk.Toplevel(self.root)
-        api_window.title("微信API功能说明")
-        api_window.geometry("800x500")
-        api_window.minsize(800, 500)
-        # 居中显示
-        self.center_window(api_window)
-        # 创建一个Notebook（选项卡控件）
-        notebook = ttk.Notebook(api_window)
-        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
->>>>>>> b12d48e5db65a508be775fab188a030ee3dfc437
 
             # 在默认浏览器中打开API文档
             webbrowser.open(api_docs_url)
@@ -1260,348 +1093,6 @@ pip install wxautox-x.x.x.x-cpxxx-cpxxx-xxx.whl"""
             # 如果打开失败，显示错误信息并提供手动访问的URL
             messagebox.showinfo("API文档",
                 f"无法自动打开浏览器，请手动访问:\nhttp://localhost:5000/api-docs\n\n错误信息: {str(e)}")
-
-
-<<<<<<< HEAD
-=======
-        wxautox 相比 wxauto 的主要优势：
-        • 完善和修复了 wxauto 存在的许多问题
-        • 提供更高效的性能，大部分场景不再需要移动鼠标
-        • 增加了更多高级功能，如自定义表情包发送、URL卡片发送、群管理等
-        • 提供专属技术支持
-
-        所有API接口都需要通过API密钥认证，在HTTP请求头中添加：
-        X-API-Key: your_api_key_here
-
-        API响应格式统一为JSON：
-        {
-            "code": 0,       // 状态码：0成功，非0失败
-            "message": "",   // 响应消息
-            "data": {}       // 响应数据
-        }
-
-        注意：wxautox 是完全兼容 wxauto 的，您可以保留现有 wxauto 项目，
-        只需将 `from wxauto import WeChat` 更换为 `from wxautox import WeChat` 即可完成迁移。
-        """
-
-        overview_label = ttk.Label(overview_frame, text=overview_text, wraplength=850, justify="left")
-        overview_label.pack(fill=tk.BOTH, expand=True)
-
-        # 创建功能对比选项卡
-        compare_frame = ttk.Frame(notebook, padding=10)
-        notebook.add(compare_frame, text="功能对比")
-
-        # 创建一个滚动区域
-        compare_canvas = tk.Canvas(compare_frame)
-        scrollbar = ttk.Scrollbar(compare_frame, orient="vertical", command=compare_canvas.yview)
-        scrollable_frame = ttk.Frame(compare_canvas)
-
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: compare_canvas.configure(
-                scrollregion=compare_canvas.bbox("all")
-            )
-        )
-
-        compare_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        compare_canvas.configure(yscrollcommand=scrollbar.set)
-
-        compare_canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # 创建功能对比表格
-        headers = ["功能类别", "API接口", "功能描述", "wxauto", "wxautox"]
-        for i, header in enumerate(headers):
-            ttk.Label(scrollable_frame, text=header, font=("TkDefaultFont", 9, "bold")).grid(row=0, column=i, padx=5,
-                                                                                             pady=5, sticky="w")
-
-        # 功能对比数据（根据官方文档 https://docs.wxauto.org/plus/about）
-        comparison_data = [
-            # 基础功能
-            ["基础功能", "/api/wechat/initialize", "初始化微信实例", "✓", "✓"],
-            ["基础功能", "/api/wechat/status", "获取微信状态", "✓", "✓"],
-
-            # 消息发送
-            ["消息类", "/api/message/send", "发送普通文本消息", "✓", "✓"],
-            ["消息类", "/api/message/send-typing", "发送打字机模式消息", "✗", "✓"],
-            ["消息类", "/api/message/send-file", "发送文件消息", "✓", "✓"],
-            ["消息类", "/api/message/send-image", "发送图片消息", "✓", "✓"],
-            ["消息类", "/api/message/send-video", "发送视频消息", "✓", "✓"],
-            ["消息类", "/api/message/send-emotion", "发送自定义表情包", "✗", "✓"],
-            ["消息类", "/api/message/send-card", "通过URL发送卡片", "✗", "✓"],
-            ["消息类", "/api/message/send-at", "发送@群好友", "✓", "✓"],
-            ["消息类", "/api/message/send-at-all", "发送@所有人", "✓", "✓"],
-            ["消息类", "/api/message/quote", "引用消息", "✓", "✓"],
-            ["消息类", "/api/message/quote-at", "引用时@", "✗", "✓"],
-
-            # 消息获取
-            ["消息类", "/api/message/get-history", "获取历史消息", "✓", "✓"],
-            ["消息类", "/api/message/get-new", "获取新消息", "✓", "✓"],
-            ["消息类", "/api/message/listen/add", "监听消息", "✓", "✓"],
-            ["消息类", "/api/message/listen/get", "获取监听消息", "✓", "✓"],
-            ["消息类", "/api/message/listen/remove", "移除监听", "✓", "✓"],
-            ["消息类", "/api/message/get-card-url", "获取卡片消息链接", "✗", "✓"],
-            ["消息类", "/api/message/get-location", "获取位置信息", "✗", "✓"],
-            ["消息类", "/api/message/add-friend-from-msg", "通过消息添加好友", "✗", "✓"],
-            ["消息类", "/api/message/get-details", "通过消息获取详情", "✗", "✓"],
-
-            # 好友管理
-            ["好友管理", "/api/contact/get-friends", "获取好友列表", "✓", "✓"],
-            ["好友管理", "/api/contact/add-friend", "发送好友请求", "✓", "✓"],
-            ["好友管理", "/api/contact/accept-friend", "接受好友请求", "✓", "✓"],
-            ["好友管理", "/api/contact/set-remark", "修改备注", "✗", "✓"],
-            ["好友管理", "/api/contact/add-tag", "增加标签", "✗", "✓"],
-            ["好友管理", "/api/contact/set-disturb", "消息免打扰", "✗", "✓"],
-
-            # 群管理
-            ["群管理", "/api/group/get-groups", "获取群列表", "✗", "✓"],
-            ["群管理", "/api/group/invite", "邀请入群", "✗", "✓"],
-            ["群管理", "/api/group/get-members", "获取群成员", "✓", "✓"],
-            ["群管理", "/api/group/set-name", "修改群名", "✗", "✓"],
-            ["群管理", "/api/group/set-remark", "修改群备注", "✗", "✓"],
-            ["群管理", "/api/group/set-announcement", "修改群公告", "✗", "✓"],
-            ["群管理", "/api/group/set-nickname", "修改我在本群昵称", "✗", "✓"],
-            ["群管理", "/api/group/set-disturb", "消息免打扰", "✗", "✓"],
-
-            # 朋友圈和公众号
-            ["朋友圈", "/api/moments/functions", "朋友圈相关功能", "✗", "✓"],
-            ["公众号", "/api/official/menu", "跳转公众号菜单", "✗", "✓"],
-
-            # 其他功能
-            ["其他", "/api/system/resources", "获取系统资源", "✓", "✓"],
-            ["其他", "/api/admin/reload-config", "重载配置", "✓", "✓"],
-            ["其他", "/api/system/background-mode", "后台模式", "✗", "✓"],
-            ["其他", "BUG修复", "修复开源版本的BUG", "✗", "✓"],
-        ]
-
-        for i, row in enumerate(comparison_data, 1):
-            bg_color = "#f0f0f0" if i % 2 == 0 else "#ffffff"
-            for j, cell in enumerate(row):
-                if j >= 3:  # 对于wxauto和wxautox列，使用特殊颜色
-                    fg_color = "green" if cell == "✓" else "red"
-                    ttk.Label(scrollable_frame, text=cell, foreground=fg_color, background=bg_color).grid(row=i,
-                                                                                                          column=j,
-                                                                                                          padx=5,
-                                                                                                          pady=2,
-                                                                                                          sticky="w")
-                else:
-                    ttk.Label(scrollable_frame, text=cell, background=bg_color).grid(row=i, column=j, padx=5, pady=2,
-                                                                                     sticky="w")
-
-        # 创建API调用示例选项卡
-        example_frame = ttk.Frame(notebook, padding=10)
-        notebook.add(example_frame, text="API调用示例")
-
-        # 创建一个Notebook（选项卡控件）用于不同的示例
-        example_notebook = ttk.Notebook(example_frame)
-        example_notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # 创建CURL示例选项卡
-        curl_frame = ttk.Frame(example_notebook, padding=5)
-        example_notebook.add(curl_frame, text="CURL示例")
-
-        curl_text = scrolledtext.ScrolledText(curl_frame, wrap=tk.WORD)
-        curl_text.pack(fill=tk.BOTH, expand=True)
-
-        curl_code = '''
-# 1. 验证API密钥
-curl -X POST http://localhost:5000/api/auth/verify \\
-  -H "X-API-Key: your-api-key"
-
-# 2. 初始化微信实例
-curl -X POST http://localhost:5000/api/wechat/initialize \\
-  -H "X-API-Key: your-api-key"
-
-# 3. 获取微信状态
-curl -X GET http://localhost:5000/api/wechat/status \\
-  -H "X-API-Key: your-api-key"
-
-# 4. 发送普通文本消息
-curl -X POST http://localhost:5000/api/message/send \\
-  -H "X-API-Key: your-api-key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "receiver": "文件传输助手",
-    "message": "这是一条测试消息",
-    "at_list": ["张三", "李四"],
-    "clear": true
-  }'
-
-# 5. 发送文件消息
-curl -X POST http://localhost:5000/api/message/send-file \\
-  -H "X-API-Key: your-api-key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "receiver": "文件传输助手",
-    "file_paths": [
-      "D:/test/test1.txt",
-      "D:/test/test2.txt"
-    ]
-  }'
-
-# 6. 添加监听对象
-curl -X POST http://localhost:5000/api/message/listen/add \\
-  -H "X-API-Key: your-api-key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "who": "测试群",
-    "savepic": true,
-    "savevideo": false,
-    "savefile": false,
-    "savevoice": false,
-    "parseurl": false
-  }'
-
-# 7. 获取监听消息
-curl -X GET "http://localhost:5000/api/message/listen/get?who=测试群" \\
-  -H "X-API-Key: your-api-key"
-
-# 8. 移除监听对象
-curl -X POST http://localhost:5000/api/message/listen/remove \\
-  -H "X-API-Key: your-api-key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "who": "测试群"
-  }'
-
-# 9. 获取系统资源
-curl -X GET http://localhost:5000/api/system/resources \\
-  -H "X-API-Key: your-api-key"
-'''
-
-        curl_text.insert(tk.END, curl_code)
-        curl_text.config(state=tk.DISABLED)
-
-        # 创建Python示例选项卡
-        python_frame = ttk.Frame(example_notebook, padding=5)
-        example_notebook.add(python_frame, text="Python示例")
-
-        python_text = scrolledtext.ScrolledText(python_frame, wrap=tk.WORD)
-        python_text.pack(fill=tk.BOTH, expand=True)
-
-        python_code = '''
-import requests
-
-# API基础URL和密钥
-base_url = "http://localhost:5000"
-api_key = "your-api-key"
-headers = {
-    "X-API-Key": api_key,
-    "Content-Type": "application/json"
-}
-
-# 1. 初始化微信
-response = requests.post(
-    f"{base_url}/api/wechat/initialize",
-    headers=headers
-)
-print("初始化结果:", response.json())
-
-# 2. 发送消息
-response = requests.post(
-    f"{base_url}/api/message/send",
-    headers=headers,
-    json={
-        "receiver": "文件传输助手",
-        "message": "这是一条测试消息",
-        "at_list": ["张三", "李四"]
-    }
-)
-print("发送消息结果:", response.json())
-
-# 3. 添加监听
-response = requests.post(
-    f"{base_url}/api/message/listen/add",
-    headers=headers,
-    json={
-        "who": "测试群",
-        "savepic": True
-    }
-)
-print("添加监听结果:", response.json())
-
-# 4. 获取监听消息
-response = requests.get(
-    f"{base_url}/api/message/listen/get",
-    headers=headers,
-    params={"who": "测试群"}
-)
-print("监听消息:", response.json())
-'''
-
-        python_text.insert(tk.END, python_code)
-        python_text.config(state=tk.DISABLED)
-
-        # 创建JavaScript示例选项卡
-        js_frame = ttk.Frame(example_notebook, padding=5)
-        example_notebook.add(js_frame, text="JavaScript示例")
-
-        js_text = scrolledtext.ScrolledText(js_frame, wrap=tk.WORD)
-        js_text.pack(fill=tk.BOTH, expand=True)
-
-        js_code = '''
-// API基础URL和密钥
-const baseUrl = "http://localhost:5000";
-const apiKey = "your-api-key";
-const headers = {
-    "X-API-Key": apiKey,
-    "Content-Type": "application/json"
-};
-
-// 1. 初始化微信
-fetch(`${baseUrl}/api/wechat/initialize`, {
-    method: "POST",
-    headers: headers
-})
-.then(response => response.json())
-.then(data => console.log("初始化结果:", data))
-.catch(error => console.error("初始化错误:", error));
-
-// 2. 发送消息
-fetch(`${baseUrl}/api/message/send`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify({
-        receiver: "文件传输助手",
-        message: "这是一条测试消息",
-        at_list: ["张三", "李四"]
-    })
-})
-.then(response => response.json())
-.then(data => console.log("发送消息结果:", data))
-.catch(error => console.error("发送消息错误:", error));
-
-// 3. 添加监听
-fetch(`${baseUrl}/api/message/listen/add`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify({
-        who: "测试群",
-        savepic: true
-    })
-})
-.then(response => response.json())
-.then(data => console.log("添加监听结果:", data))
-.catch(error => console.error("添加监听错误:", error));
-
-// 4. 获取监听消息
-fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
-    headers: headers
-})
-.then(response => response.json())
-.then(data => console.log("监听消息:", data))
-.catch(error => console.error("获取监听消息错误:", error));
-'''
-
-        js_text.insert(tk.END, js_code)
-        js_text.config(state=tk.DISABLED)
-
-        # 设置默认选项卡
-        example_notebook.select(0)
-
-        # 设置默认选项卡
-        notebook.select(0)
->>>>>>> b12d48e5db65a508be775fab188a030ee3dfc437
 
     def center_window(self, window):
         """将窗口居中显示"""
@@ -1723,6 +1214,24 @@ fetch(`${baseUrl}/api/message/listen/get?who=测试群`, {
         if selected_lib == "wxautox" and not self.check_wxautox_status():
             messagebox.showwarning("库未安装", "wxautox库未安装，请先安装")
             return
+
+        # 如果使用wxautox，先尝试激活
+        if selected_lib == "wxautox":
+            self.add_log("检查wxautox激活状态...")
+            try:
+                from app.wxautox_activation import startup_activate_wxautox
+                success, message = startup_activate_wxautox()
+                if success:
+                    self.add_log(f"wxautox激活检查完成: {message}")
+                else:
+                    self.add_log(f"wxautox激活失败: {message}")
+                    # 激活失败时询问用户是否继续
+                    if not messagebox.askyesno("激活失败", f"wxautox激活失败: {message}\n\n是否继续启动服务？"):
+                        return
+            except Exception as e:
+                self.add_log(f"wxautox激活检查出错: {str(e)}")
+                if not messagebox.askyesno("激活检查出错", f"wxautox激活检查出错: {str(e)}\n\n是否继续启动服务？"):
+                    return
 
         # 从配置文件获取端口号
         try:

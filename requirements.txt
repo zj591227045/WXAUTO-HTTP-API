@@ -13,8 +13,7 @@ tenacity>=9.1.0
 typing-extensions>=4.0.0
 uiautomation
 Pillow
-pywin32
-psutil
-pyperclip
 
-# wxauto库将在运行时安装
+# 微信自动化库
+wxauto
+wxautox

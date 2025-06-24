@@ -48,28 +48,35 @@ def check_dependencies():
     # 检查wxauto库
     if wechat_lib == 'wxauto':
         try:
-            # 确保本地wxauto文件夹在Python路径中
-            wxauto_path = os.path.join(os.getcwd(), "wxauto")
-            if wxauto_path not in sys.path:
-                sys.path.insert(0, wxauto_path)
-
-            # 尝试直接从本地文件夹导入wxauto
+            # 尝试导入pip安装的wxauto包
             import wxauto
-            logger.info(f"成功从本地文件夹导入wxauto: {wxauto_path}")
+            logger.info("成功导入wxauto库")
         except ImportError as e:
-            logger.error(f"无法从本地文件夹导入wxauto: {str(e)}")
-            logger.error("请确保wxauto文件夹存在且包含正确的wxauto模块")
+            logger.error(f"无法导入wxauto库: {str(e)}")
+            logger.error("请使用pip安装wxauto库: pip install wxauto")
             sys.exit(1)
 
     # 检查wxautox库
     elif wechat_lib == 'wxautox':
         try:
-            # 尝试导入wxautox
+            # 尝试导入pip安装的wxautox包
             import wxautox
-            logger.info("wxautox库已安装")
-        except ImportError:
-            logger.error("wxautox库未安装，但配置要求使用wxautox")
-            logger.error("请手动安装wxautox wheel文件，或者修改配置使用wxauto库")
+            logger.info("成功导入wxautox库")
+
+            # 尝试激活wxautox
+            try:
+                from app.wxautox_activation import startup_activate_wxautox
+                success, message = startup_activate_wxautox()
+                if success:
+                    logger.info(f"wxautox激活检查完成: {message}")
+                else:
+                    logger.warning(f"wxautox激活失败: {message}")
+            except Exception as e:
+                logger.warning(f"wxautox激活检查出错: {str(e)}")
+
+        except ImportError as e:
+            logger.error(f"无法导入wxautox库: {str(e)}")
+            logger.error("请使用pip安装wxautox库: pip install wxautox")
             logger.error("如需使用wxauto库，请在.env文件中设置 WECHAT_LIB=wxauto")
             sys.exit(1)
 

@@ -179,46 +179,26 @@ def main():
         logger.error(f"应用Unicode编码修复时出错: {str(e)}")
         logger.error(traceback.format_exc())
 
-    # 确保wxauto库能够被正确导入
+    # 检查微信自动化库是否可用
     try:
-        logger.info("尝试导入wxauto库")
-        from app.wxauto_wrapper import get_wxauto
-        wxauto = get_wxauto()
-        if wxauto:
+        logger.info("检查微信自动化库...")
 
-            # 尝试导入wxauto包装器
-            try:
-                from app.wxauto_wrapper.wrapper import get_wrapper
-                wrapper = get_wrapper()
+        # 检查wxauto
+        try:
+            import wxauto
+            logger.info("wxauto库可用")
+        except ImportError:
+            logger.warning("wxauto库不可用")
 
-            except Exception as e:
-                logger.error(f"初始化wxauto包装器失败: {str(e)}")
-                logger.error(traceback.format_exc())
-        else:
-            logger.warning("wxauto库导入失败，可能会导致功能不可用")
-    except ImportError as e:
-        logger.warning(f"导入wxauto_wrapper模块失败: {str(e)}")
+        # 检查wxautox
+        try:
+            import wxautox
+            logger.info("wxautox库可用")
+        except ImportError:
+            logger.warning("wxautox库不可用")
+
     except Exception as e:
-        logger.error(f"导入wxauto库时出错: {str(e)}")
-        logger.error(traceback.format_exc())
-
-    # 初始化动态包管理器
-    try:
-        from app.dynamic_package_manager import get_package_manager
-        package_manager = get_package_manager()
-        logger.info("成功初始化动态包管理器")
-
-        # 检查wxautox是否已安装
-        if package_manager.is_package_installed("wxautox"):
-            logger.info("动态包管理器检测到wxautox已安装")
-        else:
-            logger.info("动态包管理器未检测到wxautox，将使用wxauto")
-
-        # 注意：不再自动安装wxautox，它是可选的，只在用户手动选择时才安装
-    except ImportError as e:
-        logger.warning(f"导入动态包管理器失败: {str(e)}")
-    except Exception as e:
-        logger.error(f"初始化动态包管理器时出错: {str(e)}")
+        logger.error(f"检查微信自动化库时出错: {str(e)}")
         logger.error(traceback.format_exc())
 
     # 根据服务类型启动相应的服务

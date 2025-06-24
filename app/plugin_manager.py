@@ -3,27 +3,14 @@
 用于管理wxauto和wxautox库的安装和卸载
 """
 
-import os
 import sys
 import subprocess
-import tempfile
-import shutil
 import logging
 import importlib
-from pathlib import Path
 import config_manager
 
 # 配置日志
 logger = logging.getLogger(__name__)
-
-# 导入动态包管理器
-try:
-    from dynamic_package_manager import get_package_manager
-    package_manager = get_package_manager()
-    logger.info("成功导入动态包管理器")
-except ImportError as e:
-    logger.warning(f"导入动态包管理器失败: {str(e)}")
-    package_manager = None
 
 def check_wxauto_status():
     """
@@ -33,14 +20,9 @@ def check_wxauto_status():
         bool: 是否已安装
     """
     try:
-        # 确保本地wxauto文件夹在Python路径中
-        wxauto_path = os.path.join(os.getcwd(), "wxauto")
-        if wxauto_path not in sys.path:
-            sys.path.insert(0, wxauto_path)
-
-        # 尝试导入
+        # 尝试导入pip安装的wxauto包
         import wxauto
-        logger.info(f"成功从本地文件夹导入wxauto: {wxauto_path}")
+        logger.info("成功导入wxauto库")
         return True
     except ImportError as e:
         logger.warning(f"无法导入wxauto库: {str(e)}")
@@ -53,71 +35,28 @@ def check_wxautox_status():
     Returns:
         bool: 是否已安装
     """
-    # 首先尝试使用动态包管理器检查
-    if package_manager:
-        #logger.info("使用动态包管理器检查wxautox状态")
-        is_installed = package_manager.is_package_installed("wxautox")
-        if is_installed:
-            #logger.info("动态包管理器报告wxautox已安装")
-            return True
-
-    # 如果动态包管理器不可用或报告未安装，尝试直接导入
     try:
+        # 尝试导入pip安装的wxautox包
         import wxautox
-        logger.info("wxautox库已安装")
+        logger.info("成功导入wxautox库")
         return True
-    except ImportError:
-        logger.warning("wxautox库未安装")
+    except ImportError as e:
+        logger.warning(f"无法导入wxautox库: {str(e)}")
         return False
 
-def install_wxautox(wheel_file_path):
+def install_wxautox():
     """
-    安装wxautox库
-
-    Args:
-        wheel_file_path (str): wheel文件路径
+    安装wxautox库（使用pip）
 
     Returns:
         tuple: (成功状态, 消息)
     """
-    logger.info(f"开始安装wxautox: {wheel_file_path}")
+    logger.info("开始安装wxautox库")
 
-    # 验证文件是否存在
-    if not os.path.exists(wheel_file_path):
-        return False, f"文件不存在: {wheel_file_path}"
-
-    # 验证文件是否是wheel文件
-    if not wheel_file_path.endswith('.whl'):
-        return False, "文件不是有效的wheel文件"
-
-    # 验证文件名是否包含wxautox
-    if 'wxautox-' not in os.path.basename(wheel_file_path):
-        return False, "文件不是wxautox wheel文件"
-
-    # 优先使用动态包管理器安装
-    if package_manager:
-        logger.info("使用动态包管理器安装wxautox")
-        try:
-            module = package_manager.install_and_import(wheel_file_path, "wxautox")
-            if module:
-                #logger.info("动态包管理器成功安装并导入wxautox")
-
-                # 更新配置文件
-                update_config_for_wxautox()
-
-                return True, "wxautox库安装成功"
-            else:
-                logger.error("动态包管理器安装wxautox失败")
-                return False, "动态包管理器安装wxautox失败"
-        except Exception as e:
-            logger.error(f"动态包管理器安装wxautox出错: {str(e)}")
-            # 如果动态包管理器失败，继续尝试传统方法
-
-    # 如果动态包管理器不可用或失败，使用传统方法
     try:
-        # 使用pip安装wheel文件
+        # 使用pip安装wxautox包
         result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", wheel_file_path],
+            [sys.executable, "-m", "pip", "install", "wxautox"],
             capture_output=True,
             text=True,
             check=True
@@ -180,8 +119,7 @@ def get_plugins_status():
 
     return {
         'wxauto': {
-            'installed': wxauto_status,
-            'path': os.path.join(os.getcwd(), "wxauto") if wxauto_status else None
+            'installed': wxauto_status
         },
         'wxautox': {
             'installed': wxautox_status,
@@ -196,20 +134,10 @@ def get_wxautox_version():
     Returns:
         str: 版本号，如果未安装则返回None
     """
-    # 首先尝试使用动态包管理器
-    if package_manager:
-        logger.info("使用动态包管理器获取wxautox版本")
-        module = package_manager.import_package("wxautox")
-        if module:
-            version = getattr(module, 'VERSION', '未知版本')
-            logger.info(f"动态包管理器获取到wxautox版本: {version}")
-            return version
-
-    # 如果动态包管理器不可用或失败，尝试直接导入
     try:
         import wxautox
         version = getattr(wxautox, 'VERSION', '未知版本')
-        logger.info(f"直接导入获取到wxautox版本: {version}")
+        logger.info(f"获取到wxautox版本: {version}")
         return version
     except ImportError:
         logger.warning("无法导入wxautox，无法获取版本号")
