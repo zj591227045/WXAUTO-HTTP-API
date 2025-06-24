@@ -308,13 +308,13 @@ class WeChat(WeChatBase):
             SessionElement: 聊天对象列表
 
         Example:
-            >>> wx = WeChat()
-            >>> sessions = wx.GetSession()
-            >>> for session in sessions:
-            ...     print(f"聊天对象名称: {session.name}")
-            ...     print(f"最后一条消息时间: {session.time}")
-            ...     print(f"最后一条消息内容: {session.content}")
-            ...     print(f"是否有新消息: {session.isnew}", end='\n\n')
+            # >>> wx = WeChat()
+            # >>> sessions = wx.GetSession()
+            # >>> for session in sessions:
+            # ...     print(f"聊天对象名称: {session.name}")
+            # ...     print(f"最后一条消息时间: {session.time}")
+            # ...     print(f"最后一条消息内容: {session.content}")
+            # ...     print(f"是否有新消息: {session.isnew}", end='\n\n')
         """
         sessions = self.SessionBox.ListControl()
         return [SessionElement(i) for i in sessions.GetChildren()]
@@ -764,6 +764,93 @@ class WeChat(WeChatBase):
         contactwnd.Close()
         self.SwitchToChat()
         return friends
+    
+    def GetAllGroups(self, keywords=None):
+        """获取所有群组列表
+
+        Args:
+            keywords (str, optional): 搜索关键词，只返回包含关键词的群组列表
+
+        Returns:
+            list: 所有群组列表，每个元素为包含群名称和人数的字典
+        """
+        self._show()
+        self.SwitchToContact()
+        self.SessionBox.ListControl(Name="联系人").ButtonControl(Name="通讯录管理").Click(simulateMove=False)
+        contactwnd = uia.WindowControl(ClassName='ContactManagerWindow', searchDepth=1)
+        
+        # 获取侧边栏和联系人框
+        sidebar = contactwnd.PaneControl(ClassName='', searchDepth=3, foundIndex=3).GetChildren()[0]
+        
+        # 点击左侧的"群聊"选项
+        group_button = sidebar.PaneControl(Name='最近群聊')
+        group_button.Click(simulateMove=False)
+        
+        # 等待UI更新
+        time.sleep(0.5)
+        
+        # 获取群聊列表
+        wxlog.debug("获取群聊列表")
+        groups_list = []
+        
+        # 记录最后一个群的位置，用于判断是否滚动到底部
+        last_bottom = 0
+        no_change_count = 0
+        
+        while True:
+            # 获取当前可见的所有群聊元素
+            group_ele_list = sidebar.ListControl().GetChildren()
+            
+            if not group_ele_list:
+                break
+
+            # 遍历每个群聊元素，提取信息
+            for ele in group_ele_list:
+                try:
+                    # 获取群名称
+                    group_name = ele.TextControl(foundIndex=1).Name
+                    member_count = 0
+                    match = re.search(r'\((\d+)\)', ele.TextControl(foundIndex=2).Name)
+                    if match:
+                        member_count = int(match.group(1))
+                    
+                    # 创建群信息字典
+                    group_info = {
+                        'name': group_name,
+                        'member_count': member_count
+                    }
+                    
+                    # 如果指定了关键词，则只添加包含关键词的群
+                    if keywords is None or keywords in group_name:
+                        # 检查是否已存在于列表中，避免重复
+                        if not any(g['name'] == group_name for g in groups_list):
+                            groups_list.append(group_info)
+                            wxlog.debug(f"找到群聊: {group_name}, 成员数: {member_count}")
+                except Exception as e:
+                    wxlog.error(f"处理群聊元素时出错: {str(e)}")
+            
+            # 检查是否滚动到底部
+            if group_ele_list:
+                current_bottom = group_ele_list[-1].BoundingRectangle.top
+                if current_bottom == last_bottom:
+                    no_change_count += 1
+                    if no_change_count >= 3:  # 连续3次没有变化，认为已到底部
+                        wxlog.debug("检测到已滚动到底部，停止遍历")
+                        break
+                else:
+                    no_change_count = 0
+                    last_bottom = current_bottom
+            
+            # 向下滚动列表
+            sidebar.WheelDown(wheelTimes=5, waitTime=0.1)
+        
+        wxlog.debug(f"总共找到 {len(groups_list)} 个群聊")
+        
+        # 关闭通讯录管理窗口
+        contactwnd.SendKeys('{Esc}')
+        self.SwitchToChat()
+        
+        return groups_list
 
     def GetAllListenChat(self):
         """获取所有监听对象"""
