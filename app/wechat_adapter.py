@@ -293,6 +293,63 @@ class WeChatAdapter:
             # 如果缓存也没有，但微信实例存在，返回默认值
             return "微信"
 
+    def _safe_get_window_name(self) -> str:
+        """安全地获取微信窗口名称，避免GetNextSiblingControl错误"""
+        try:
+            # 优先使用缓存
+            if self._cached_window_name:
+                return self._cached_window_name
+
+            # 尝试最安全的方法获取窗口名称
+            window_name = ""
+
+            # 方法1：尝试从window_name属性获取（最安全）
+            if hasattr(self._instance, "window_name"):
+                try:
+                    window_name = getattr(self._instance, "window_name", "")
+                    if window_name:
+                        self._cached_window_name = window_name
+                        return window_name
+                except Exception:
+                    pass
+
+            # 方法2：尝试从nickname属性获取（较安全）
+            if hasattr(self._instance, "nickname"):
+                try:
+                    nickname = getattr(self._instance, "nickname", "")
+                    if nickname:
+                        window_name = nickname
+                        self._cached_window_name = window_name
+                        return window_name
+                except Exception:
+                    pass
+
+            # 如果都失败了，返回缓存或默认值
+            return self._cached_window_name or "微信"
+
+        except Exception as e:
+            logger.debug(f"安全获取窗口名称失败: {str(e)}")
+            return self._cached_window_name or ""
+
+    def _safe_get_session_list(self):
+        """安全地获取会话列表，避免控件访问错误"""
+        try:
+            # 检查方法是否存在
+            if not hasattr(self._instance, 'GetSessionList'):
+                return None
+
+            # 尝试调用GetSessionList方法
+            return self._instance.GetSessionList()
+
+        except Exception as e:
+            error_str = str(e)
+            # 如果是控件相关错误，不记录为错误级别
+            if any(keyword in error_str for keyword in ["GetNextSiblingControl", "NoneType", "Control", "uiautomation"]):
+                logger.debug(f"控件访问异常，跳过会话列表获取: {error_str}")
+            else:
+                logger.debug(f"获取会话列表异常: {error_str}")
+            return None
+
     def check_connection(self) -> bool:
         """检查微信连接状态"""
         if not self._instance:
@@ -300,8 +357,14 @@ class WeChatAdapter:
             return False
 
         try:
-            # 首先尝试获取窗口名称，这是最基本的检查
-            window_name = self.get_window_name()
+            # 首先进行基本的实例检查
+            if not hasattr(self._instance, '__class__'):
+                logger.debug("微信实例对象无效")
+                return False
+
+            # 尝试获取窗口名称，这是最基本的检查
+            # 使用更安全的方式，避免GetNextSiblingControl错误
+            window_name = self._safe_get_window_name()
             logger.debug(f"获取到窗口名称: {window_name}")
 
             if not window_name:
@@ -309,8 +372,9 @@ class WeChatAdapter:
                 return False
 
             # 然后尝试获取会话列表，但不要求必须有会话
+            # 使用更安全的方式调用GetSessionList
             try:
-                sessions = self._instance.GetSessionList()
+                sessions = self._safe_get_session_list()
                 logger.debug(f"获取会话列表成功，类型: {type(sessions)}")
 
                 # 只要能成功调用GetSessionList就认为连接正常，即使返回空列表
@@ -329,8 +393,15 @@ class WeChatAdapter:
                 return True
 
         except Exception as e:
-            logger.debug(f"微信连接检查失败: {str(e)}")
-            return False
+            # 检查是否是GetNextSiblingControl相关的错误
+            error_str = str(e)
+            if "GetNextSiblingControl" in error_str or "NoneType" in error_str:
+                logger.debug(f"检测到控件访问错误，可能是微信窗口状态异常: {error_str}")
+                # 对于这类错误，我们认为连接暂时不可用，但不记录为错误
+                return False
+            else:
+                logger.debug(f"微信连接检查失败: {str(e)}")
+                return False
 
     def __getattr__(self, name):
         """代理到实际的微信实例"""

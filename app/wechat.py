@@ -46,7 +46,12 @@ class WeChatManager:
                 self._retry_count = 0  # 重置重试计数
             return result
         except Exception as e:
-            logger.error(f"微信连接检查失败: {str(e)}")
+            error_str = str(e)
+            # 对于GetNextSiblingControl等控件访问错误，使用debug级别
+            if any(keyword in error_str for keyword in ["GetNextSiblingControl", "NoneType", "Control", "uiautomation"]):
+                logger.debug(f"微信连接检查失败（控件访问异常）: {error_str}")
+            else:
+                logger.error(f"微信连接检查失败: {error_str}")
             return False
 
     def _monitor_connection(self):
