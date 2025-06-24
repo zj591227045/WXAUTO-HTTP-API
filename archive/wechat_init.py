@@ -6,6 +6,7 @@
 import os
 import logging
 from pathlib import Path
+import config_manager
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +18,6 @@ def setup_wxauto_paths():
     try:
         # 导入wxauto库
         from wxauto.elements import WxParam
-        
-        # 导入配置管理器
-        try:
-            from app import config_manager
-        except ImportError:
-            import config_manager
 
         # 确保目录存在
         config_manager.ensure_dirs()

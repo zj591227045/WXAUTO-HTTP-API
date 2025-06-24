@@ -25,12 +25,12 @@ try:
     # 首先尝试从app包导入
     from app import config_manager
 
-    print("成功从app包导入 config_manager 模块")
+    # print("成功从app包导入 config_manager 模块")  # 注释掉，避免stdout问题
 except ImportError:
     # 如果失败，尝试直接导入（兼容旧版本）
     import config_manager
 
-    print("成功直接导入 config_manager 模块")
+    # print("成功直接导入 config_manager 模块")  # 注释掉，避免stdout问题
 
 # 确保当前目录在Python路径中，以便能够导入app模块
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +42,7 @@ try:
     from app.config import Config
     from app.logs import logger
 except ImportError:
-    print("无法导入项目模块，请确保在正确的目录中运行")
+    # print("无法导入项目模块，请确保在正确的目录中运行")  # 注释掉，避免stdout问题
     sys.exit(1)
 
 # 全局变量
@@ -73,15 +73,15 @@ class ApiCounter:
         # 计算成功的API调用 - 确保状态码周围有空格，避免误匹配
         if (" 200 " in log_line or " 201 " in log_line) and "状态码:" in log_line:
             self.success_count += 1
-            print(f"API成功计数增加: {self.success_count}, 日志: {log_line}")
+            # print(f"API成功计数增加: {self.success_count}, 日志: {log_line}")  # 注释掉，避免stdout问题
         # 计算失败的API调用 - 确保状态码周围有空格，避免误匹配
         elif ((
                       " 400 " in log_line or " 401 " in log_line or " 404 " in log_line or " 500 " in log_line) and "状态码:" in log_line):
             self.error_count += 1
-            print(f"API错误计数增加: {self.error_count}, 日志: {log_line}")
+            # print(f"API错误计数增加: {self.error_count}, 日志: {log_line}")  # 注释掉，避免stdout问题
 
         # 打印当前计数
-        print(f"当前API计数 - 成功: {self.success_count}, 错误: {self.error_count}")
+        # print(f"当前API计数 - 成功: {self.success_count}, 错误: {self.error_count}")  # 注释掉，避免stdout问题
 
 
 API_COUNTER = ApiCounter()
@@ -107,7 +107,7 @@ class APILogHandler(logging.Handler):
             # 检查是否包含乱码，如果包含乱码，尝试修复
             if '�' in message:
                 # 记录原始消息内容，用于调试
-                print(f"APILogHandler检测到可能的乱码，原始消息: {repr(message)}")
+                # print(f"APILogHandler检测到可能的乱码，原始消息: {repr(message)}")  # 注释掉，避免stdout问题
 
                 # 尝试使用不同的编码解码
                 try:
@@ -122,18 +122,19 @@ class APILogHandler(logging.Handler):
                                 decoded = message_bytes.decode(encoding)
                                 if '�' not in decoded:
                                     message = decoded
-                                    print(f"APILogHandler成功使用 {encoding} 编码修复乱码")
+                                    # print(f"APILogHandler成功使用 {encoding} 编码修复乱码")  # 注释掉，避免stdout问题
                                     break
                             except UnicodeDecodeError:
                                 continue
                 except Exception as e:
-                    print(f"APILogHandler修复乱码失败: {str(e)}")
+                    # print(f"APILogHandler修复乱码失败: {str(e)}")  # 注释掉，避免stdout问题
+                    pass
 
             # 只保留日志级别和消息内容
             formatted_msg = f"{record.levelname} - {message}"
             self.log_queue.put(formatted_msg)
         except Exception as e:
-            print(f"APILogHandler.emit出错: {str(e)}")
+            # print(f"APILogHandler.emit出错: {str(e)}")  # 注释掉，避免stdout问题
             # 尝试添加错误信息到日志队列
             try:
                 self.log_queue.put(f"ERROR - 日志处理出错: {str(e)}")
@@ -259,8 +260,7 @@ class WxAutoHttpUI:
         self.add_log("===== 自动启动服务 =====")
         self.add_log(f"将在 {self.countdown_seconds} 秒后自动启动服务...")
         self.start_countdown()
-        # 启动管理工具状态检查定时器
-        self.check_management_tool_status()
+
 
     def create_control_panel(self):
         """创建顶部控制面板"""
@@ -292,8 +292,7 @@ class WxAutoHttpUI:
         service_frame = ttk.Frame(row1)
         service_frame.pack(side=tk.RIGHT, padx=5)
 
-        self.mgt_button = ttk.Button(service_frame, text="启动管理工具", command=self.start_management_tool)
-        self.mgt_button.pack(side=tk.LEFT, padx=5)
+
 
         self.start_button = ttk.Button(service_frame, text="启动服务", command=self.start_api_service)
         self.start_button.pack(side=tk.LEFT, padx=5)
@@ -315,7 +314,7 @@ class WxAutoHttpUI:
         ttk.Label(wxauto_frame, text="wxauto状态:").pack(side=tk.LEFT, padx=5)
         self.wxauto_status = ttk.Label(wxauto_frame, text="检测中...", style="Bold.TLabel")
         self.wxauto_status.pack(side=tk.LEFT, padx=5)
-        self.install_wxauto_button = ttk.Button(wxauto_frame, text="安装/修复", command=self.install_wxauto)
+        self.install_wxauto_button = ttk.Button(wxauto_frame, text="检查状态", command=self.check_wxauto_installation)
         self.install_wxauto_button.pack(side=tk.LEFT, padx=5)
         self.api_doc_button = ttk.Button(wxauto_frame, text="API说明", command=self.show_api_documentation)
         self.api_doc_button.pack(side=tk.LEFT, padx=5)
@@ -334,6 +333,10 @@ class WxAutoHttpUI:
             command=self.show_wxautox_activation
         )
         self.activate_wxautox_button.pack(side=tk.LEFT, padx=5)
+        # 添加激活状态显示
+        ttk.Label(wxautox_frame, text="激活状态:").pack(side=tk.LEFT, padx=5)
+        self.wxautox_activation_status = ttk.Label(wxautox_frame, text="检测中...", style="Bold.TLabel")
+        self.wxautox_activation_status.pack(side=tk.LEFT, padx=5)
 
 
     def create_status_panel(self):
@@ -435,7 +438,7 @@ class WxAutoHttpUI:
         except Exception as e:
             # 如果出错，使用默认字体
             self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=10)
-            print(f"设置字体时出错: {str(e)}")
+            # print(f"设置字体时出错: {str(e)}")  # 注释掉，避免stdout问题
 
         self.log_text.pack(fill=tk.BOTH, expand=True)
         self.log_text.config(state=tk.DISABLED)
@@ -761,7 +764,7 @@ class WxAutoHttpUI:
                     # 检查是否包含乱码，如果包含乱码，尝试修复
                     if '�' in msg:
                         # 记录原始消息内容，用于调试
-                        print(f"检测到可能的乱码，原始消息: {repr(msg)}")
+                        # print(f"检测到可能的乱码，原始消息: {repr(msg)}")  # 注释掉，避免stdout问题
 
                         # 尝试使用不同的编码解码
                         try:
@@ -778,12 +781,13 @@ class WxAutoHttpUI:
                                     decoded = msg_bytes.decode(encoding)
                                     if '�' not in decoded:
                                         msg = decoded
-                                        print(f"成功使用 {encoding} 编码修复乱码")
+                                        # print(f"成功使用 {encoding} 编码修复乱码")  # 注释掉，避免stdout问题
                                         break
                                 except UnicodeDecodeError:
                                     continue
                         except Exception as e:
-                            print(f"修复乱码失败: {str(e)}")
+                            # print(f"修复乱码失败: {str(e)}")  # 注释掉，避免stdout问题
+                            pass
 
                     # 更新API调用计数
                     global API_COUNTER
@@ -814,7 +818,7 @@ class WxAutoHttpUI:
                         has_new_visible_logs = True
                 except Exception as e:
                     # 捕获处理消息时的任何异常
-                    print(f"处理日志消息时出错: {str(e)}")
+                    # print(f"处理日志消息时出错: {str(e)}")  # 注释掉，避免stdout问题
                     # 尝试添加错误信息到日志
                     try:
                         self.log_text.insert(tk.END, f"[错误] 处理日志消息时出错: {str(e)}\n")
@@ -896,15 +900,65 @@ class WxAutoHttpUI:
             return False
 
     def check_wxautox_status(self):
-        """检查wxautox库的安装状态"""
+        """检查wxautox库的可用状态（能否成功导入）"""
         try:
-            # 尝试导入pip安装的wxautox包
-            import wxautox
-            self.wxautox_status.config(text="已安装", style="Green.TLabel")
-            return True
-        except ImportError:
-            self.wxautox_status.config(text="未安装", style="Red.TLabel")
+            # 使用subprocess来检查wxautox，避免影响主进程
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "-c", "import wxautox; print('wxautox_available')"],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='ignore',
+                timeout=5  # 减少超时时间
+            )
+
+            if result.returncode == 0 and "wxautox_available" in result.stdout:
+                self.wxautox_status.config(text="可用", style="Green.TLabel")
+                # 更新激活状态显示
+                if hasattr(self, 'wxautox_activation_status'):
+                    self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
+                return True
+            else:
+                self.wxautox_status.config(text="不可用", style="Red.TLabel")
+                # 更新激活状态显示
+                if hasattr(self, 'wxautox_activation_status'):
+                    self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
+                return False
+        except subprocess.TimeoutExpired:
+            self.wxautox_status.config(text="检查超时", style="Red.TLabel")
+            if hasattr(self, 'wxautox_activation_status'):
+                self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
             return False
+        except KeyboardInterrupt:
+            # 处理用户中断
+            self.wxautox_status.config(text="检查中断", style="Red.TLabel")
+            if hasattr(self, 'wxautox_activation_status'):
+                self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
+            return False
+        except Exception as e:
+            self.wxautox_status.config(text="检查失败", style="Red.TLabel")
+            if hasattr(self, 'wxautox_activation_status'):
+                self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
+            # 只在调试模式下记录详细错误
+            if hasattr(self, '_debug_mode') and self._debug_mode:
+                self.add_log(f"检查wxautox状态时出错: {str(e)}")
+            return False
+
+    def check_wxauto_installation(self):
+        """检查wxauto安装状态并提供安装选项"""
+        try:
+            import wxauto
+            self.add_log("wxauto库已正确安装并可用")
+            messagebox.showinfo("检查结果", "wxauto库已正确安装并可用！\n\n如果遇到问题，可以尝试重新安装：\npip install --upgrade wxauto")
+        except ImportError:
+            result = messagebox.askyesno("wxauto未安装",
+                                       "wxauto库未安装或无法导入。\n\n是否要安装wxauto库？\n\n注意：这将使用pip安装wxauto库。")
+            if result:
+                self.install_wxauto()
+        except Exception as e:
+            self.add_log(f"检查wxauto状态时出错: {str(e)}")
+            messagebox.showerror("检查错误", f"检查wxauto状态时出错:\n{str(e)}")
 
     def install_wxauto(self):
         """安装wxauto库"""
@@ -1215,23 +1269,21 @@ class WxAutoHttpUI:
             messagebox.showwarning("库未安装", "wxautox库未安装，请先安装")
             return
 
-        # 如果使用wxautox，先尝试激活
+        # 如果使用wxautox，检查是否可用（不执行激活）
         if selected_lib == "wxautox":
-            self.add_log("检查wxautox激活状态...")
-            try:
-                from app.wxautox_activation import startup_activate_wxautox
-                success, message = startup_activate_wxautox()
-                if success:
-                    self.add_log(f"wxautox激活检查完成: {message}")
-                else:
-                    self.add_log(f"wxautox激活失败: {message}")
-                    # 激活失败时询问用户是否继续
-                    if not messagebox.askyesno("激活失败", f"wxautox激活失败: {message}\n\n是否继续启动服务？"):
-                        return
-            except Exception as e:
-                self.add_log(f"wxautox激活检查出错: {str(e)}")
-                if not messagebox.askyesno("激活检查出错", f"wxautox激活检查出错: {str(e)}\n\n是否继续启动服务？"):
+            self.add_log("检查wxautox可用性...")
+            if not self.check_wxautox_status():
+                self.add_log("wxautox不可用，请先手动激活")
+                if not messagebox.askyesno("wxautox不可用", "wxautox库不可用，可能需要激活。\n\n是否切换到wxauto库继续启动服务？"):
                     return
+                else:
+                    # 切换到wxauto库
+                    self.lib_var.set("wxauto")
+                    self.current_lib = "wxauto"
+                    selected_lib = "wxauto"
+                    self.add_log("已切换到wxauto库")
+            else:
+                self.add_log("wxautox可用，继续启动服务")
 
         # 从配置文件获取端口号
         try:
@@ -1392,7 +1444,7 @@ class WxAutoHttpUI:
                                 decoded = line_bytes.decode(encoding)
                                 if '�' not in decoded:
                                     line_content = decoded.strip()
-                                    print(f"成功使用 {encoding} 编码解码: {line_content}")
+                                    # print(f"成功使用 {encoding} 编码解码: {line_content}")  # 注释掉，避免stdout问题
                                     decode_success = True
                                     break
                             except UnicodeDecodeError:
@@ -1401,7 +1453,7 @@ class WxAutoHttpUI:
                         # 如果所有编码都失败，使用utf-8并替换无法解码的字符
                         if not decode_success:
                             line_content = line_bytes.decode('utf-8', errors='replace').strip()
-                            print(f"使用替换模式解码: {line_content}")
+                            # print(f"使用替换模式解码: {line_content}")  # 注释掉，避免stdout问题
 
                         # 移除常见的时间戳格式
                         # 使用与APILogHandler._remove_timestamp相同的逻辑
@@ -1429,11 +1481,11 @@ class WxAutoHttpUI:
                         LOG_QUEUE.put(line_content)
                     except UnicodeDecodeError as e:
                         # 如果遇到解码错误，记录错误信息
-                        print(f"读取进程输出时遇到编码错误: {str(e)}")
+                        # print(f"读取进程输出时遇到编码错误: {str(e)}")  # 注释掉，避免stdout问题
                         LOG_QUEUE.put(f"读取进程输出时遇到编码错误: {str(e)}")
                     except Exception as e:
                         # 捕获其他可能的异常
-                        print(f"处理进程输出时出错: {str(e)}")
+                        # print(f"处理进程输出时出错: {str(e)}")  # 注释掉，避免stdout问题
                         LOG_QUEUE.put(f"处理进程输出时出错: {str(e)}")
 
                 # 检查进程是否还在运行
@@ -1457,7 +1509,7 @@ class WxAutoHttpUI:
                             break
         except Exception as e:
             # 捕获读取进程输出时的异常
-            print(f"读取进程输出时出错: {str(e)}")
+            # print(f"读取进程输出时出错: {str(e)}")  # 注释掉，避免stdout问题
             LOG_QUEUE.put(f"读取进程输出时出错: {str(e)}")
             # 如果发生异常，尝试更新状态
             self.root.after(0, self.update_status_stopped)
@@ -1668,9 +1720,10 @@ class WxAutoHttpUI:
                 if window_name and hasattr(self, 'wechat_window_name'):
                     # 更新窗口名称标签
                     self.wechat_window_name.config(text=window_name, foreground="orange")
-                    print(f"从日志中提取到窗口名称: {window_name}")
+                    # print(f"从日志中提取到窗口名称: {window_name}")  # 注释掉，避免stdout问题
             except Exception as e:
-                print(f"从日志中提取窗口名称失败: {str(e)}")
+                # print(f"从日志中提取窗口名称失败: {str(e)}")  # 注释掉，避免stdout问题
+                pass
 
         # 应用过滤器，如果应该过滤掉，则不显示
         if self.should_filter_log(log_message):
@@ -1818,7 +1871,7 @@ class WxAutoHttpUI:
                         # 窗口名称为空，设置为空字符串
                         self.root.after(0, lambda: self.wechat_window_name.config(text=""))
 
-                    self.start_management_tool()
+
                     # 初始化成功，退出重试循环
                     # 不要立即检查微信连接状态，等待下一个定时检查周期
                     return
@@ -2024,60 +2077,9 @@ class WxAutoHttpUI:
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
 
-    def check_management_tool_status(self):
-        """定时检查管理工具状态"""
-        # import psutil
-        # import tkinter as tk
 
-        is_running = False
-        for proc in psutil.process_iter(['name', 'status']):
-            if proc.info['name'] == "WxAuto管理工具.exe" and proc.info['status'] == 'running':
-                is_running = True
-                break
 
-        if is_running:
-            self.mgt_button.config(state=tk.DISABLED)
-            self.add_log("WxAuto管理工具正在运行")
-        else:
-            self.mgt_button.config(state=tk.NORMAL)
-            self.add_log("WxAuto管理工具已经关闭")
 
-        # 每5秒检查一次
-        self.root.after(15000, self.check_management_tool_status)
-
-    def start_management_tool(self):
-        """启动管理工具"""
-        try:
-            # 获取项目根目录，兼容开发模式和打包后的EXE模式
-            if getattr(sys, 'frozen', False):
-                project_root = os.path.dirname(sys.executable)
-            else:
-                project_root = os.path.dirname(os.path.abspath(__file__))
-
-            mgp_dir = os.path.join(project_root, "mgp")
-            if not os.path.exists(mgp_dir):
-                os.makedirs(mgp_dir)
-
-            mgt_tool_path = os.path.join(mgp_dir, "WxAuto管理工具.exe")
-
-            if not os.path.exists(mgt_tool_path):
-                messagebox.showerror("错误", f"管理工具未找到: {mgt_tool_path}")
-                return
-
-            # 检查是否已运行
-            for proc in psutil.process_iter(['name']):
-                if proc.info['name'] == "WxAuto管理工具.exe":
-                    # self.add_log(f"管理工具已在运行: {mgt_tool_path}")
-                    return
-
-            # 启动程序
-            subprocess.Popen([str(mgt_tool_path)])
-            self.add_log(f"管理工具已启动: {mgt_tool_path}")
-            self.mgt_button.config(state=tk.DISABLED)
-
-        except Exception as e:
-            messagebox.showerror("错误", f"启动管理工具失败: {str(e)}")
-            self.add_log(f"启动管理工具失败: {str(e)}")
 
     def start_countdown(self):
         """开始倒计时"""
@@ -2154,5 +2156,6 @@ if __name__ == "__main__":
         # 启动UI
         main()
     except ImportError as e:
-        print(f"导入模块失败: {e}")
-        print("请使用 start_ui.py 启动UI")
+        # print(f"导入模块失败: {e}")  # 注释掉，避免stdout问题
+        # print("请使用 start_ui.py 启动UI")  # 注释掉，避免stdout问题
+        pass

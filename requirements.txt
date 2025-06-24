@@ -1,19 +1,28 @@
+# Web框架和API相关
 flask>=2.3.1
 flask-restful==0.3.9
-python-dotenv==0.19.0
 flask-limiter
-pyyaml>=6.0.1
 python-jose==3.3.0
+
+# 配置和环境
+python-dotenv==0.19.0
+pyyaml>=6.0.1
+
+# 网络请求
 requests==2.26.0
+
+# Windows系统相关
 pywin32==310
 psutil==5.9.8
 comtypes>=1.4.0
+
+# 工具库
 pyperclip>=1.9.0
 tenacity>=9.1.0
 typing-extensions>=4.0.0
 uiautomation
 Pillow
 
-# 微信自动化库
-wxauto
-wxautox
+# 微信自动化库（核心依赖）
+wxauto>=3.9.11.17
+wxautox>=3.9.11.17

@@ -36,12 +36,24 @@ def check_wxautox_status():
         bool: 是否已安装
     """
     try:
-        # 尝试导入pip安装的wxautox包
-        import wxautox
-        logger.info("成功导入wxautox库")
-        return True
-    except ImportError as e:
-        logger.warning(f"无法导入wxautox库: {str(e)}")
+        # 使用subprocess来检查wxautox，避免影响主进程
+        result = subprocess.run(
+            [sys.executable, "-c", "import wxautox; print('wxautox_available')"],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='ignore',
+            timeout=10
+        )
+
+        if result.returncode == 0 and "wxautox_available" in result.stdout:
+            logger.info("成功检测到wxautox库")
+            return True
+        else:
+            logger.warning("无法导入wxautox库")
+            return False
+    except Exception as e:
+        logger.warning(f"检查wxautox库时出错: {str(e)}")
         return False
 
 def install_wxautox():

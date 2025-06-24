@@ -32,7 +32,7 @@ def check_mutex():
         # 尝试获取UI互斥锁
         if not app_mutex.ui_mutex.acquire():
             logger.warning("另一个UI实例已在运行，将退出")
-            print("另一个UI实例已在运行，请不要重复启动")
+            # print("另一个UI实例已在运行，请不要重复启动")  # 注释掉，避免stdout问题
             try:
                 import tkinter as tk
                 from tkinter import messagebox

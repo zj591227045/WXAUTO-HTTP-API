@@ -63,16 +63,8 @@ def check_dependencies():
             import wxautox
             logger.info("成功导入wxautox库")
 
-            # 尝试激活wxautox
-            try:
-                from app.wxautox_activation import startup_activate_wxautox
-                success, message = startup_activate_wxautox()
-                if success:
-                    logger.info(f"wxautox激活检查完成: {message}")
-                else:
-                    logger.warning(f"wxautox激活失败: {message}")
-            except Exception as e:
-                logger.warning(f"wxautox激活检查出错: {str(e)}")
+            # 检查wxautox是否可用（不执行激活）
+            logger.info("检查wxautox可用性...")
 
         except ImportError as e:
             logger.error(f"无法导入wxautox库: {str(e)}")

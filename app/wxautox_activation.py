@@ -126,26 +126,50 @@ def activate_wxautox(activation_code=None):
             [sys.executable, "-m", "wxautox", "-a", activation_code],
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='ignore',  # 忽略编码错误
             timeout=30  # 30秒超时
         )
-        
-        output = result.stdout + result.stderr
+
+        # 安全地处理输出，防止None值
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
+        output = stdout + stderr
         logger.info(f"wxautox激活命令输出: {output}")
         
-        # 检查是否激活成功
-        if ">>>激活成功！<<<" in output:
+        # 检查是否激活成功 - 支持多种成功标识
+        success_indicators = [">>>激活成功！<<<", "激活成功", "activation successful"]
+        failure_indicators = [">>>激活失败：forbidden<<<", "激活失败", "forbidden", "expired"]
+
+        is_success = any(indicator in output for indicator in success_indicators)
+        is_failure = any(indicator in output for indicator in failure_indicators)
+
+        if is_success:
             # 更新激活状态
             config = load_activation_config()
             config["activation_code"] = activation_code
             config["activation_status"] = True
             config["last_activation_time"] = str(datetime.now())
             save_activation_config(config)
-            
+
             logger.info("wxautox激活成功")
             return True, "wxautox激活成功", output
+        elif is_failure:
+            # 激活失败，更新状态
+            config = load_activation_config()
+            config["activation_status"] = False
+            save_activation_config(config)
+
+            if "forbidden" in output:
+                error_msg = "激活码可能已过期或有使用限制"
+            else:
+                error_msg = "激活失败"
+
+            logger.warning(f"wxautox激活失败: {error_msg}")
+            return False, error_msg, output
         else:
-            logger.warning(f"wxautox激活失败: {output}")
-            return False, f"wxautox激活失败: {output}", output
+            logger.warning(f"wxautox激活结果未知: {output}")
+            return False, f"激活结果未知: {output}", output
             
     except subprocess.TimeoutExpired:
         logger.error("wxautox激活命令超时")
@@ -161,12 +185,40 @@ def activate_wxautox(activation_code=None):
 def check_wxautox_activation_status():
     """
     检查wxautox激活状态
-    
+
     Returns:
         bool: 是否已激活
     """
+    # 首先检查配置文件中的状态
     config = load_activation_config()
-    return config.get("activation_status", False)
+    config_status = config.get("activation_status", False)
+
+    # 如果配置显示已激活，再通过实际导入验证
+    if config_status:
+        try:
+            # 使用subprocess验证wxautox是否真的可用
+            result = subprocess.run(
+                [sys.executable, "-c", "import wxautox; print('wxautox_working')"],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='ignore',
+                timeout=10
+            )
+
+            if result.returncode == 0 and "wxautox_working" in result.stdout:
+                return True
+            else:
+                # 如果实际导入失败，更新配置状态
+                logger.warning("wxautox配置显示已激活，但实际导入失败，更新状态")
+                config["activation_status"] = False
+                save_activation_config(config)
+                return False
+        except Exception as e:
+            logger.warning(f"验证wxautox状态时出错: {str(e)}")
+            return False
+
+    return False
 
 
 def startup_activate_wxautox():

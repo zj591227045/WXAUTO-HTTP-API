@@ -100,8 +100,8 @@ def main():
 
     # 解析命令行参数
     parser = argparse.ArgumentParser(description="wxauto_http_api")
-    parser.add_argument("--service", choices=["ui", "api"], default="ui",
-                      help="指定要启动的服务类型: ui 或 api")
+    parser.add_argument("--service", choices=["ui", "api", "both"], default="ui",
+                      help="指定要启动的服务类型: ui, api 或 both")
     parser.add_argument("--debug", action="store_true", help="启用调试模式")
     parser.add_argument("--no-mutex-check", action="store_true", help="禁用互斥锁检查")
 
@@ -130,53 +130,29 @@ def main():
         os.environ["WXAUTO_NO_MUTEX_CHECK"] = "1"
         logger.info("已禁用互斥锁检查")
 
-    # 导入fix_path模块
+    # 简单的路径设置
     try:
-        # 先尝试直接导入
-        try:
-            # 尝试从app目录导入
-            sys.path.insert(0, os.path.join(os.getcwd(), "app"))
-            from app import fix_path
-            app_root = fix_path.fix_paths()
-            logger.info(f"路径修复完成，应用根目录: {app_root}")
-        except ImportError:
-            # 如果直接导入失败，尝试创建一个简单的fix_paths函数
-            logger.warning("无法导入fix_path模块，将使用内置的路径修复函数")
+        # 获取应用根目录
+        if getattr(sys, 'frozen', False):
+            # 如果是打包后的环境
+            app_root = os.path.dirname(sys.executable)
+        else:
+            # 如果是开发环境
+            app_root = os.getcwd()
 
-            def fix_paths():
-                """简单的路径修复函数"""
-                app_root = os.getcwd()
+        # 确保app目录在Python路径中
+        app_path = os.path.join(app_root, "app")
+        if os.path.exists(app_path) and app_path not in sys.path:
+            sys.path.insert(0, app_path)
+            logger.info(f"已将app目录添加到Python路径: {app_path}")
 
-                # 确保wxauto目录在Python路径中
-                wxauto_path = os.path.join(app_root, "wxauto")
-                if os.path.exists(wxauto_path) and wxauto_path not in sys.path:
-                    sys.path.insert(0, wxauto_path)
-                    logger.info(f"已将wxauto目录添加到Python路径: {wxauto_path}")
+        # 设置工作目录为应用根目录
+        os.chdir(app_root)
 
-                # 确保app目录在Python路径中
-                app_path = os.path.join(app_root, "app")
-                if os.path.exists(app_path) and app_path not in sys.path:
-                    sys.path.insert(0, app_path)
-                    logger.info(f"已将app目录添加到Python路径: {app_path}")
+        logger.info(f"应用根目录设置完成: {app_root}")
 
-                return app_root
-
-            app_root = fix_paths()
-            logger.info(f"使用内置路径修复函数，应用根目录: {app_root}")
     except Exception as e:
-        logger.error(f"路径修复时出错: {str(e)}")
-        logger.error(traceback.format_exc())
-
-    # 导入Unicode编码修复模块
-    try:
-        logger.info("尝试导入Unicode编码修复模块")
-        from app import unicode_fix
-        logger.info("成功导入Unicode编码修复模块")
-    except ImportError as e:
-        logger.warning(f"导入Unicode编码修复模块失败: {str(e)}")
-        logger.warning("这可能会导致在处理包含Unicode表情符号的微信名称时出现问题")
-    except Exception as e:
-        logger.error(f"应用Unicode编码修复时出错: {str(e)}")
+        logger.error(f"路径设置时出错: {str(e)}")
         logger.error(traceback.format_exc())
 
     # 检查微信自动化库是否可用
@@ -190,12 +166,30 @@ def main():
         except ImportError:
             logger.warning("wxauto库不可用")
 
-        # 检查wxautox
+        # 检查wxautox（需要特殊处理，因为它可能修改sys.stdout）
         try:
-            import wxautox
-            logger.info("wxautox库可用")
-        except ImportError:
-            logger.warning("wxautox库不可用")
+            # 使用subprocess来隔离wxautox的导入，避免影响主进程
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "-c", "import wxautox; print('wxautox_import_success')"],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='ignore',
+                timeout=10
+            )
+
+            if result.returncode == 0 and "wxautox_import_success" in result.stdout:
+                logger.info("wxautox库可用")
+            else:
+                logger.warning("wxautox库不可用")
+
+        except subprocess.TimeoutExpired:
+            logger.warning("wxautox库导入超时")
+        except FileNotFoundError:
+            logger.warning("无法找到Python解释器")
+        except Exception as e:
+            logger.warning(f"wxautox库导入时出现问题: {str(e)}")
 
     except Exception as e:
         logger.error(f"检查微信自动化库时出错: {str(e)}")
@@ -226,6 +220,39 @@ def main():
             sys.exit(1)
         except Exception as e:
             logger.error(f"启动API服务时出错: {str(e)}")
+            logger.error(traceback.format_exc())
+            sys.exit(1)
+    elif args.service == "both":
+        logger.info("正在同时启动UI和API服务...")
+        import threading
+        import time
+
+        # 先启动API服务（在后台线程中）
+        def start_api_thread():
+            try:
+                from app.api_service import start_api
+                start_api()
+            except Exception as e:
+                logger.error(f"启动API服务时出错: {str(e)}")
+                logger.error(traceback.format_exc())
+
+        # 启动API服务线程
+        api_thread = threading.Thread(target=start_api_thread, daemon=True)
+        api_thread.start()
+
+        # 等待API服务启动
+        time.sleep(3)
+
+        # 启动UI服务（在主线程中）
+        try:
+            from app.ui_service import start_ui
+            start_ui()
+        except ImportError as e:
+            logger.error(f"导入UI服务模块失败: {str(e)}")
+            logger.error(traceback.format_exc())
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"启动UI服务时出错: {str(e)}")
             logger.error(traceback.format_exc())
             sys.exit(1)
 

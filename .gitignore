@@ -13,6 +13,7 @@ tests\
 app.log
 data\
 data/
+wxautox_activation.json
 
 # C extensions
 *.so

@@ -61,47 +61,33 @@ def check_dependencies():
         import requests
         import psutil
 
-        # 使用wxauto_wrapper模块确保wxauto库能够被正确导入
+        # 检查wxauto库
         try:
-            from app.wxauto_wrapper import get_wxauto
-            wxauto = get_wxauto()
-            if wxauto:
-
-                # 尝试导入wxauto包装器
-                try:
-                    from app.wxauto_wrapper.wrapper import get_wrapper
-                    wrapper = get_wrapper()
-
-                except Exception as e:
-                    logger.error(f"初始化wxauto包装器失败: {str(e)}")
-            else:
-                logger.error("wxauto库导入失败，无法启动API服务")
-                return False
+            import wxauto
+            logger.info("成功导入wxauto库")
         except ImportError as e:
-            logger.error(f"导入wxauto_wrapper模块失败: {str(e)}")
-            logger.error("尝试使用传统方式导入wxauto...")
+            logger.error(f"导入wxauto库失败: {str(e)}")
+            logger.error("请使用pip安装wxauto库: pip install wxauto")
+            return False
 
-            # 尝试从本地目录导入
-            wxauto_path = os.path.join(os.getcwd(), "wxauto")
-            if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
-                if wxauto_path not in sys.path:
-                    sys.path.insert(0, wxauto_path)
-                try:
-                    import wxauto
-                    logger.info(f"成功从本地目录导入wxauto: {wxauto_path}")
-                except ImportError as e:
-                    logger.error(f"从本地目录导入wxauto失败: {str(e)}")
-                    return False
-            else:
-                logger.error("wxauto库未安装且本地目录不存在")
-                return False
-
-        # 检查wxautox是否可用（可选）
+        # 检查wxautox是否可用（可选）- 使用subprocess避免影响主进程
         try:
-            import wxautox
-            logger.info("wxautox库已安装")
-        except ImportError:
-            logger.info("wxautox库未安装，将使用wxauto库")
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "-c", "import wxautox; print('wxautox_available')"],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='ignore',
+                timeout=10
+            )
+
+            if result.returncode == 0 and "wxautox_available" in result.stdout:
+                logger.info("wxautox库已安装")
+            else:
+                logger.info("wxautox库未安装，将使用wxauto库")
+        except Exception as e:
+            logger.info(f"wxautox库检查失败: {str(e)}，将使用wxauto库")
 
         logger.info("依赖项检查成功")
         return True

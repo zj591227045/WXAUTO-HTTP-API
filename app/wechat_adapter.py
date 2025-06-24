@@ -12,12 +12,7 @@ import pythoncom
 import logging
 from typing import Optional, Union, List, Dict, Any
 
-# 尝试导入动态包管理器
-try:
-    from dynamic_package_manager import get_package_manager
-    package_manager = get_package_manager()
-except ImportError:
-    package_manager = None
+
 
 # 配置日志
 try:
@@ -229,16 +224,55 @@ class WeChatAdapter:
             return ""
 
         try:
-            # 尝试获取最新的窗口名称
+            # 尝试多种方法获取窗口名称
             window_name = ""
+
+            # 方法1：尝试从window_name属性获取
             if hasattr(self._instance, "window_name"):
-                window_name = self._instance.window_name
-            elif hasattr(self._instance, "GetWindowName"):
-                window_name = self._instance.GetWindowName()
+                window_name = getattr(self._instance, "window_name", "")
+                logger.debug(f"从window_name属性获取: {window_name}")
+
+            # 方法2：尝试调用GetWindowName方法
+            if not window_name and hasattr(self._instance, "GetWindowName"):
+                try:
+                    window_name = self._instance.GetWindowName()
+                    logger.debug(f"从GetWindowName方法获取: {window_name}")
+                except Exception as e:
+                    logger.debug(f"调用GetWindowName方法失败: {str(e)}")
+
+            # 方法3：尝试从nickname属性获取
+            if not window_name and hasattr(self._instance, "nickname"):
+                nickname = getattr(self._instance, "nickname", "")
+                if nickname:
+                    window_name = nickname
+                    logger.debug(f"从nickname属性获取: {window_name}")
+
+            # 方法4：尝试获取当前聊天窗口信息
+            if not window_name:
+                try:
+                    chat_info = self._instance.ChatInfo()
+                    if chat_info and isinstance(chat_info, dict):
+                        # 尝试从聊天信息中获取名称
+                        window_name = chat_info.get("nickname", "") or chat_info.get("name", "") or chat_info.get("title", "")
+                        logger.debug(f"从ChatInfo方法获取: {window_name}")
+                except Exception as e:
+                    logger.debug(f"调用ChatInfo方法失败: {str(e)}")
+
+            # 方法5：如果是Plus版本，尝试使用GetMyInfo方法
+            if not window_name and self._lib_name == "wxautox":
+                try:
+                    if hasattr(self._instance, "GetMyInfo"):
+                        my_info = self._instance.GetMyInfo()
+                        if my_info and isinstance(my_info, dict):
+                            window_name = my_info.get("nickname", "") or my_info.get("name", "")
+                            logger.debug(f"从GetMyInfo方法获取: {window_name}")
+                except Exception as e:
+                    logger.debug(f"调用GetMyInfo方法失败: {str(e)}")
 
             # 如果获取到了新的窗口名称，更新缓存
             if window_name:
                 self._cached_window_name = window_name
+                logger.debug(f"成功获取窗口名称: {window_name}")
                 return window_name
 
             # 如果没有获取到新的窗口名称，但缓存中有值，使用缓存
@@ -246,35 +280,56 @@ class WeChatAdapter:
                 logger.debug(f"使用缓存的窗口名称: {self._cached_window_name}")
                 return self._cached_window_name
 
-            # 如果缓存也没有，尝试从nickname属性获取
-            if hasattr(self._instance, "nickname"):
-                nickname = self._instance.nickname
-                if nickname:
-                    self._cached_window_name = nickname
-                    logger.debug(f"从nickname属性获取窗口名称: {nickname}")
-                    return nickname
+            # 如果都没有获取到，但微信实例存在，返回一个默认值表示连接正常
+            logger.debug("无法获取具体窗口名称，但微信实例存在")
+            return "微信"
 
-            # 都没有获取到，返回空字符串
-            return ""
         except Exception as e:
             logger.warning(f"获取窗口名称失败: {str(e)}")
             # 如果获取失败但缓存中有值，返回缓存
             if self._cached_window_name:
                 logger.debug(f"获取失败，使用缓存的窗口名称: {self._cached_window_name}")
                 return self._cached_window_name
-            return ""
+            # 如果缓存也没有，但微信实例存在，返回默认值
+            return "微信"
 
     def check_connection(self) -> bool:
         """检查微信连接状态"""
         if not self._instance:
+            logger.debug("微信实例未初始化")
             return False
 
         try:
-            # 两个库都支持GetSessionList方法
-            self._instance.GetSessionList()
-            return True
+            # 首先尝试获取窗口名称，这是最基本的检查
+            window_name = self.get_window_name()
+            logger.debug(f"获取到窗口名称: {window_name}")
+
+            if not window_name:
+                logger.debug("无法获取微信窗口名称，可能未登录")
+                return False
+
+            # 然后尝试获取会话列表，但不要求必须有会话
+            try:
+                sessions = self._instance.GetSessionList()
+                logger.debug(f"获取会话列表成功，类型: {type(sessions)}")
+
+                # 只要能成功调用GetSessionList就认为连接正常，即使返回空列表
+                if sessions is not None:
+                    session_count = len(sessions) if isinstance(sessions, (dict, list)) else 0
+                    logger.debug(f"微信连接检查成功，窗口名称: {window_name}, 会话数量: {session_count}")
+                    return True
+                else:
+                    logger.debug("获取会话列表返回None")
+                    # 即使会话列表为None，如果有窗口名称也认为连接正常
+                    return True
+            except Exception as session_e:
+                logger.debug(f"获取会话列表失败: {str(session_e)}")
+                # 如果获取会话列表失败，但有窗口名称，仍然认为连接正常
+                # 因为可能是微信刚登录，还没有会话
+                return True
+
         except Exception as e:
-            logger.error(f"微信连接检查失败: {str(e)}")
+            logger.debug(f"微信连接检查失败: {str(e)}")
             return False
 
     def __getattr__(self, name):
@@ -427,21 +482,22 @@ class WeChatAdapter:
             # 在调用GetNextNewMessage前，先检查是否有打开的聊天窗口
             # 如果没有，先打开一个聊天窗口
             try:
-                # 尝试获取当前聊天窗口名称
-                current_chat = self._instance.CurrentChat()
-                if not current_chat:
-                    # 如果没有打开的聊天窗口，先打开一个
-                    logger.debug("没有打开的聊天窗口，尝试打开一个")
-                    session_dict = self._instance.GetSessionList(reset=True)
-                    if session_dict:
-                        first_session = list(session_dict.keys())[0]
-                        logger.debug(f"打开会话聊天窗口: {first_session}")
-                        self._instance.ChatWith(first_session)
+                # 尝试检查是否有打开的聊天窗口
+                # 通过尝试获取会话列表来检查微信状态
+                session_dict = self._instance.GetSessionList(reset=True)
+                if not session_dict:
+                    logger.debug("没有可用的会话，可能没有打开的聊天窗口")
+                    # 尝试打开文件传输助手作为默认聊天窗口
+                    try:
+                        logger.debug("尝试打开文件传输助手窗口")
+                        self._instance.ChatWith("文件传输助手")
                         # 等待窗口打开
                         import time
                         time.sleep(0.5)
+                    except Exception as chat_e:
+                        logger.warning(f"打开文件传输助手窗口失败: {str(chat_e)}")
                 else:
-                    logger.debug(f"当前已打开聊天窗口: {current_chat}")
+                    logger.debug(f"找到 {len(session_dict)} 个可用会话")
             except Exception as e:
                 logger.warning(f"检查聊天窗口状态失败: {str(e)}")
                 # 继续执行，让原始的错误处理逻辑处理
