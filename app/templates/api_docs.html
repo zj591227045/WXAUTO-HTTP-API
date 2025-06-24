@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WxAuto HTTP API 文档</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background-color: #07C160;
+        }
+        .navbar-brand {
+            color: white;
+            font-weight: bold;
+        }
+        .sidebar {
+            position: sticky;
+            top: 15px;
+            height: calc(100vh - 30px);
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+        }
+        .content {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .api-section {
+            margin-bottom: 25px;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 20px;
+        }
+        .api-section:last-child {
+            border-bottom: none;
+        }
+        .api-endpoint {
+            background: #f8f9fa;
+            border-left: 4px solid #07C160;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .method-badge {
+            font-size: 0.75em;
+            padding: 3px 6px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+        .method-get { background-color: #28a745; color: white; }
+        .method-post { background-color: #007bff; color: white; }
+        .method-put { background-color: #ffc107; color: black; }
+        .method-delete { background-color: #dc3545; color: white; }
+        .version-badge {
+            font-size: 0.65em;
+            padding: 2px 5px;
+            border-radius: 2px;
+            margin-left: 8px;
+        }
+        .version-basic { background-color: #07C160; color: white; }
+        .version-plus { background-color: #1E88E5; color: white; }
+        .nav-link {
+            color: #495057;
+            padding: 6px 12px;
+            border-radius: 4px;
+            margin: 1px 0;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+        .nav-link:hover {
+            background-color: #e9ecef;
+            color: #07C160;
+        }
+        .nav-link.active {
+            background-color: #07C160;
+            color: white;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 8px 0;
+            overflow-x: auto;
+            font-size: 0.85em;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .feature-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 1.5em;
+            color: #07C160;
+            margin-bottom: 8px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #07C160, #05a050);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.6em;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .comparison-table {
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+        .comparison-table th {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            padding: 8px;
+        }
+        .comparison-table td {
+            padding: 6px 8px;
+        }
+        .check-icon {
+            color: #28a745;
+            font-size: 1.1em;
+        }
+        .cross-icon {
+            color: #dc3545;
+            font-size: 1.1em;
+        }
+        .example-section {
+            margin-top: 15px;
+        }
+        .example-tabs {
+            margin-bottom: 10px;
+        }
+        .example-tab {
+            display: inline-block;
+            padding: 5px 12px;
+            margin-right: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+        .example-tab.active {
+            background: #07C160;
+            color: white;
+            border-color: #07C160;
+        }
+        .example-tab:hover {
+            background: #e9ecef;
+        }
+        .example-tab.active:hover {
+            background: #06a050;
+        }
+        .example-content {
+            display: none;
+        }
+        .example-content.active {
+            display: block;
+        }
+        .request-example {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 0.8em;
+        }
+        .response-example {
+            background: #f0f8f0;
+            border: 1px solid #c3e6c3;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 0.8em;
+        }
+        .example-label {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-chat-dots-fill"></i> WxAuto HTTP API 文档
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="text-white-50">WxAuto HTTP API v2.0</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏导航 -->
+            <div class="col-md-3">
+                <div class="sidebar">
+                    <h5 class="mb-3"><i class="bi bi-list"></i> 目录</h5>
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="#overview">概述</a>
+                        <a class="nav-link" href="#features">功能特性</a>
+                        <a class="nav-link" href="#versions">版本对比</a>
+                        <a class="nav-link" href="#auth">认证方式</a>
+                        <a class="nav-link" href="#basic-apis">基础功能</a>
+                        <a class="nav-link" href="#message-apis">消息功能</a>
+                        <a class="nav-link" href="#chat-apis">聊天窗口</a>
+                        <a class="nav-link" href="#group-apis">群组管理</a>
+                        <a class="nav-link" href="#friend-apis">好友管理</a>
+                        <a class="nav-link" href="#wechat-apis">WeChat扩展</a>
+                        <a class="nav-link" href="#message-ops">消息操作</a>
+                        <a class="nav-link" href="#moments-apis">朋友圈</a>
+                        <a class="nav-link" href="#auxiliary-apis">辅助功能</a>
+                        <a class="nav-link" href="#error-codes">错误码</a>
+                        <a class="nav-link" href="#examples">使用示例</a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="col-md-9">
+                <!-- 概述 -->
+                <div class="content" id="overview">
+                    <h3><i class="bi bi-book"></i> WxAuto HTTP API 文档 v2.0</h3>
+                    <p class="lead mb-3">功能完整的微信自动化HTTP API系统，支持wxauto和wxautox两个版本</p>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">95%+</div>
+                            <div style="font-size: 0.85em;">功能覆盖率</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">70+</div>
+                            <div style="font-size: 0.85em;">API端点</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">7</div>
+                            <div style="font-size: 0.85em;">功能模块</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">2</div>
+                            <div style="font-size: 0.85em;">支持版本</div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>版本说明：</strong>
+                        本API系统同时支持wxauto（基础版）和wxautox（Plus版），Plus版本功能更加丰富。
+                        系统会自动检测当前使用的库版本，并提供相应的功能支持。
+                    </div>
+                </div>
+
+                <!-- 功能特性 -->
+                <div class="content" id="features">
+                    <h3><i class="bi bi-star"></i> 功能特性</h3>
+
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="bi bi-chat-dots"></i></div>
+                            <h6 class="mb-2">完整消息支持</h6>
+                            <p class="mb-0" style="font-size: 0.85em;">支持文本、图片、文件、语音等多种消息类型的发送和接收</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="bi bi-people"></i></div>
+                            <h6 class="mb-2">群组管理</h6>
+                            <p class="mb-0" style="font-size: 0.85em;">完整的群组管理功能，包括成员管理、群设置等</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="bi bi-person-plus"></i></div>
+                            <h6 class="mb-2">好友管理</h6>
+                            <p class="mb-0" style="font-size: 0.85em;">好友添加、删除、备注修改等完整好友管理功能</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="bi bi-heart"></i></div>
+                            <h6 class="mb-2">朋友圈功能</h6>
+                            <p class="mb-0" style="font-size: 0.85em;">朋友圈浏览、点赞、评论等社交功能（Plus版）</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="bi bi-ear"></i></div>
+                            <h6 class="mb-2">消息监听</h6>
+                            <p class="mb-0" style="font-size: 0.85em;">实时监听指定聊天窗口的新消息</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="bi bi-shield-check"></i></div>
+                            <h6 class="mb-2">版本兼容</h6>
+                            <p class="mb-0" style="font-size: 0.85em;">同时支持wxauto和wxautox，自动适配功能</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 版本对比 -->
+                <div class="content" id="versions">
+                    <h3><i class="bi bi-layers"></i> 版本对比</h3>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-success text-white py-2">
+                                    <h6 class="mb-0"><i class="bi bi-box"></i> wxauto (基础版)</h6>
+                                </div>
+                                <div class="card-body py-3">
+                                    <ul class="list-unstyled mb-2" style="font-size: 0.85em;">
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 基础消息发送接收</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 消息监听功能</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 聊天窗口操作</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 文件发送下载</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 基础会话管理</li>
+                                    </ul>
+                                    <div class="mt-2">
+                                        <span class="version-basic">免费开源</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-primary text-white py-2">
+                                    <h6 class="mb-0"><i class="bi bi-box"></i> wxautox (Plus版)</h6>
+                                </div>
+                                <div class="card-body py-3">
+                                    <ul class="list-unstyled mb-2" style="font-size: 0.85em;">
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 包含所有基础功能</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 群组管理功能</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 好友管理功能</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 朋友圈功能</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 高级消息操作</li>
+                                        <li class="mb-1"><i class="bi bi-check-circle text-success"></i> 更多自定义功能</li>
+                                    </ul>
+                                    <div class="mt-2">
+                                        <span class="version-plus">增强版本</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="table table-striped comparison-table">
+                        <thead>
+                            <tr>
+                                <th>功能模块</th>
+                                <th>wxauto</th>
+                                <th>wxautox</th>
+                                <th>API端点数</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>基础消息</td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td>15+</td>
+                            </tr>
+                            <tr>
+                                <td>消息监听</td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td>8</td>
+                            </tr>
+                            <tr>
+                                <td>聊天窗口</td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td>8</td>
+                            </tr>
+                            <tr>
+                                <td>群组管理</td>
+                                <td><i class="bi bi-x-circle cross-icon"></i></td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td>6</td>
+                            </tr>
+                            <tr>
+                                <td>好友管理</td>
+                                <td><i class="bi bi-x-circle cross-icon"></i></td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td>5</td>
+                            </tr>
+                            <tr>
+                                <td>朋友圈</td>
+                                <td><i class="bi bi-x-circle cross-icon"></i></td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td>4</td>
+                            </tr>
+                            <tr>
+                                <td>消息操作</td>
+                                <td>部分</td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td>8</td>
+                            </tr>
+                            <tr>
+                                <td>辅助功能</td>
+                                <td>部分</td>
+                                <td><i class="bi bi-check-circle check-icon"></i></td>
+                                <td>3</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 认证方式 -->
+                <div class="content" id="auth">
+                    <h3><i class="bi bi-shield-lock"></i> 认证方式</h3>
+
+                    <p class="mb-2">所有API请求都需要在HTTP Header中包含API密钥：</p>
+
+                    <div class="code-block">
+                        <code>X-API-Key: your_api_key_here</code>
+                    </div>
+
+                    <h5>验证API密钥</h5>
+                    <div class="api-endpoint">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/auth/verify</code>
+                        <span class="version-badge version-basic">基础版</span>
+                    </div>
+
+                    <div class="example-section">
+                        <div class="example-label">请求示例：</div>
+                        <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/auth/verify \
+  -H "X-API-Key: test-key-2"</pre>
+                        </div>
+
+                        <div class="example-label">响应示例：</div>
+                        <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "验证成功",
+  "data": {
+    "valid": true
+  }
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 基础功能 -->
+                <div class="content" id="basic-apis">
+                    <h3><i class="bi bi-gear"></i> 基础功能</h3>
+
+                    <div class="api-section">
+                        <h5>微信初始化</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/wechat/initialize</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">初始化微信实例，建立与微信的连接。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/wechat/initialize \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "微信初始化成功",
+  "data": {
+    "status": "initialized",
+    "window_name": "微信"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>获取微信状态</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/wechat/status</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">获取当前微信连接状态和相关信息。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X GET http://localhost:5000/api/wechat/status \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "获取状态成功",
+  "data": {
+    "is_connected": true,
+    "window_name": "微信",
+    "current_lib": "wxauto"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>系统资源监控</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/system/resources</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">获取系统资源使用情况，包括CPU、内存等信息。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X GET http://localhost:5000/api/system/resources \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "获取系统资源成功",
+  "data": {
+    "cpu_percent": 15.2,
+    "memory_percent": 68.5,
+    "memory_used": "8.2 GB",
+    "memory_total": "16.0 GB"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 消息功能 -->
+                <div class="content" id="message-apis">
+                    <h3><i class="bi bi-chat-dots"></i> 消息功能</h3>
+
+                    <div class="api-section">
+                        <h5>发送普通消息</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/send</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/message/send \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiver": "文件传输助手",
+    "message": "这是一条测试消息",
+    "at_list": ["张三", "李四"],
+    "clear": true
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "消息发送成功",
+  "data": {
+    "receiver": "文件传输助手",
+    "message": "这是一条测试消息",
+    "sent_at": "2025-01-24 10:30:15"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>发送打字机模式消息</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/send-typing</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">以打字机效果发送消息，支持多行文本。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/message/send-typing \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiver": "文件传输助手",
+    "lines": ["第一行消息", "第二行消息", "第三行消息"],
+    "delay": 1.0
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "打字机消息发送成功",
+  "data": {
+    "receiver": "文件传输助手",
+    "lines_count": 3,
+    "delay": 1.0
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>发送文件</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/send-file</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">发送文件到指定联系人或群组。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/message/send-file \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiver": "文件传输助手",
+    "file_paths": ["D:/test/document.pdf", "D:/test/image.jpg"]
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "文件发送成功",
+  "data": {
+    "receiver": "文件传输助手",
+    "files_sent": 2,
+    "file_paths": ["D:/test/document.pdf", "D:/test/image.jpg"]
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>获取新消息</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/message/get-next-new</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">获取主窗口的未读新消息。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X GET http://localhost:5000/api/message/get-next-new \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "获取新消息成功",
+  "data": {
+    "sender": "张三",
+    "content": "你好，这是一条新消息",
+    "type": "text",
+    "time": "2025-01-24 10:35:20"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>消息监听管理</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/listen/add</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/message/listen/get</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/listen/remove</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">管理消息监听，包括添加、获取和移除监听对象。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">添加监听 - 请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/message/listen/add \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "who": "测试群",
+    "savepic": true,
+    "savevideo": false,
+    "savefile": true
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">添加监听 - 响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "监听添加成功",
+  "data": {
+    "who": "测试群",
+    "options": {
+      "savepic": true,
+      "savevideo": false,
+      "savefile": true
+    }
+  }
+}</pre>
+                            </div>
+
+                            <div class="example-label">获取监听消息 - 请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X GET "http://localhost:5000/api/message/listen/get?who=测试群" \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">获取监听消息 - 响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "获取监听消息成功",
+  "data": {
+    "messages": [
+      {
+        "sender": "群成员A",
+        "content": "大家好！",
+        "type": "text",
+        "time": "2025-01-24 10:40:15"
+      },
+      {
+        "sender": "群成员B",
+        "content": "[图片]",
+        "type": "image",
+        "time": "2025-01-24 10:41:20",
+        "file_path": "/data/images/20250124_104120.jpg"
+      }
+    ]
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 聊天窗口 -->
+                <div class="content" id="chat-apis">
+                    <h3><i class="bi bi-window"></i> 聊天窗口操作</h3>
+
+                    <div class="api-section">
+                        <h5>显示/关闭聊天窗口</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/chat/show</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/chat/close</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">控制聊天窗口的显示和关闭。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">显示聊天窗口 - 请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/chat/show \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "who": "文件传输助手"
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">显示聊天窗口 - 响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "聊天窗口显示成功",
+  "data": {
+    "who": "文件传输助手",
+    "window_shown": true
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>加载更多消息</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/chat/load-more-messages</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">加载聊天窗口的历史消息记录。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/chat/load-more-messages \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "count": 20
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "历史消息加载成功",
+  "data": {
+    "loaded_count": 20,
+    "total_messages": 156
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>获取所有消息</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/chat/get-all-messages</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">获取当前聊天窗口的所有消息。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X GET http://localhost:5000/api/chat/get-all-messages \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "获取所有消息成功",
+  "data": {
+    "messages": [
+      {
+        "sender": "我",
+        "content": "你好",
+        "type": "text",
+        "time": "2025-01-24 10:30:00"
+      },
+      {
+        "sender": "文件传输助手",
+        "content": "你好！有什么可以帮助你的吗？",
+        "type": "text",
+        "time": "2025-01-24 10:30:05"
+      }
+    ],
+    "total_count": 2
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>发送自定义表情 (Plus版)</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/chat/send-emotion</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">发送自定义表情到聊天窗口。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/chat/send-emotion \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emotion_path": "D:/emotions/happy.gif"
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "自定义表情发送成功",
+  "data": {
+    "emotion_path": "D:/emotions/happy.gif",
+    "sent_at": "2025-01-24 10:45:30"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>合并转发消息 (Plus版)</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/chat/merge-forward</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">将多条消息合并转发给其他联系人。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/chat/merge-forward \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "张三",
+    "message_indices": [1, 2, 3]
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "消息合并转发成功",
+  "data": {
+    "target": "张三",
+    "forwarded_count": 3,
+    "forwarded_at": "2025-01-24 10:46:15"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 群组管理 -->
+                <div class="content" id="group-apis">
+                    <h3><i class="bi bi-people"></i> 群组管理 (Plus版)</h3>
+
+                    <div class="alert alert-warning py-2">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>注意：</strong> 群组管理功能需要wxautox (Plus版)支持。
+                    </div>
+
+                    <div class="api-section">
+                        <h5>添加群成员</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/group/add-members</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/group/add-members \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "group": "测试群",
+    "members": ["好友1", "好友2"],
+    "reason": "邀请加入我们的讨论群"
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "群成员添加成功",
+  "data": {
+    "group": "测试群",
+    "added_members": ["好友1", "好友2"],
+    "success_count": 2,
+    "failed_count": 0
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>获取群成员列表</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/group/get-members?who=测试群</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">获取指定群组的成员列表。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X GET "http://localhost:5000/api/group/get-members?who=测试群" \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "获取群成员列表成功",
+  "data": {
+    "group": "测试群",
+    "members": [
+      {"name": "群主", "role": "owner"},
+      {"name": "管理员A", "role": "admin"},
+      {"name": "成员B", "role": "member"},
+      {"name": "成员C", "role": "member"}
+    ],
+    "total_count": 4
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>移除群成员</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/group/remove-members</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">从群组中移除指定成员。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/group/remove-members \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "group": "测试群",
+    "members": ["违规用户"]
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "群成员移除成功",
+  "data": {
+    "group": "测试群",
+    "removed_members": ["违规用户"],
+    "success_count": 1
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>群聊管理</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/group/manage</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">管理群聊设置，包括群名、公告、昵称等。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>获取群聊列表</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/group/get-recent-groups</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/group/get-contact-groups</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p>获取最近群聊或通讯录中的群聊列表。</p>
+                    </div>
+                </div>
+
+                <!-- 好友管理 -->
+                <div class="content" id="friend-apis">
+                    <h3><i class="bi bi-person-plus"></i> 好友管理 (Plus版)</h3>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>注意：</strong> 好友管理功能需要wxautox (Plus版)支持。
+                    </div>
+
+                    <div class="api-section">
+                        <h5>获取好友详情</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/friend/get-details</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p>获取好友的详细信息列表。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>新好友申请管理</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/friend/get-new-friends</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/auxiliary/new-friend/accept</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/auxiliary/new-friend/reject</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p>管理新好友申请，包括获取、接受和拒绝申请。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>添加新好友</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/friend/add-new-friend</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+
+                        <div class="example-section">
+                            <div class="example-label">请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/friend/add-new-friend \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keywords": "张三",
+    "addmsg": "你好，我是李四，想加你为好友",
+    "remark": "张三同学",
+    "tags": ["同学", "朋友"],
+    "permission": "朋友圈"
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "好友申请发送成功",
+  "data": {
+    "keywords": "张三",
+    "addmsg": "你好，我是李四，想加你为好友",
+    "remark": "张三同学",
+    "sent_at": "2025-01-24 11:00:00"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>好友信息管理</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/friend/manage</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p>修改好友备注名或标签。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>从群聊添加好友</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/friend/add-from-group</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p>从群聊成员中添加好友。</p>
+                    </div>
+                </div>
+
+                <!-- WeChat扩展 -->
+                <div class="content" id="wechat-apis">
+                    <h3><i class="bi bi-chat-square-dots"></i> WeChat扩展功能</h3>
+
+                    <div class="api-section">
+                        <h5>会话管理</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/wechat/get-session</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p>获取当前会话列表。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>窗口操作</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/wechat/chat-with</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/wechat/get-sub-window</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/wechat/get-all-sub-windows</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p>管理聊天窗口和子窗口。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>监听控制</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/wechat/start-listening</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/wechat/stop-listening</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p>控制消息监听的开始和停止。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>Plus版功能</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/wechat/send-url-card</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/wechat/is-online</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/wechat/get-my-info</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p>发送链接卡片、检查在线状态、获取个人信息等高级功能。</p>
+                    </div>
+                </div>
+
+                <!-- 消息操作 -->
+                <div class="content" id="message-ops">
+                    <h3><i class="bi bi-cursor"></i> 消息操作</h3>
+
+                    <div class="api-section">
+                        <h5>基础消息操作</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/click</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/quote</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/forward</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p>点击消息、引用回复、转发消息等基础操作。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>文件和媒体操作</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/download</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/to-text</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p>下载图片/文件、语音转文字等功能。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>Plus版操作</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/tickle</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/message/delete</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p>拍一拍、删除消息等高级操作。</p>
+                    </div>
+                </div>
+
+                <!-- 朋友圈 -->
+                <div class="content" id="moments-apis">
+                    <h3><i class="bi bi-heart"></i> 朋友圈功能 (Plus版)</h3>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>注意：</strong> 朋友圈功能需要wxautox (Plus版)支持。
+                    </div>
+
+                    <div class="api-section">
+                        <h5>朋友圈操作</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/moments/open</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-get">GET</span>
+                            <code>/api/moments/get-moments</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/moments/like</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/moments/save-images</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p class="mb-2" style="font-size: 0.9em;">进入朋友圈、获取内容、点赞、保存图片等功能。</p>
+
+                        <div class="example-section">
+                            <div class="example-label">打开朋友圈 - 请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/moments/open \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">打开朋友圈 - 响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "朋友圈打开成功",
+  "data": {
+    "opened_at": "2025-01-24 11:10:00"
+  }
+}</pre>
+                            </div>
+
+                            <div class="example-label">获取朋友圈内容 - 请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X GET http://localhost:5000/api/moments/get-moments \
+  -H "X-API-Key: test-key-2"</pre>
+                            </div>
+
+                            <div class="example-label">获取朋友圈内容 - 响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "获取朋友圈内容成功",
+  "data": {
+    "moments": [
+      {
+        "author": "张三",
+        "content": "今天天气真好！",
+        "images": ["image1.jpg"],
+        "time": "2小时前",
+        "likes": 15,
+        "comments": 3
+      }
+    ],
+    "total_count": 1
+  }
+}</pre>
+                            </div>
+
+                            <div class="example-label">点赞朋友圈 - 请求示例：</div>
+                            <div class="request-example">
+<pre>curl -X POST http://localhost:5000/api/moments/like \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "moment_index": 0
+  }'</pre>
+                            </div>
+
+                            <div class="example-label">点赞朋友圈 - 响应示例：</div>
+                            <div class="response-example">
+<pre>{
+  "code": 0,
+  "message": "朋友圈点赞成功",
+  "data": {
+    "moment_index": 0,
+    "liked_at": "2025-01-24 11:12:00"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 辅助功能 -->
+                <div class="content" id="auxiliary-apis">
+                    <h3><i class="bi bi-tools"></i> 辅助功能</h3>
+
+                    <div class="api-section">
+                        <h5>会话元素操作</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/auxiliary/session/click</code>
+                            <span class="version-badge version-basic">基础版</span>
+                        </div>
+                        <p>点击会话列表中的会话元素。</p>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>新好友申请处理</h5>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/auxiliary/new-friend/accept</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method-badge method-post">POST</span>
+                            <code>/api/auxiliary/new-friend/reject</code>
+                            <span class="version-badge version-plus">Plus版</span>
+                        </div>
+                        <p>接受或拒绝新好友申请。</p>
+                    </div>
+                </div>
+
+                <!-- 错误码 -->
+                <div class="content" id="error-codes">
+                    <h3><i class="bi bi-exclamation-triangle"></i> 错误码说明</h3>
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>错误码</th>
+                                <th>说明</th>
+                                <th>可能原因</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>0</code></td>
+                                <td>成功</td>
+                                <td>请求处理成功</td>
+                            </tr>
+                            <tr>
+                                <td><code>1001</code></td>
+                                <td>认证失败</td>
+                                <td>API密钥无效或缺失</td>
+                            </tr>
+                            <tr>
+                                <td><code>1002</code></td>
+                                <td>参数错误</td>
+                                <td>请求参数缺失或格式错误</td>
+                            </tr>
+                            <tr>
+                                <td><code>2001</code></td>
+                                <td>微信未初始化</td>
+                                <td>需要先调用初始化接口</td>
+                            </tr>
+                            <tr>
+                                <td><code>2002</code></td>
+                                <td>微信已掉线</td>
+                                <td>微信连接断开，需要重新连接</td>
+                            </tr>
+                            <tr>
+                                <td><code>3001</code></td>
+                                <td>操作失败</td>
+                                <td>具体操作执行失败</td>
+                            </tr>
+                            <tr>
+                                <td><code>3002</code></td>
+                                <td>获取消息失败</td>
+                                <td>消息获取过程中出现错误</td>
+                            </tr>
+                            <tr>
+                                <td><code>3003</code></td>
+                                <td>文件下载失败</td>
+                                <td>文件不存在或无访问权限</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 使用示例 -->
+                <div class="content" id="examples">
+                    <h3><i class="bi bi-code-slash"></i> 使用示例</h3>
+
+                    <div class="api-section">
+                        <h5>Python示例</h5>
+                        <div class="code-block">
+<pre>import requests
+
+# API配置
+API_BASE = "http://localhost:5000"
+API_KEY = "your-api-key"
+headers = {"X-API-Key": API_KEY}
+
+# 初始化微信
+response = requests.post(f"{API_BASE}/api/wechat/initialize", headers=headers)
+print(response.json())
+
+# 发送消息
+data = {
+    "receiver": "文件传输助手",
+    "message": "Hello from Python!"
+}
+response = requests.post(f"{API_BASE}/api/message/send", json=data, headers=headers)
+print(response.json())
+
+# 添加监听
+data = {"who": "测试群", "savepic": True}
+response = requests.post(f"{API_BASE}/api/message/listen/add", json=data, headers=headers)
+print(response.json())
+
+# 获取监听消息
+response = requests.get(f"{API_BASE}/api/message/listen/get?who=测试群", headers=headers)
+print(response.json())</pre>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>JavaScript示例</h5>
+                        <div class="code-block">
+<pre>class WxAutoAPI {
+    constructor(baseUrl, apiKey) {
+        this.baseUrl = baseUrl;
+        this.headers = {
+            'X-API-Key': apiKey,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    async initialize() {
+        const response = await fetch(`${this.baseUrl}/api/wechat/initialize`, {
+            method: 'POST',
+            headers: this.headers
+        });
+        return response.json();
+    }
+
+    async sendMessage(receiver, message) {
+        const response = await fetch(`${this.baseUrl}/api/message/send`, {
+            method: 'POST',
+            headers: this.headers,
+            body: JSON.stringify({ receiver, message })
+        });
+        return response.json();
+    }
+
+    async addListen(who, options = {}) {
+        const response = await fetch(`${this.baseUrl}/api/message/listen/add`, {
+            method: 'POST',
+            headers: this.headers,
+            body: JSON.stringify({ who, ...options })
+        });
+        return response.json();
+    }
+}
+
+// 使用示例
+const api = new WxAutoAPI('http://localhost:5000', 'your-api-key');
+
+async function demo() {
+    await api.initialize();
+    await api.sendMessage('文件传输助手', 'Hello from JavaScript!');
+    await api.addListen('测试群', { savepic: true });
+}
+
+demo().catch(console.error);</pre>
+                        </div>
+                    </div>
+
+                    <div class="api-section">
+                        <h5>CURL示例</h5>
+                        <div class="code-block">
+<pre># 初始化微信
+curl -X POST http://localhost:5000/api/wechat/initialize \
+  -H "X-API-Key: your-api-key"
+
+# 发送消息
+curl -X POST http://localhost:5000/api/message/send \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiver": "文件传输助手",
+    "message": "Hello from CURL!"
+  }'
+
+# 添加监听
+curl -X POST http://localhost:5000/api/message/listen/add \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "who": "测试群",
+    "savepic": true
+  }'
+
+# 获取监听消息
+curl -X GET "http://localhost:5000/api/message/listen/get?who=测试群" \
+  -H "X-API-Key: your-api-key"</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 页脚信息 -->
+                <div class="content">
+                    <div class="text-center">
+                        <h3><i class="bi bi-check-circle text-success"></i> 文档完成</h3>
+                        <p class="text-muted">
+                            WxAuto HTTP API v2.0 - 功能完整的微信自动化解决方案<br>
+                            支持wxauto和wxautox两个版本，覆盖95%以上功能
+                        </p>
+                        <div class="mt-3">
+                            <a href="#overview" class="btn btn-primary">
+                                <i class="bi bi-arrow-up"></i> 回到顶部
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 导航高亮
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('.content');
+
+            function updateActiveNav() {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (window.pageYOffset >= sectionTop - 100) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            window.addEventListener('scroll', updateActiveNav);
+            updateActiveNav();
+
+            // 平滑滚动
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) {
+                        targetSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

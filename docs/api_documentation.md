@@ -31,8 +31,33 @@ X-API-Key: your_api_key_here
 - 2002: 微信已掉线
 - 3001: 发送消息失败
 - 3002: 获取消息失败
+- 3003: 文件下载失败
 - 4001: 群操作失败
 - 5001: 好友操作失败
+
+## API 功能分类
+
+### 基础功能
+- 认证相关 (`/api/auth/`)
+- 微信基础功能 (`/api/wechat/`)
+- 系统功能 (`/api/system/`, `/api/health`)
+
+### 消息功能
+- 消息发送接收 (`/api/message/`)
+- 消息监听 (`/api/message/listen/`)
+- 消息操作 (`/api/message/`)
+- 聊天窗口操作 (`/api/chat-window/`)
+
+### 新增功能 (v2.0)
+- Chat类操作 (`/api/chat/`)
+- 群组管理 (`/api/group/`)
+- 好友管理 (`/api/friend/`)
+- WeChat类扩展 (`/api/wechat/`)
+- 朋友圈功能 (`/api/moments/`)
+- 辅助类功能 (`/api/auxiliary/`)
+
+### Plus版本功能
+标记为 "(Plus版)" 的功能需要wxautox库支持
 
 ## API 端点详细说明
 
@@ -1103,3 +1128,521 @@ async function demo() {
 
 demo().catch(console.error);
 ```
+
+---
+
+## 新增API功能 (v2.0)
+
+### Chat类操作 (`/api/chat/`)
+
+#### 显示聊天窗口
+```http
+POST /api/chat/show
+```
+
+请求体：
+```json
+{
+    "who": "测试群"
+}
+```
+
+#### 加载更多聊天记录
+```http
+POST /api/chat/load-more-messages
+```
+
+请求体：
+```json
+{
+    "who": "测试群"
+}
+```
+
+#### 获取所有消息
+```http
+GET /api/chat/get-all-messages?who=测试群
+```
+
+#### 关闭聊天窗口
+```http
+POST /api/chat/close
+```
+
+请求体：
+```json
+{
+    "who": "测试群"
+}
+```
+
+#### 发送自定义表情 (Plus版)
+```http
+POST /api/chat/send-emotion
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "emotion_index": 1
+}
+```
+
+#### 合并转发消息 (Plus版)
+```http
+POST /api/chat/merge-forward
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_ids": ["msg1", "msg2"],
+    "to_friends": ["好友1", "好友2"]
+}
+```
+
+#### 获取对话框 (Plus版)
+```http
+GET /api/chat/get-dialog?who=测试群
+```
+
+#### 获取置顶消息 (Plus版)
+```http
+GET /api/chat/get-top-message?who=测试群
+```
+
+### 群组管理 (`/api/group/`)
+
+#### 添加群成员 (Plus版)
+```http
+POST /api/group/add-members
+```
+
+请求体：
+```json
+{
+    "group": "测试群",
+    "members": ["好友1", "好友2"],
+    "reason": "邀请理由"
+}
+```
+
+#### 获取群成员列表 (Plus版)
+```http
+GET /api/group/get-members?who=测试群
+```
+
+#### 移除群成员 (Plus版)
+```http
+POST /api/group/remove-members
+```
+
+请求体：
+```json
+{
+    "group": "测试群",
+    "members": ["成员1", "成员2"]
+}
+```
+
+#### 管理群聊 (Plus版)
+```http
+POST /api/group/manage
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "name": "新群名",
+    "remark": "群备注",
+    "myname": "我的群昵称",
+    "notice": "群公告",
+    "quit": false
+}
+```
+
+#### 获取最近群聊列表 (Plus版)
+```http
+GET /api/group/get-recent-groups
+```
+
+#### 获取通讯录群聊列表 (Plus版)
+```http
+GET /api/group/get-contact-groups?speed=1&interval=0.1
+```
+
+### 好友管理 (`/api/friend/`)
+
+#### 获取好友详情 (Plus版)
+```http
+GET /api/friend/get-details?n=10&tag=标签&timeout=60000
+```
+
+#### 获取新好友申请 (Plus版)
+```http
+GET /api/friend/get-new-friends?acceptable=true
+```
+
+#### 添加新好友 (Plus版)
+```http
+POST /api/friend/add-new-friend
+```
+
+请求体：
+```json
+{
+    "keywords": "搜索关键词",
+    "addmsg": "添加好友消息",
+    "remark": "好友备注",
+    "tags": ["标签1", "标签2"],
+    "permission": "朋友圈",
+    "timeout": 5
+}
+```
+
+#### 管理好友 (Plus版)
+```http
+POST /api/friend/manage
+```
+
+请求体：
+```json
+{
+    "who": "好友名",
+    "remark": "新备注",
+    "tags": ["新标签"]
+}
+```
+
+#### 从群聊添加好友 (Plus版)
+```http
+POST /api/friend/add-from-group
+```
+
+请求体：
+```json
+{
+    "who": "群名",
+    "index": 1,
+    "addmsg": "添加好友消息",
+    "remark": "好友备注",
+    "tags": ["标签"],
+    "permission": "仅聊天",
+    "exact": false
+}
+```
+
+### WeChat类扩展 (`/api/wechat/`)
+
+#### 获取会话列表
+```http
+GET /api/wechat/get-session
+```
+
+#### 发送链接卡片 (Plus版)
+```http
+POST /api/wechat/send-url-card
+```
+
+请求体：
+```json
+{
+    "url": "https://example.com",
+    "friends": ["好友1", "好友2"],
+    "timeout": 10
+}
+```
+
+#### 打开聊天窗口
+```http
+POST /api/wechat/chat-with
+```
+
+请求体：
+```json
+{
+    "who": "好友名",
+    "exact": false
+}
+```
+
+#### 获取子窗口
+```http
+GET /api/wechat/get-sub-window?nickname=好友名
+```
+
+#### 获取所有子窗口
+```http
+GET /api/wechat/get-all-sub-windows
+```
+
+#### 开始监听
+```http
+POST /api/wechat/start-listening
+```
+
+#### 停止监听
+```http
+POST /api/wechat/stop-listening
+```
+
+请求体：
+```json
+{
+    "remove": true
+}
+```
+
+#### 切换到聊天页面
+```http
+POST /api/wechat/switch-to-chat
+```
+
+#### 切换到联系人页面
+```http
+POST /api/wechat/switch-to-contact
+```
+
+#### 检查在线状态 (Plus版)
+```http
+GET /api/wechat/is-online
+```
+
+#### 获取个人信息 (Plus版)
+```http
+GET /api/wechat/get-my-info
+```
+
+#### 保持程序运行
+```http
+POST /api/wechat/keep-running
+```
+
+请求体：
+```json
+{
+    "timeout": 0
+}
+```
+
+### 消息操作 (`/api/message/`)
+
+#### 点击消息
+```http
+POST /api/message/click
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_id": "消息ID"
+}
+```
+
+#### 引用回复消息
+```http
+POST /api/message/quote
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_id": "消息ID",
+    "reply_text": "回复内容"
+}
+```
+
+#### 转发消息
+```http
+POST /api/message/forward
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_id": "消息ID",
+    "to_friends": ["好友1", "好友2"]
+}
+```
+
+#### 拍一拍 (Plus版)
+```http
+POST /api/message/tickle
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_id": "消息ID"
+}
+```
+
+#### 删除消息 (Plus版)
+```http
+POST /api/message/delete
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_id": "消息ID"
+}
+```
+
+#### 下载图片/文件
+```http
+POST /api/message/download
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_id": "消息ID",
+    "save_path": "保存路径"
+}
+```
+
+#### 语音转文字
+```http
+POST /api/message/to-text
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_id": "语音消息ID"
+}
+```
+
+#### 右键菜单操作
+```http
+POST /api/message/select-option
+```
+
+请求体：
+```json
+{
+    "who": "测试群",
+    "message_id": "消息ID",
+    "option": "菜单选项"
+}
+```
+
+### 朋友圈功能 (`/api/moments/`) - Plus版
+
+#### 进入朋友圈
+```http
+POST /api/moments/open
+```
+
+#### 获取朋友圈内容
+```http
+GET /api/moments/get-moments?n=10&timeout=10
+```
+
+#### 保存朋友圈图片
+```http
+POST /api/moments/save-images
+```
+
+请求体：
+```json
+{
+    "moment_index": 0,
+    "save_path": "保存路径"
+}
+```
+
+#### 点赞朋友圈
+```http
+POST /api/moments/like
+```
+
+请求体：
+```json
+{
+    "moment_index": 0
+}
+```
+
+### 辅助类功能 (`/api/auxiliary/`)
+
+#### 点击会话
+```http
+POST /api/auxiliary/session/click
+```
+
+请求体：
+```json
+{
+    "session_name": "会话名"
+}
+```
+
+#### 接受好友申请 (Plus版)
+```http
+POST /api/auxiliary/new-friend/accept
+```
+
+请求体：
+```json
+{
+    "friend_name": "申请人名",
+    "remark": "好友备注",
+    "tags": ["标签"]
+}
+```
+
+#### 拒绝好友申请 (Plus版)
+```http
+POST /api/auxiliary/new-friend/reject
+```
+
+请求体：
+```json
+{
+    "friend_name": "申请人名"
+}
+```
+
+## 版本兼容性说明
+
+### 基础版本 (wxauto)
+- 支持所有基础消息功能
+- 支持监听功能
+- 支持基本的聊天窗口操作
+
+### Plus版本 (wxautox)
+- 支持所有基础功能
+- 支持群组管理功能
+- 支持好友管理功能
+- 支持朋友圈功能
+- 支持高级消息操作
+
+## 使用建议
+
+1. **功能检查**: 使用Plus版功能前，建议先检查当前库版本
+2. **错误处理**: 所有API都有完善的错误处理，请根据错误码进行相应处理
+3. **监听管理**: 合理使用监听功能，避免监听过多对象影响性能
+4. **文件操作**: 文件路径使用绝对路径，确保有足够的访问权限
+
+## 更新日志
+
+### v2.0 (2025-06-24)
+- 新增Chat类完整API支持
+- 新增群组管理功能
+- 新增好友管理功能
+- 新增朋友圈功能
+- 新增消息操作功能
+- 新增辅助类功能
+- 完善错误处理和文档

@@ -99,14 +99,30 @@ def create_app():
             from app.api.routes import api_bp
             from app.api.admin_routes import admin_bp
             from app.api.plugin_routes import plugin_bp
+            # 导入新的API蓝图
+            from app.api.chat_routes import chat_bp
+            from app.api.group_routes import group_bp
+            from app.api.friend_routes import friend_bp
+            from app.api.wechat_routes import wechat_bp
+            from app.api.message_operations import message_ops_bp
+            from app.api.moments_routes import moments_bp
+            from app.api.auxiliary_routes import auxiliary_bp
         except ImportError as e:
             logging.error(f"导入蓝图模块失败: {str(e)}")
-            logging.error("请确保app/api目录下的routes.py、admin_routes.py和plugin_routes.py文件存在")
+            logging.error("请确保app/api目录下的所有蓝图文件存在")
             raise
 
         app.register_blueprint(api_bp, url_prefix='/api')
         app.register_blueprint(admin_bp, url_prefix='/api/admin')
         app.register_blueprint(plugin_bp, url_prefix='/admin/plugins')
+        # 注册新的API蓝图
+        app.register_blueprint(chat_bp, url_prefix='/api/chat')
+        app.register_blueprint(group_bp, url_prefix='/api/group')
+        app.register_blueprint(friend_bp, url_prefix='/api/friend')
+        app.register_blueprint(wechat_bp, url_prefix='/api/wechat')
+        app.register_blueprint(message_ops_bp, url_prefix='/api/message')
+        app.register_blueprint(moments_bp, url_prefix='/api/moments')
+        app.register_blueprint(auxiliary_bp, url_prefix='/api/auxiliary')
         logging.info("蓝图注册成功")
     except Exception as e:
         logging.error(f"注册蓝图时出错: {str(e)}")
@@ -118,6 +134,20 @@ def create_app():
     def health_check():
         """健康检查路由"""
         return {'status': 'ok'}
+
+    # 添加根路径重定向到API文档
+    @app.route('/')
+    def index():
+        """根路径重定向到API文档"""
+        from flask import redirect
+        return redirect('/api-docs')
+
+    # 添加API文档路由
+    @app.route('/api-docs')
+    def api_docs():
+        """API文档路由"""
+        from flask import render_template
+        return render_template('api_docs.html')
 
     logging.info("Flask应用创建完成")
     return app
