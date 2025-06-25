@@ -566,94 +566,119 @@ class WeChatAdapter:
         if not self._instance:
             raise AttributeError("微信实例未初始化")
 
-        # 确保使用正确的保存路径
-        try:
-            # 导入配置管理器
-            import config_manager
-
-            # 尝试导入wxauto.elements模块
-            try:
-                # 首先尝试直接导入
-                from wxauto.elements import WxParam
-                logger.debug("成功直接导入wxauto.elements.WxParam")
-            except ImportError as e:
-                logger.warning(f"直接导入wxauto.elements.WxParam失败: {str(e)}")
-
-                # 尝试使用与_try_import_wxauto相同的逻辑查找wxauto路径
-                import sys
-                import os
-
-                # 获取应用根目录
-                if getattr(sys, 'frozen', False):
-                    # 如果是打包后的环境
-                    app_root = os.path.dirname(sys.executable)
-                    meipass = getattr(sys, '_MEIPASS', None)
-                else:
-                    # 如果是开发环境
-                    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-                # 尝试多种可能的wxauto路径
-                possible_paths = [
-                    os.path.join(app_root, "wxauto"),
-                    os.path.join(app_root, "app", "wxauto"),
-                ]
-
-                # 如果是打包环境，添加更多可能的路径
-                if getattr(sys, 'frozen', False) and meipass:
-                    possible_paths.extend([
-                        os.path.join(meipass, "wxauto"),
-                        os.path.join(meipass, "app", "wxauto"),
-                    ])
-
-                # 尝试从每个路径导入
-                WxParam = None
-                for wxauto_path in possible_paths:
-                    if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
-                        # 检查wxauto路径下是否有wxauto子目录
-                        wxauto_inner_path = os.path.join(wxauto_path, "wxauto")
-                        elements_path = os.path.join(wxauto_inner_path, "elements.py")
-
-                        if os.path.exists(elements_path):
-                            logger.debug(f"找到elements.py文件: {elements_path}")
-
-                            # 将wxauto/wxauto目录添加到路径
-                            if wxauto_inner_path not in sys.path:
-                                sys.path.insert(0, wxauto_inner_path)
-
-                            # 将wxauto目录添加到路径
-                            if wxauto_path not in sys.path:
-                                sys.path.insert(0, wxauto_path)
-
-                            try:
-                                # 尝试导入
-                                from wxauto.elements import WxParam
-                                logger.debug(f"成功从路径导入wxauto.elements.WxParam: {wxauto_path}")
-                                break
-                            except ImportError as inner_e:
-                                logger.warning(f"从路径 {wxauto_path} 导入wxauto.elements.WxParam失败: {str(inner_e)}")
-
-                # 如果仍然无法导入，抛出异常
-                if WxParam is None:
-                    raise ImportError("无法导入wxauto.elements.WxParam")
-
-            # 确保目录存在
-            config_manager.ensure_dirs()
-
-            # 获取临时目录路径
-            temp_dir = str(config_manager.TEMP_DIR.absolute())
-
-            # 记录原始保存路径
-            original_path = WxParam.DEFALUT_SAVEPATH
-            logger.debug(f"原始wxauto保存路径: {original_path}")
-
-            # 修改为新的保存路径
-            WxParam.DEFALUT_SAVEPATH = temp_dir
-            logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
-        except Exception as path_e:
-            logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
-
-        # wxauto不支持savevideo和parseurl参数
+        # 只有在使用wxauto库时才需要设置保存路径
         if self._lib_name == "wxauto":
+            # 确保使用正确的保存路径
+            try:
+                # 导入配置管理器
+                import config_manager
+
+                # 尝试导入wxauto.elements模块
+                try:
+                    # 首先尝试直接导入
+                    from wxauto.elements import WxParam
+                    logger.debug("成功直接导入wxauto.elements.WxParam")
+                except ImportError as e:
+                    logger.warning(f"直接导入wxauto.elements.WxParam失败: {str(e)}")
+
+                    # 尝试使用与_try_import_wxauto相同的逻辑查找wxauto路径
+                    import sys
+                    import os
+
+                    # 获取应用根目录
+                    if getattr(sys, 'frozen', False):
+                        # 如果是打包后的环境
+                        app_root = os.path.dirname(sys.executable)
+                        meipass = getattr(sys, '_MEIPASS', None)
+                    else:
+                        # 如果是开发环境
+                        app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+                    # 尝试多种可能的wxauto路径
+                    possible_paths = [
+                        os.path.join(app_root, "wxauto"),
+                        os.path.join(app_root, "app", "wxauto"),
+                    ]
+
+                    # 如果是打包环境，添加更多可能的路径
+                    if getattr(sys, 'frozen', False) and meipass:
+                        possible_paths.extend([
+                            os.path.join(meipass, "wxauto"),
+                            os.path.join(meipass, "app", "wxauto"),
+                        ])
+
+                    # 尝试从每个路径导入
+                    WxParam = None
+                    for wxauto_path in possible_paths:
+                        if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
+                            # 检查wxauto路径下是否有wxauto子目录
+                            wxauto_inner_path = os.path.join(wxauto_path, "wxauto")
+                            elements_path = os.path.join(wxauto_inner_path, "elements.py")
+
+                            if os.path.exists(elements_path):
+                                logger.debug(f"找到elements.py文件: {elements_path}")
+
+                                # 将wxauto/wxauto目录添加到路径
+                                if wxauto_inner_path not in sys.path:
+                                    sys.path.insert(0, wxauto_inner_path)
+
+                                # 将wxauto目录添加到路径
+                                if wxauto_path not in sys.path:
+                                    sys.path.insert(0, wxauto_path)
+
+                                try:
+                                    # 尝试导入
+                                    from wxauto.elements import WxParam
+                                    logger.debug(f"成功从路径导入wxauto.elements.WxParam: {wxauto_path}")
+                                    break
+                                except ImportError as inner_e:
+                                    logger.warning(f"从路径 {wxauto_path} 导入wxauto.elements.WxParam失败: {str(inner_e)}")
+
+                    # 如果仍然无法导入，抛出异常
+                    if WxParam is None:
+                        raise ImportError("无法导入wxauto.elements.WxParam")
+
+                # 确保目录存在
+                config_manager.ensure_dirs()
+
+                # 获取临时目录路径
+                temp_dir = str(config_manager.TEMP_DIR.absolute())
+
+                # 记录原始保存路径
+                original_path = WxParam.DEFALUT_SAVEPATH
+                logger.debug(f"原始wxauto保存路径: {original_path}")
+
+                # 修改为新的保存路径
+                WxParam.DEFALUT_SAVEPATH = temp_dir
+                logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
+            except Exception as path_e:
+                logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
+        else:
+            logger.debug(f"使用{self._lib_name}库，跳过wxauto保存路径设置")
+
+        # 根据不同的库调整参数
+        if self._lib_name == "wxautox":
+            # wxautox的GetNextNewMessage方法参数格式不同
+            # 根据文档，wxautox只接受filter_mute参数
+            logger.debug("使用wxautox库，调整参数格式")
+
+            # 移除wxauto特有的参数，只保留filter_mute
+            adjusted_kwargs = {}
+            if 'filter_mute' in kwargs:
+                adjusted_kwargs['filter_mute'] = kwargs['filter_mute']
+            else:
+                # 默认不过滤免打扰消息
+                adjusted_kwargs['filter_mute'] = False
+
+            logger.debug(f"wxautox调整后的参数: {adjusted_kwargs}")
+
+            try:
+                return self._instance.GetNextNewMessage(*args, **adjusted_kwargs)
+            except Exception as e:
+                logger.error(f"wxautox GetNextNewMessage调用失败: {str(e)}")
+                return {}
+        else:
+            # wxauto不支持savevideo和parseurl参数
             # 从kwargs中移除不支持的参数
             if "savevideo" in kwargs:
                 logger.debug("移除wxauto不支持的参数: savevideo")

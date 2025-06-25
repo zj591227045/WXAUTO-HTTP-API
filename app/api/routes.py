@@ -527,19 +527,24 @@ def get_next_new_message():
             }
             logger.debug(f"使用wxauto参数: {params}")
 
-        # 确保保存路径设置正确
-        try:
-            import config_manager
-            from wxauto.elements import WxParam
-            temp_dir = str(config_manager.TEMP_DIR.absolute())
-            # 记录原始保存路径
-            original_path = WxParam.DEFALUT_SAVEPATH
-            logger.debug(f"原始wxauto保存路径: {original_path}")
-            # 修改为新的保存路径
-            WxParam.DEFALUT_SAVEPATH = temp_dir
-            logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
-        except Exception as path_e:
-            logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
+        # 检查当前使用的库，只有wxauto库才需要设置保存路径
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        if lib_name == "wxauto":
+            # 确保保存路径设置正确
+            try:
+                import config_manager
+                from wxauto.elements import WxParam
+                temp_dir = str(config_manager.TEMP_DIR.absolute())
+                # 记录原始保存路径
+                original_path = WxParam.DEFALUT_SAVEPATH
+                logger.debug(f"原始wxauto保存路径: {original_path}")
+                # 修改为新的保存路径
+                WxParam.DEFALUT_SAVEPATH = temp_dir
+                logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
+            except Exception as path_e:
+                logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
+        else:
+            logger.debug(f"使用{lib_name}库，跳过wxauto保存路径设置")
 
         # 调用GetNextNewMessage方法
         try:
@@ -562,34 +567,112 @@ def get_next_new_message():
             import re
             return re.sub(r'\s*\(\d+\)$', '', name)
 
+        # 格式化消息 - 处理不同库的返回格式
         formatted_messages = {}
-        for chat_name, msg_list in messages.items():
-            # 清理群名中的人数信息
-            clean_name = clean_group_name(chat_name)
-            formatted_messages[clean_name] = []
 
-            for msg in msg_list:
-                # 检查消息类型
-                if msg.type in ['image', 'file', 'video', 'voice']:
-                    # 检查文件是否存在且大小大于0
-                    if hasattr(msg, 'file_path') and msg.file_path:
-                        try:
-                            if not os.path.exists(msg.file_path) or os.path.getsize(msg.file_path) == 0:
-                                logger.warning(f"文件不存在或大小为0: {msg.file_path}")
-                                # 记录文件不存在的警告，但不重试下载
-                                logger.warning("文件不存在或大小为0，但不重试下载")
-                        except Exception as e:
-                            logger.error(f"检查文件失败: {str(e)}")
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
 
-                formatted_messages[clean_name].append({
-                    'type': msg.type,
-                    'content': msg.content,
-                    'sender': msg.sender,
-                    'id': msg.id,
-                    'mtype': getattr(msg, 'mtype', None),
-                    'sender_remark': getattr(msg, 'sender_remark', None),
-                    'file_path': getattr(msg, 'file_path', None)
-                })
+        if lib_name == "wxautox":
+            # wxautox返回格式: {'chat_name': 'name', 'chat_type': 'type', 'msg': [messages]}
+            if isinstance(messages, dict) and 'chat_name' in messages and 'msg' in messages:
+                chat_name = messages.get('chat_name', 'Unknown')
+                msg_list = messages.get('msg', [])
+
+                # 清理群名中的人数信息
+                clean_name = clean_group_name(chat_name)
+                formatted_messages[clean_name] = []
+
+                for msg in msg_list:
+                    try:
+                        # 检查msg是否是对象
+                        if hasattr(msg, 'type'):
+                            # 检查消息类型
+                            if hasattr(msg, 'type') and getattr(msg, 'type', '') in ['image', 'file', 'video', 'voice']:
+                                # 检查文件是否存在且大小大于0
+                                if hasattr(msg, 'file_path') and getattr(msg, 'file_path', ''):
+                                    try:
+                                        file_path = getattr(msg, 'file_path', '')
+                                        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                                            logger.warning(f"文件不存在或大小为0: {file_path}")
+                                    except Exception as e:
+                                        logger.error(f"检查文件失败: {str(e)}")
+
+                            formatted_messages[clean_name].append({
+                                'type': getattr(msg, 'type', 'unknown'),
+                                'content': getattr(msg, 'content', str(msg)),
+                                'sender': getattr(msg, 'sender', ''),
+                                'id': getattr(msg, 'id', ''),
+                                'mtype': getattr(msg, 'mtype', None),
+                                'sender_remark': getattr(msg, 'sender_remark', None),
+                                'file_path': getattr(msg, 'file_path', None)
+                            })
+                        else:
+                            # 如果msg是字符串或其他类型，转换为文本消息
+                            formatted_messages[clean_name].append({
+                                'type': 'text',
+                                'content': str(msg),
+                                'sender': '',
+                                'id': '',
+                                'mtype': None,
+                                'sender_remark': None,
+                                'file_path': None
+                            })
+                    except Exception as e:
+                        logger.error(f"处理消息时出错: {str(e)}")
+                        # 添加错误消息
+                        formatted_messages[clean_name].append({
+                            'type': 'error',
+                            'content': f'消息处理错误: {str(e)}',
+                            'sender': '',
+                            'id': '',
+                            'mtype': None,
+                            'sender_remark': None,
+                            'file_path': None
+                        })
+            else:
+                logger.warning(f"wxautox返回了意外的消息格式: {type(messages)}")
+        else:
+            # wxauto返回格式: {chat_name: [messages]}
+            for chat_name, msg_list in messages.items():
+                # 清理群名中的人数信息
+                clean_name = clean_group_name(chat_name)
+                formatted_messages[clean_name] = []
+
+                for msg in msg_list:
+                    try:
+                        # 检查消息类型
+                        if hasattr(msg, 'type') and getattr(msg, 'type', '') in ['image', 'file', 'video', 'voice']:
+                            # 检查文件是否存在且大小大于0
+                            if hasattr(msg, 'file_path') and getattr(msg, 'file_path', ''):
+                                try:
+                                    file_path = getattr(msg, 'file_path', '')
+                                    if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                                        logger.warning(f"文件不存在或大小为0: {file_path}")
+                                except Exception as e:
+                                    logger.error(f"检查文件失败: {str(e)}")
+
+                        formatted_messages[clean_name].append({
+                            'type': getattr(msg, 'type', 'unknown'),
+                            'content': getattr(msg, 'content', str(msg)),
+                            'sender': getattr(msg, 'sender', ''),
+                            'id': getattr(msg, 'id', ''),
+                            'mtype': getattr(msg, 'mtype', None),
+                            'sender_remark': getattr(msg, 'sender_remark', None),
+                            'file_path': getattr(msg, 'file_path', None)
+                        })
+                    except Exception as e:
+                        logger.error(f"处理消息时出错: {str(e)}")
+                        # 添加错误消息
+                        formatted_messages[clean_name].append({
+                            'type': 'error',
+                            'content': f'消息处理错误: {str(e)}',
+                            'sender': '',
+                            'id': '',
+                            'mtype': None,
+                            'sender_remark': None,
+                            'file_path': None
+                        })
 
         return jsonify({
             'code': 0,
