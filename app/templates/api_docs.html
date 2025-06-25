@@ -19,14 +19,63 @@
             font-weight: bold;
         }
         .sidebar {
-            position: sticky;
-            top: 15px;
-            height: calc(100vh - 30px);
+            position: fixed;
+            top: 80px;
+            left: 15px;
+            width: 280px;
+            height: calc(100vh - 95px);
             overflow-y: auto;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             padding: 15px;
+            z-index: 1000;
+        }
+
+        .main-content {
+            margin-left: 310px !important;
+            padding-right: 15px !important;
+            padding-left: 15px !important;
+            width: auto !important;
+            max-width: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -300px;
+                width: 280px;
+                height: 100vh;
+                transition: left 0.3s ease;
+                z-index: 1050;
+            }
+
+            .sidebar.show {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                padding: 15px !important;
+                width: auto !important;
+                max-width: none !important;
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1040;
+                display: none;
+            }
+
+            .sidebar-overlay.show {
+                display: block;
+            }
         }
         .content {
             background: white;
@@ -34,6 +83,10 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             padding: 20px;
             margin-bottom: 15px;
+            width: 100% !important;
+            max-width: none !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
         }
         .api-section {
             margin-bottom: 25px;
@@ -205,11 +258,120 @@
             margin-bottom: 5px;
             font-size: 0.85em;
         }
+
+        /* API测试工具样式 */
+        .api-tester {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .api-tester-header {
+            background: #07C160;
+            color: white;
+            padding: 8px 12px;
+            margin: -15px -15px 15px -15px;
+            border-radius: 6px 6px 0 0;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .api-tester-form .form-label {
+            font-weight: 600;
+            font-size: 0.85em;
+            margin-bottom: 4px;
+        }
+
+        .api-tester-form .form-control,
+        .api-tester-form .form-select {
+            font-size: 0.85em;
+            padding: 6px 10px;
+        }
+
+        .api-tester-form textarea {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+        }
+
+        .test-button {
+            background: #07C160;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .test-button:hover {
+            background: #06a050;
+            color: white;
+        }
+
+        .test-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .response-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .response-header {
+            font-weight: 600;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .response-content {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .response-success {
+            border-color: #28a745;
+            background: #f0f8f0;
+        }
+
+        .response-error {
+            border-color: #dc3545;
+            background: #f8f0f0;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
         <div class="container-fluid">
+            <button class="btn btn-outline-light d-md-none me-2" type="button" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
             <a class="navbar-brand" href="/">
                 <i class="bi bi-chat-dots-fill"></i> WxAuto HTTP API 文档
             </a>
@@ -219,34 +381,33 @@
         </div>
     </nav>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- 侧边栏导航 -->
-            <div class="col-md-3">
-                <div class="sidebar">
-                    <h5 class="mb-3"><i class="bi bi-list"></i> 目录</h5>
-                    <nav class="nav flex-column">
-                        <a class="nav-link active" href="#overview">概述</a>
-                        <a class="nav-link" href="#features">功能特性</a>
-                        <a class="nav-link" href="#versions">版本对比</a>
-                        <a class="nav-link" href="#auth">认证方式</a>
-                        <a class="nav-link" href="#basic-apis">基础功能</a>
-                        <a class="nav-link" href="#message-apis">消息功能</a>
-                        <a class="nav-link" href="#chat-apis">聊天窗口</a>
-                        <a class="nav-link" href="#group-apis">群组管理</a>
-                        <a class="nav-link" href="#friend-apis">好友管理</a>
-                        <a class="nav-link" href="#wechat-apis">WeChat扩展</a>
-                        <a class="nav-link" href="#message-ops">消息操作</a>
-                        <a class="nav-link" href="#moments-apis">朋友圈</a>
-                        <a class="nav-link" href="#auxiliary-apis">辅助功能</a>
-                        <a class="nav-link" href="#error-codes">错误码</a>
-                        <a class="nav-link" href="#examples">使用示例</a>
-                    </nav>
-                </div>
-            </div>
+    <!-- 侧边栏导航 -->
+    <div class="sidebar">
+        <h5 class="mb-3"><i class="bi bi-list"></i> 目录</h5>
+        <nav class="nav flex-column">
+            <a class="nav-link active" href="#overview">概述</a>
+            <a class="nav-link" href="#features">功能特性</a>
+            <a class="nav-link" href="#versions">版本对比</a>
+            <a class="nav-link" href="#auth">认证方式</a>
+            <a class="nav-link" href="#basic-apis">基础功能</a>
+            <a class="nav-link" href="#message-apis">消息功能</a>
+            <a class="nav-link" href="#chat-apis">聊天窗口</a>
+            <a class="nav-link" href="#group-apis">群组管理</a>
+            <a class="nav-link" href="#friend-apis">好友管理</a>
+            <a class="nav-link" href="#wechat-apis">WeChat扩展</a>
+            <a class="nav-link" href="#message-ops">消息操作</a>
+            <a class="nav-link" href="#moments-apis">朋友圈</a>
+            <a class="nav-link" href="#auxiliary-apis">辅助功能</a>
+            <a class="nav-link" href="#error-codes">错误码</a>
+            <a class="nav-link" href="#examples">使用示例</a>
+        </nav>
+    </div>
 
-            <!-- 主内容区 -->
-            <div class="col-md-9">
+    <!-- 移动端侧边栏遮罩 -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
                 <!-- 概述 -->
                 <div class="content" id="overview">
                     <h3><i class="bi bi-book"></i> WxAuto HTTP API 文档 v2.0</h3>
@@ -460,6 +621,46 @@
 }</pre>
                         </div>
                     </div>
+
+                    <!-- API测试工具 -->
+                    <div class="api-tester" id="auth-verify-tester">
+                        <div class="api-tester-header">
+                            <i class="bi bi-play-circle"></i> API接口测试
+                        </div>
+                        <div class="api-tester-form">
+                            <div class="row mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">服务器地址:</label>
+                                    <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">API Key:</label>
+                                    <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <label class="form-label">请求方法:</label>
+                                    <select class="form-select method-select">
+                                        <option value="POST" selected>POST</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-9">
+                                    <label class="form-label">接口路径:</label>
+                                    <input type="text" class="form-control endpoint-input" value="/api/auth/verify" readonly>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <button type="button" class="test-button" onclick="sendApiRequest('auth-verify-tester')">
+                                    发送请求
+                                </button>
+                            </div>
+                            <div class="response-section" style="display: none;">
+                                <div class="response-header">响应结果:</div>
+                                <div class="response-content"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 基础功能 -->
@@ -494,6 +695,46 @@
 }</pre>
                             </div>
                         </div>
+
+                        <!-- API测试工具 -->
+                        <div class="api-tester" id="wechat-initialize-tester">
+                            <div class="api-tester-header">
+                                <i class="bi bi-play-circle"></i> API接口测试
+                            </div>
+                            <div class="api-tester-form">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">服务器地址:</label>
+                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/initialize" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-initialize-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="api-section">
@@ -523,6 +764,46 @@
     "current_lib": "wxauto"
   }
 }</pre>
+                            </div>
+                        </div>
+
+                        <!-- API测试工具 -->
+                        <div class="api-tester" id="wechat-status-tester">
+                            <div class="api-tester-header">
+                                <i class="bi bi-play-circle"></i> API接口测试
+                            </div>
+                            <div class="api-tester-form">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">服务器地址:</label>
+                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/status" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-status-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -555,6 +836,46 @@
     "memory_total": "16.0 GB"
   }
 }</pre>
+                            </div>
+                        </div>
+
+                        <!-- API测试工具 -->
+                        <div class="api-tester" id="system-resources-tester">
+                            <div class="api-tester-header">
+                                <i class="bi bi-play-circle"></i> API接口测试
+                            </div>
+                            <div class="api-tester-form">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">服务器地址:</label>
+                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/system/resources" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('system-resources-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -599,6 +920,55 @@
 }</pre>
                             </div>
                         </div>
+
+                        <!-- API测试工具 -->
+                        <div class="api-tester" id="message-send-tester">
+                            <div class="api-tester-header">
+                                <i class="bi bi-play-circle"></i> API接口测试
+                            </div>
+                            <div class="api-tester-form">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">服务器地址:</label>
+                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/send" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "receiver": "文件传输助手",
+  "message": "这是一条测试消息",
+  "at_list": [],
+  "clear": true
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-send-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="api-section">
@@ -618,8 +988,9 @@
   -H "Content-Type: application/json" \
   -d '{
     "receiver": "文件传输助手",
-    "lines": ["第一行消息", "第二行消息", "第三行消息"],
-    "delay": 1.0
+    "message": "第一行消息\n第二行消息\n第三行消息",
+    "at_list": [],
+    "clear": true
   }'</pre>
                             </div>
 
@@ -627,13 +998,60 @@
                             <div class="response-example">
 <pre>{
   "code": 0,
-  "message": "打字机消息发送成功",
+  "message": "发送成功",
   "data": {
-    "receiver": "文件传输助手",
-    "lines_count": 3,
-    "delay": 1.0
+    "message_id": "success"
   }
 }</pre>
+                            </div>
+                        </div>
+
+                        <!-- API测试工具 -->
+                        <div class="api-tester" id="message-send-typing-tester">
+                            <div class="api-tester-header">
+                                <i class="bi bi-play-circle"></i> API接口测试
+                            </div>
+                            <div class="api-tester-form">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">服务器地址:</label>
+                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/send-typing" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "receiver": "文件传输助手",
+  "message": "这是第一行消息\n这是第二行消息\n这是第三行消息",
+  "at_list": [],
+  "clear": true
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-send-typing-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -672,6 +1090,56 @@
 }</pre>
                             </div>
                         </div>
+
+                        <!-- API测试工具 -->
+                        <div class="api-tester" id="message-send-file-tester">
+                            <div class="api-tester-header">
+                                <i class="bi bi-play-circle"></i> API接口测试
+                            </div>
+                            <div class="api-tester-form">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">服务器地址:</label>
+                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/send-file" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "receiver": "文件传输助手",
+  "file_paths": [
+    "C:/Users/用户名/Desktop/test.txt",
+    "C:/Users/用户名/Documents/image.jpg"
+  ]
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-send-file-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="api-section">
@@ -702,6 +1170,46 @@
     "time": "2025-01-24 10:35:20"
   }
 }</pre>
+                            </div>
+                        </div>
+
+                        <!-- API测试工具 -->
+                        <div class="api-tester" id="message-get-next-new-tester">
+                            <div class="api-tester-header">
+                                <i class="bi bi-play-circle"></i> API接口测试
+                            </div>
+                            <div class="api-tester-form">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">服务器地址:</label>
+                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/get-next-new" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-get-next-new-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -784,6 +1292,55 @@
     ]
   }
 }</pre>
+                            </div>
+                        </div>
+
+                        <!-- API测试工具 -->
+                        <div class="api-tester" id="message-listen-add-tester">
+                            <div class="api-tester-header">
+                                <i class="bi bi-play-circle"></i> API接口测试 - 添加监听
+                            </div>
+                            <div class="api-tester-form">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">服务器地址:</label>
+                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/listen/add" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "who": "测试群",
+  "savepic": true,
+  "savevideo": false,
+  "savefile": true
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-listen-add-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1674,8 +2231,6 @@ curl -X GET "http://localhost:5000/api/message/listen/get?who=测试群" \
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
@@ -1717,7 +2272,139 @@ curl -X GET "http://localhost:5000/api/message/listen/get?who=测试群" \
                     }
                 });
             });
+
+            // 初始化API测试工具
+            initApiTester();
+
+            // 初始化移动端侧边栏
+            initMobileSidebar();
         });
+
+        // 移动端侧边栏功能
+        function initMobileSidebar() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('show');
+                    overlay.classList.toggle('show');
+                });
+            }
+
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                });
+            }
+
+            // 点击导航链接时关闭移动端侧边栏
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('show');
+                        overlay.classList.remove('show');
+                    }
+                });
+            });
+        }
+
+        // API测试工具功能
+        function initApiTester() {
+            // 自动填充基础URL和API Key
+            const baseUrl = window.location.origin;
+            const apiKey = '123456aA'; // 从配置中获取的默认API Key
+
+            // 填充所有URL和API Key字段
+            document.querySelectorAll('.api-url-input').forEach(input => {
+                input.value = baseUrl;
+            });
+
+            document.querySelectorAll('.api-key-input').forEach(input => {
+                input.value = apiKey;
+            });
+        }
+
+        // 发送API请求
+        async function sendApiRequest(testerId) {
+            const tester = document.getElementById(testerId);
+            const button = tester.querySelector('.test-button');
+            const responseSection = tester.querySelector('.response-section');
+            const responseContent = tester.querySelector('.response-content');
+
+            // 获取表单数据
+            const baseUrl = tester.querySelector('.api-url-input').value;
+            const apiKey = tester.querySelector('.api-key-input').value;
+            const method = tester.querySelector('.method-select').value;
+            const endpoint = tester.querySelector('.endpoint-input').value;
+            const requestBody = tester.querySelector('.request-body-textarea')?.value;
+
+            // 构建完整URL
+            const fullUrl = baseUrl + endpoint;
+
+            // 设置请求头
+            const headers = {
+                'X-API-Key': apiKey,
+                'Content-Type': 'application/json'
+            };
+
+            // 构建请求配置
+            const requestConfig = {
+                method: method,
+                headers: headers
+            };
+
+            // 如果有请求体且不是GET请求，添加body
+            if (requestBody && method !== 'GET') {
+                try {
+                    JSON.parse(requestBody); // 验证JSON格式
+                    requestConfig.body = requestBody;
+                } catch (e) {
+                    responseContent.textContent = `错误: 请求体不是有效的JSON格式\n详细错误: ${e.message}\n\n请检查JSON语法，确保：\n1. 字符串使用双引号\n2. 属性名使用双引号\n3. 数组和对象的语法正确\n4. 没有多余的逗号`;
+                    responseContent.className = 'response-content response-error';
+                    responseSection.style.display = 'block';
+                    return;
+                }
+            }
+
+            // 显示加载状态
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> 发送中...';
+            responseSection.style.display = 'block';
+            responseContent.textContent = '正在发送请求...';
+            responseContent.className = 'response-content';
+
+            try {
+                // 发送请求
+                const response = await fetch(fullUrl, requestConfig);
+                const responseData = await response.json();
+
+                // 构建响应信息
+                const responseInfo = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    data: responseData
+                };
+
+                // 显示响应
+                responseContent.textContent = JSON.stringify(responseInfo, null, 2);
+                responseContent.className = response.ok ?
+                    'response-content response-success' :
+                    'response-content response-error';
+
+            } catch (error) {
+                // 显示错误
+                responseContent.textContent = `请求失败: ${error.message}`;
+                responseContent.className = 'response-content response-error';
+            } finally {
+                // 恢复按钮状态
+                button.disabled = false;
+                button.innerHTML = '发送请求';
+            }
+        }
     </script>
 </body>
 </html>

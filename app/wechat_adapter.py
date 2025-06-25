@@ -521,6 +521,46 @@ class WeChatAdapter:
         # 调用原始方法
         return self._instance.SendMsg(*args, **kwargs)
 
+    def _handle_SendTypingText(self, *args, **kwargs):
+        """处理SendTypingText方法的差异"""
+        if not self._instance:
+            raise AttributeError("微信实例未初始化")
+
+        # 检查库是否支持SendTypingText方法
+        if self._lib_name == "wxautox":
+            # wxautox支持SendTypingText方法
+            if hasattr(self._instance, 'SendTypingText'):
+                return self._instance.SendTypingText(*args, **kwargs)
+            else:
+                # 如果没有SendTypingText方法，使用SendMsg代替
+                logger.warning("wxautox实例没有SendTypingText方法，使用SendMsg代替")
+                return self._instance.SendMsg(*args, **kwargs)
+        else:
+            # wxauto不支持SendTypingText方法，使用SendMsg代替
+            logger.debug("wxauto库不支持SendTypingText方法，使用SendMsg代替")
+            # wxauto的clear参数是布尔值，而wxautox是字符串
+            if "clear" in kwargs and isinstance(kwargs["clear"], bool):
+                kwargs["clear"] = "1" if kwargs["clear"] else "0"
+            return self._instance.SendMsg(*args, **kwargs)
+
+    def _handle_SendFiles(self, *args, **kwargs):
+        """处理SendFiles方法的差异"""
+        if not self._instance:
+            raise AttributeError("微信实例未初始化")
+
+        # 检查库是否支持SendFiles方法
+        if hasattr(self._instance, 'SendFiles'):
+            logger.debug(f"调用{self._lib_name}的SendFiles方法")
+            return self._instance.SendFiles(*args, **kwargs)
+        else:
+            # 如果没有SendFiles方法，尝试使用SendFile方法
+            if hasattr(self._instance, 'SendFile'):
+                logger.debug(f"{self._lib_name}没有SendFiles方法，使用SendFile代替")
+                return self._instance.SendFile(*args, **kwargs)
+            else:
+                logger.error(f"{self._lib_name}既没有SendFiles也没有SendFile方法")
+                raise AttributeError(f"{self._lib_name}不支持文件发送功能")
+
     def _handle_GetNextNewMessage(self, *args, **kwargs):
         """处理GetNextNewMessage方法的差异"""
         if not self._instance:

@@ -297,6 +297,10 @@ def send_typing_message():
         }), 400
 
     try:
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        logger.debug(f"发送打字消息，当前使用的库: {lib_name}")
+
         # 查找联系人
         chat_name = wx_instance.ChatWith(receiver)
         if not chat_name:
@@ -314,7 +318,7 @@ def send_typing_message():
                 'data': None
             }), 400
 
-        # 使用正确的参数调用 SendTypingText
+        # 处理@列表
         if at_list:
             if message and not message.endswith('\n'):
                 message += '\n'
@@ -322,7 +326,17 @@ def send_typing_message():
                 message += f"{{@{user}}}"
                 if user != at_list[-1]:
                     message += '\n'
-        chat_name.SendTypingText(message, clear=clear)
+
+        # 根据不同的库使用不同的处理方法
+        if lib_name == 'wxautox':
+            # 对于wxautox库，使用SendTypingText方法
+            wx_instance.SendTypingText(message, clear=clear)
+        else:
+            # 对于wxauto库，使用SendMsg方法代替SendTypingText方法
+            if at_list:
+                wx_instance.SendMsg(message, at=at_list)
+            else:
+                wx_instance.SendMsg(message)
 
         return jsonify({
             'code': 0,
