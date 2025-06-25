@@ -12,13 +12,15 @@ def require_api_key(f):
                 'message': '缺少API密钥',
                 'data': None
             }), 401
-        
-        if api_key not in Config.API_KEYS:
+
+        # 动态获取最新的API密钥列表
+        current_api_keys = Config.get_api_keys()
+        if api_key not in current_api_keys:
             return jsonify({
                 'code': 1001,
                 'message': 'API密钥无效',
                 'data': None
             }), 401
-            
+
         return f(*args, **kwargs)
     return decorated_function

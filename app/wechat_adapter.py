@@ -1149,17 +1149,6 @@ try:
 except ImportError as e:
     # 如果无法导入配置，则使用默认值
     logger.error(f"导入app.config失败: {str(e)}，将使用默认值'wxauto'")
-
-    # 尝试从环境变量或.env文件读取配置
-    try:
-        import os
-        from dotenv import load_dotenv
-        load_dotenv()
-        wechat_lib = os.getenv('WECHAT_LIB', 'wxauto').lower()
-        logger.info(f"从环境变量读取WECHAT_LIB={wechat_lib}")
-        wechat_adapter = WeChatAdapter(lib_name=wechat_lib)
-    except Exception as env_e:
-        logger.error(f"从环境变量读取配置失败: {str(env_e)}，将使用默认值'wxauto'")
-        wechat_adapter = WeChatAdapter(lib_name='wxauto')
+    wechat_adapter = WeChatAdapter(lib_name='wxauto')
 
     logger.info(f"成功创建全局适配器实例，使用库: {wechat_adapter.get_lib_name()}")

@@ -7,7 +7,6 @@ import os
 import json
 import logging
 from pathlib import Path
-from dotenv import load_dotenv
 
 # 配置目录
 DATA_DIR = Path("data")
@@ -100,34 +99,17 @@ def save_log_filter_config(config):
 
 def load_app_config():
     """
-    加载应用配置，如果配置文件不存在，则从.env文件读取默认配置并创建配置文件
+    加载应用配置，如果配置文件不存在，则使用默认配置并创建配置文件
 
     Returns:
         dict: 应用配置
     """
     ensure_dirs()
 
-    # 如果配置文件不存在，从.env文件读取默认配置
+    # 如果配置文件不存在，使用默认配置
     if not APP_CONFIG_FILE.exists():
-        # 加载.env文件
-        env_file = Path(".env")
-        if env_file.exists():
-            load_dotenv(env_file)
-
-            # 从环境变量读取配置
-            api_keys = os.getenv('API_KEYS', 'test-key-2').split(',')
-            port = int(os.getenv('PORT', 5000))
-            wechat_lib = os.getenv('WECHAT_LIB', 'wxauto').lower()
-
-            # 创建配置
-            config = {
-                "api_keys": api_keys,
-                "port": port,
-                "wechat_lib": wechat_lib
-            }
-        else:
-            # 如果.env文件不存在，使用默认配置
-            config = DEFAULT_APP_CONFIG.copy()
+        # 使用默认配置
+        config = DEFAULT_APP_CONFIG.copy()
 
         # 保存配置
         save_app_config(config)

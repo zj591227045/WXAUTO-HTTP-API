@@ -69,7 +69,7 @@ def check_dependencies():
         except ImportError as e:
             logger.error(f"无法导入wxautox库: {str(e)}")
             logger.error("请使用pip安装wxautox库: pip install wxautox")
-            logger.error("如需使用wxauto库，请在.env文件中设置 WECHAT_LIB=wxauto")
+            logger.error("如需使用wxauto库，请在配置文件中设置 wechat_lib=wxauto")
             sys.exit(1)
 
     # 不支持的库

@@ -1236,31 +1236,6 @@ class WxAutoHttpUI:
         if self.api_running:
             messagebox.showinfo("需要重启", "库已切换，需要重启服务才能生效")
 
-    def update_env_file(self, key, value):
-        """更新.env文件中的配置"""
-        env_file = ".env"
-        lines = []
-        key_found = False
-
-        # 读取现有内容
-        if os.path.exists(env_file):
-            with open(env_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-
-        # 更新或添加配置
-        for i, line in enumerate(lines):
-            if line.strip().startswith(f"{key}="):
-                lines[i] = f"{key}={value}\n"
-                key_found = True
-                break
-
-        if not key_found:
-            lines.append(f"{key}={value}\n")
-
-        # 写回文件
-        with open(env_file, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-
     # 这些方法已被移除，配置现在通过插件配置对话框进行管理
 
     def start_api_service(self):
@@ -1698,16 +1673,6 @@ class WxAutoHttpUI:
         except Exception as e:
             self.add_log(f"从配置文件读取API Key失败: {str(e)}")
 
-        # 如果配置文件中没有，从.env文件中读取
-        env_file = ".env"
-        if os.path.exists(env_file):
-            with open(env_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    if line.strip().startswith("API_KEYS="):
-                        keys = line.strip()[9:].split(",")
-                        if keys:
-                            return keys[0]
-
         return "test-key-2"  # 默认API密钥
 
     def add_log(self, message):
@@ -2037,36 +2002,15 @@ class WxAutoHttpUI:
         except Exception as e:
             self.add_log(f"从配置文件加载配置失败: {str(e)}")
 
-            # 如果配置文件加载失败，尝试从.env文件加载
-            env_file = ".env"
-            if os.path.exists(env_file):
-                with open(env_file, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
+            # 如果配置文件加载失败，使用默认值
+            self.current_lib = 'wxauto'
+            self.lib_var.set('wxauto')
+            self.current_lib_label.config(text='wxauto')
 
-                    # 读取库配置
-                    for line in lines:
-                        if line.strip().startswith("WECHAT_LIB="):
-                            lib_name = line.strip()[11:].strip()
-                            self.current_lib = lib_name
-                            self.lib_var.set(lib_name)
-                            self.current_lib_label.config(text=lib_name)
+            self.current_port = 5000
+            self.port_var.set('5000')
 
-                    # 读取端口配置
-                    for line in lines:
-                        if line.strip().startswith("PORT="):
-                            try:
-                                port = int(line.strip()[5:].strip())
-                                self.current_port = port
-                                self.port_var.set(str(port))
-                            except ValueError:
-                                pass
-
-                    # 读取API Key配置
-                    for line in lines:
-                        if line.strip().startswith("API_KEYS="):
-                            keys = line.strip()[9:].split(",")
-                            if keys:
-                                self.apikey_var.set(keys[0])
+            self.apikey_var.set('test-key-2')
 
         # 初始化按钮状态
         self.start_button.config(state=tk.NORMAL)
