@@ -755,7 +755,31 @@ class WeChatAdapter:
             raise AttributeError("微信实例未初始化")
 
         # 根据不同的库处理参数
-        if self._lib_name == "wxauto":
+        if self._lib_name == "wxautox":
+            # wxautox的AddListenChat方法参数格式不同
+            # 需要 nickname 和 callback 参数
+            logger.debug("使用wxautox库，调整AddListenChat参数格式")
+
+            # 从kwargs中获取who参数作为nickname
+            who = kwargs.get('who') or (args[0] if args else None)
+            if not who:
+                raise ValueError("缺少必要参数: who/nickname")
+
+            # 创建一个简单的回调函数，用于兼容API调用
+            def simple_callback(msg, chat):
+                """简单的回调函数，用于兼容API调用"""
+                logger.debug(f"收到来自 {chat} 的消息: {getattr(msg, 'content', str(msg))}")
+
+            # 调用wxautox的AddListenChat方法
+            try:
+                result = self._instance.AddListenChat(nickname=who, callback=simple_callback)
+                logger.debug(f"wxautox AddListenChat成功: {result}")
+                return result
+            except Exception as e:
+                logger.error(f"wxautox AddListenChat失败: {str(e)}")
+                raise
+        else:
+            # wxauto库的处理
             # wxauto不支持savevideo和parseurl参数
             if "savevideo" in kwargs:
                 logger.debug("移除wxauto不支持的参数: savevideo")
@@ -763,28 +787,21 @@ class WeChatAdapter:
             if "parseurl" in kwargs:
                 logger.debug("移除wxauto不支持的参数: parseurl")
                 kwargs.pop("parseurl", None)
-        elif self._lib_name == "wxautox":
-            # 根据文档，wxautox的AddListenChat支持以下参数：
-            # who, savepic, savevideo, savefile, savevoice, parseurl, exact
-            # 不需要移除任何参数
-            pass
 
-        try:
-            # 调用原始方法
-            logger.debug(f"调用AddListenChat方法，参数: {kwargs}")
-            return self._instance.AddListenChat(*args, **kwargs)
-        except Exception as e:
-            logger.error(f"调用AddListenChat方法失败: {str(e)}")
-            # 如果是参数错误，尝试使用最基本的参数重试
-            if "参数" in str(e) or "parameter" in str(e).lower() or "argument" in str(e).lower() or "unexpected keyword" in str(e).lower():
-                logger.warning("可能是参数错误，尝试使用基本参数重试")
-                # 只保留基本参数
-                basic_kwargs = {}
-                if "who" in kwargs:
-                    basic_kwargs["who"] = kwargs["who"]
+            try:
+                # 调用原始方法
+                logger.debug(f"调用AddListenChat方法，参数: {kwargs}")
+                return self._instance.AddListenChat(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"调用AddListenChat方法失败: {str(e)}")
+                # 如果是参数错误，尝试使用最基本的参数重试
+                if "参数" in str(e) or "parameter" in str(e).lower() or "argument" in str(e).lower() or "unexpected keyword" in str(e).lower():
+                    logger.warning("可能是参数错误，尝试使用基本参数重试")
+                    # 只保留基本参数
+                    basic_kwargs = {}
+                    if "who" in kwargs:
+                        basic_kwargs["who"] = kwargs["who"]
 
-                # 根据不同的库添加不同的基本参数
-                if self._lib_name == "wxauto":
                     # wxauto支持的基本参数
                     if "savepic" in kwargs:
                         basic_kwargs["savepic"] = kwargs["savepic"]
@@ -792,25 +809,11 @@ class WeChatAdapter:
                         basic_kwargs["savefile"] = kwargs["savefile"]
                     if "savevoice" in kwargs:
                         basic_kwargs["savevoice"] = kwargs["savevoice"]
-                elif self._lib_name == "wxautox":
-                    # wxautox支持的基本参数
-                    if "savepic" in kwargs:
-                        basic_kwargs["savepic"] = kwargs["savepic"]
-                    if "savevideo" in kwargs:
-                        basic_kwargs["savevideo"] = kwargs["savevideo"]
-                    if "savefile" in kwargs:
-                        basic_kwargs["savefile"] = kwargs["savefile"]
-                    if "savevoice" in kwargs:
-                        basic_kwargs["savevoice"] = kwargs["savevoice"]
-                    if "parseurl" in kwargs:
-                        basic_kwargs["parseurl"] = kwargs["parseurl"]
-                    if "exact" in kwargs:
-                        basic_kwargs["exact"] = kwargs["exact"]
 
-                logger.debug(f"使用基本参数重试: {basic_kwargs}")
-                return self._instance.AddListenChat(*args, **basic_kwargs)
-            # 重新抛出原始异常
-            raise
+                    logger.debug(f"使用基本参数重试: {basic_kwargs}")
+                    return self._instance.AddListenChat(*args, **basic_kwargs)
+                # 重新抛出原始异常
+                raise
 
     def _handle_GetListenMessage(self, *args, **kwargs):
         """处理GetListenMessage方法的差异，并添加异常处理"""
