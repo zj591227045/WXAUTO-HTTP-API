@@ -26,11 +26,20 @@ def before_request():
         handler.flush()
 
     # 只在开发环境下记录请求体，且不记录请求头
-    if Config.DEBUG and request.method in ['POST', 'PUT', 'PATCH'] and request.is_json:
-        logger.debug(f"请求体: {request.get_json()}")
+    if Config.DEBUG and request.method in ['POST', 'PUT', 'PATCH']:
+        try:
+            if request.is_json:
+                json_data = request.get_json(silent=True)
+                if json_data is not None:
+                    logger.debug(f"请求体: {json_data}")
+        except Exception as e:
+            logger.debug(f"无法解析请求体: {str(e)}")
         # 确保日志立即刷新
         for handler in logger.logger.handlers:
-            handler.flush()
+            try:
+                handler.flush()
+            except (ValueError, OSError):
+                pass
 
 @api_bp.after_request
 def after_request(response):
@@ -38,9 +47,13 @@ def after_request(response):
         duration = time.time() - g.start_time
         # 修改日志格式，确保API计数器能够正确识别 - 确保状态码周围有空格
         logger.info(f"请求处理完成: {request.method} {request.path} - 状态码: {response.status_code} - 耗时: {duration:.2f}秒")
-        # 确保日志立即刷新
+        # 确保日志立即刷新，但要处理可能的文件句柄关闭异常
         for handler in logger.logger.handlers:
-            handler.flush()
+            try:
+                handler.flush()
+            except (ValueError, OSError) as e:
+                # 忽略已关闭的文件句柄或其他I/O错误
+                pass
     return response
 
 @api_bp.errorhandler(Exception)
