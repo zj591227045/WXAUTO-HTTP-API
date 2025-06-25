@@ -157,39 +157,27 @@ def main():
 
     # 检查微信自动化库是否可用
     try:
-        logger.info("检查微信自动化库...")
+        is_frozen = getattr(sys, 'frozen', False)
 
-        # 检查wxauto
-        try:
-            import wxauto
-            logger.info("wxauto库可用")
-        except ImportError:
-            logger.warning("wxauto库不可用")
+        if is_frozen:
+            logger.info("打包环境中跳过库检测，避免库冲突")
+            logger.info("微信自动化库将在实际使用时进行检测和初始化")
+        else:
+            logger.info("检查微信自动化库...")
 
-        # 检查wxautox（需要特殊处理，因为它可能修改sys.stdout）
-        try:
-            # 使用subprocess来隔离wxautox的导入，避免影响主进程
-            import subprocess
-            result = subprocess.run(
-                [sys.executable, "-c", "import wxautox; print('wxautox_import_success')"],
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                timeout=10
-            )
+            # 使用统一的库检测器
+            from app.wechat_lib_detector import detector
 
-            if result.returncode == 0 and "wxautox_import_success" in result.stdout:
-                logger.info("wxautox库可用")
+            # 获取检测结果摘要
+            summary = detector.get_detection_summary()
+            logger.info(f"库检测结果:\n{summary}")
+
+            # 检查是否有可用的库
+            available_libs = detector.get_available_libraries()
+            if not available_libs:
+                logger.warning("警告: 没有可用的微信自动化库")
             else:
-                logger.warning("wxautox库不可用")
-
-        except subprocess.TimeoutExpired:
-            logger.warning("wxautox库导入超时")
-        except FileNotFoundError:
-            logger.warning("无法找到Python解释器")
-        except Exception as e:
-            logger.warning(f"wxautox库导入时出现问题: {str(e)}")
+                logger.info(f"可用的微信自动化库: {', '.join(available_libs)}")
 
     except Exception as e:
         logger.error(f"检查微信自动化库时出错: {str(e)}")

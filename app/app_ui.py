@@ -898,10 +898,27 @@ class WxAutoHttpUI:
     def check_wxauto_status(self):
         """检查wxauto库的安装状态"""
         try:
-            # 尝试导入pip安装的wxauto包
-            import wxauto
-            self.wxauto_status.config(text="已安装", style="Green.TLabel")
-            return True
+            # 在打包环境中，避免直接导入库，防止冲突
+            is_frozen = getattr(sys, 'frozen', False)
+            if is_frozen:
+                # 在打包环境中，简单检查包是否存在
+                try:
+                    import importlib.util
+                    spec = importlib.util.find_spec('wxauto')
+                    if spec is not None:
+                        self.wxauto_status.config(text="已打包", style="Green.TLabel")
+                        return True
+                    else:
+                        self.wxauto_status.config(text="未打包", style="Red.TLabel")
+                        return False
+                except Exception:
+                    self.wxauto_status.config(text="已打包", style="Green.TLabel")
+                    return True  # 假设可用，避免阻止启动
+            else:
+                # 在开发环境中，尝试导入pip安装的wxauto包
+                import wxauto
+                self.wxauto_status.config(text="已安装", style="Green.TLabel")
+                return True
         except ImportError as e:
             self.wxauto_status.config(text="未安装", style="Red.TLabel")
             self.add_log(f"无法导入wxauto库: {str(e)}")
@@ -914,29 +931,52 @@ class WxAutoHttpUI:
     def check_wxautox_status(self):
         """检查wxautox库的可用状态（能否成功导入）"""
         try:
-            # 使用subprocess来检查wxautox，避免影响主进程
-            import subprocess
-            result = subprocess.run(
-                [sys.executable, "-c", "import wxautox; print('wxautox_available')"],
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                timeout=5  # 减少超时时间
-            )
-
-            if result.returncode == 0 and "wxautox_available" in result.stdout:
-                self.wxautox_status.config(text="可用", style="Green.TLabel")
-                # 更新激活状态显示
-                if hasattr(self, 'wxautox_activation_status'):
-                    self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
-                return True
+            # 在打包环境中，避免使用subprocess检查，防止冲突
+            is_frozen = getattr(sys, 'frozen', False)
+            if is_frozen:
+                # 在打包环境中，简单检查包是否存在
+                try:
+                    import importlib.util
+                    spec = importlib.util.find_spec('wxautox')
+                    if spec is not None:
+                        self.wxautox_status.config(text="已打包", style="Green.TLabel")
+                        # 在打包环境中也要检测激活状态
+                        self._update_wxautox_activation_status()
+                        return True
+                    else:
+                        self.wxautox_status.config(text="未打包", style="Red.TLabel")
+                        if hasattr(self, 'wxautox_activation_status'):
+                            self.wxautox_activation_status.config(text="未打包", style="Red.TLabel")
+                        return False
+                except Exception:
+                    self.wxautox_status.config(text="已打包", style="Green.TLabel")
+                    # 在打包环境中也要检测激活状态
+                    self._update_wxautox_activation_status()
+                    return True  # 假设可用，避免阻止启动
             else:
-                self.wxautox_status.config(text="不可用", style="Red.TLabel")
-                # 更新激活状态显示
-                if hasattr(self, 'wxautox_activation_status'):
-                    self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
-                return False
+                # 在开发环境中，使用subprocess来检查wxautox，避免影响主进程
+                import subprocess
+                result = subprocess.run(
+                    [sys.executable, "-c", "import wxautox; print('wxautox_available')"],
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    errors='ignore',
+                    timeout=5  # 减少超时时间
+                )
+
+                if result.returncode == 0 and "wxautox_available" in result.stdout:
+                    self.wxautox_status.config(text="可用", style="Green.TLabel")
+                    # 更新激活状态显示
+                    if hasattr(self, 'wxautox_activation_status'):
+                        self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
+                    return True
+                else:
+                    self.wxautox_status.config(text="不可用", style="Red.TLabel")
+                    # 更新激活状态显示
+                    if hasattr(self, 'wxautox_activation_status'):
+                        self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
+                    return False
         except subprocess.TimeoutExpired:
             self.wxautox_status.config(text="检查超时", style="Red.TLabel")
             if hasattr(self, 'wxautox_activation_status'):
@@ -957,17 +997,43 @@ class WxAutoHttpUI:
                 self.add_log(f"检查wxautox状态时出错: {str(e)}")
             return False
 
+    def _update_wxautox_activation_status(self):
+        """更新wxautox激活状态显示"""
+        if not hasattr(self, 'wxautox_activation_status'):
+            return
+
+        try:
+            # 导入激活状态检测模块
+            from app.wxautox_activation import check_wxautox_activation_status
+
+            # 检测激活状态
+            is_activated = check_wxautox_activation_status()
+
+            if is_activated:
+                self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
+            else:
+                self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
+
+        except Exception as e:
+            self.add_log(f"检测wxautox激活状态时出错: {str(e)}")
+            self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
+
     def check_wxauto_installation(self):
         """检查wxauto安装状态并提供安装选项"""
         try:
-            import wxauto
-            self.add_log("wxauto库已正确安装并可用")
-            messagebox.showinfo("检查结果", "wxauto库已正确安装并可用！\n\n如果遇到问题，可以尝试重新安装：\npip install --upgrade wxauto")
-        except ImportError:
-            result = messagebox.askyesno("wxauto未安装",
-                                       "wxauto库未安装或无法导入。\n\n是否要安装wxauto库？\n\n注意：这将使用pip安装wxauto库。")
-            if result:
-                self.install_wxauto()
+            # 使用统一的库检测器
+            from app.wechat_lib_detector import detector
+
+            available, details = detector.detect_wxauto()
+            if available:
+                self.add_log(f"wxauto库检测成功: {details}")
+                messagebox.showinfo("检查结果", f"wxauto库已正确安装并可用！\n\n详细信息: {details}\n\n如果遇到问题，可以尝试重新安装：\npip install --upgrade wxauto")
+            else:
+                self.add_log(f"wxauto库检测失败: {details}")
+                result = messagebox.askyesno("wxauto不可用",
+                                           f"wxauto库不可用。\n\n详细信息: {details}\n\n是否要安装wxauto库？\n\n注意：这将使用pip安装wxauto库。")
+                if result:
+                    self.install_wxauto()
         except Exception as e:
             self.add_log(f"检查wxauto状态时出错: {str(e)}")
             messagebox.showerror("检查错误", f"检查wxauto状态时出错:\n{str(e)}")
@@ -1212,12 +1278,8 @@ class WxAutoHttpUI:
             except Exception as ve:
                 self.add_log(f"配置验证失败: {str(ve)}")
 
-            # 同时更新.env文件中的配置（作为备份）
-            try:
-                self.update_env_file('WECHAT_LIB', selected_lib)
-                self.add_log(f"已更新.env文件中的WECHAT_LIB配置")
-            except Exception as env_e:
-                self.add_log(f"更新.env文件失败: {str(env_e)}")
+            # .env文件已弃用，现在只使用JSON配置文件
+            self.add_log("配置已保存到JSON配置文件（.env文件已弃用）")
 
             # 标记配置已修改
             global CONFIG_MODIFIED

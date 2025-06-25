@@ -34,7 +34,27 @@ class Config:
         PORT = app_config.get('port', 5000)
 
         # 微信库选择配置
-        WECHAT_LIB = app_config.get('wechat_lib', 'wxauto').lower()
+        configured_lib = app_config.get('wechat_lib', 'wxauto').lower()
+
+        # 验证配置的库是否可用
+        try:
+            from app.wechat_lib_detector import detector
+            valid, message = detector.validate_library_choice(configured_lib)
+            if valid:
+                WECHAT_LIB = configured_lib
+            else:
+                # 如果配置的库不可用，尝试获取推荐的库
+                recommended = detector.get_library_switch_recommendation(configured_lib)
+                if recommended:
+                    WECHAT_LIB = recommended
+                    print(f"警告: 配置的库 '{configured_lib}' 不可用，自动切换到 '{recommended}'")
+                else:
+                    WECHAT_LIB = 'wxauto'  # 默认值
+                    print(f"警告: 没有可用的微信自动化库，使用默认值 'wxauto'")
+        except Exception as e:
+            # 如果检测失败，使用配置值
+            WECHAT_LIB = configured_lib
+            print(f"库检测失败，使用配置值: {e}")
     else:
         # 如果无法导入config_manager，则使用默认值
         PORT = 5000

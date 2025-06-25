@@ -186,39 +186,46 @@ def check_wxautox_activation_status():
     """
     检查wxautox激活状态
 
+    真正的激活状态应该基于库是否能够成功导入和使用，而不是配置文件
+
     Returns:
         bool: 是否已激活
     """
-    # 首先检查配置文件中的状态
-    config = load_activation_config()
-    config_status = config.get("activation_status", False)
+    try:
+        # 直接检测wxautox是否真的可用
+        from app.wechat_lib_detector import detector
 
-    # 如果配置显示已激活，再通过实际导入验证
-    if config_status:
-        try:
-            # 使用subprocess验证wxautox是否真的可用
-            result = subprocess.run(
-                [sys.executable, "-c", "import wxautox; print('wxautox_working')"],
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                timeout=10
-            )
+        available, details = detector.detect_wxautox()
+        if available:
+            logger.info(f"wxautox激活状态检测：已激活 - {details}")
 
-            if result.returncode == 0 and "wxautox_working" in result.stdout:
-                return True
-            else:
-                # 如果实际导入失败，更新配置状态
-                logger.warning("wxautox配置显示已激活，但实际导入失败，更新状态")
+            # 更新配置文件状态以保持一致
+            try:
+                config = load_activation_config()
+                if not config.get("activation_status", False):
+                    config["activation_status"] = True
+                    config["last_activation_time"] = str(datetime.now())
+                    save_activation_config(config)
+                    logger.info("已更新配置文件中的激活状态")
+            except Exception as config_e:
+                logger.warning(f"更新配置文件激活状态失败: {str(config_e)}")
+
+            return True
+        else:
+            logger.info(f"wxautox激活状态检测：未激活 - {details}")
+
+            # 更新配置文件状态
+            try:
+                config = load_activation_config()
                 config["activation_status"] = False
                 save_activation_config(config)
-                return False
-        except Exception as e:
-            logger.warning(f"验证wxautox状态时出错: {str(e)}")
-            return False
+            except Exception as config_e:
+                logger.warning(f"更新配置文件激活状态失败: {str(config_e)}")
 
-    return False
+            return False
+    except Exception as e:
+        logger.warning(f"检测wxautox激活状态时出错: {str(e)}")
+        return False
 
 
 def startup_activate_wxautox():

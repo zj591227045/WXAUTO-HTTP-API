@@ -36,21 +36,15 @@ def check_wxautox_status():
         bool: 是否已安装
     """
     try:
-        # 使用subprocess来检查wxautox，避免影响主进程
-        result = subprocess.run(
-            [sys.executable, "-c", "import wxautox; print('wxautox_available')"],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            errors='ignore',
-            timeout=10
-        )
+        # 使用统一的库检测器
+        from app.wechat_lib_detector import detector
 
-        if result.returncode == 0 and "wxautox_available" in result.stdout:
-            logger.info("成功检测到wxautox库")
+        available, details = detector.detect_wxautox()
+        if available:
+            logger.info(f"wxautox库检测成功: {details}")
             return True
         else:
-            logger.warning("无法导入wxautox库")
+            logger.warning(f"wxautox库检测失败: {details}")
             return False
     except Exception as e:
         logger.warning(f"检查wxautox库时出错: {str(e)}")

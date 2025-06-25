@@ -34,25 +34,40 @@ except ImportError:
 class WeChatAdapter:
     """微信自动化库适配器，支持wxauto和wxautox"""
 
-    def __init__(self, lib_name: str = 'wxauto'):
+    def __init__(self, lib_name: str = 'wxauto', lazy_init: bool = False):
         """
         初始化适配器
 
         Args:
             lib_name: 指定使用的库名称，可选值: 'wxauto', 'wxautox'，默认为'wxauto'
+            lazy_init: 是否延迟初始化，如果为True，则不立即导入库
         """
         self._instance = None
         self._lib_name = None
+        self._requested_lib_name = lib_name  # 保存请求的库名称
         self._lock = threading.Lock()
         self._listen = {}  # 添加listen属性
         self._cached_window_name = ""  # 添加窗口名称缓存
+        self._lazy_init = lazy_init
+        self._initialized = False
 
-        logger.info(f"初始化WeChatAdapter，请求的库名称: {lib_name}")
+        logger.info(f"初始化WeChatAdapter，请求的库名称: {lib_name}，延迟初始化: {lazy_init}")
         logger.info(f"当前工作目录: {os.getcwd()}")
         logger.info(f"Python路径: {sys.path}")
 
+        if not lazy_init:
+            # 立即初始化
+            self._perform_initialization()
+        else:
+            logger.info("使用延迟初始化模式，将在首次使用时导入库")
+
+    def _perform_initialization(self):
+        """执行实际的库导入和初始化"""
+        if self._initialized:
+            return
+
         # 根据指定的库名称导入相应的库
-        if lib_name.lower() == 'wxautox':
+        if self._requested_lib_name.lower() == 'wxautox':
             logger.info("尝试导入wxautox库")
             if not self._try_import_wxautox():
                 logger.error("无法导入wxautox库，将尝试回退到wxauto")
@@ -65,11 +80,20 @@ class WeChatAdapter:
                 logger.error("无法导入wxauto库")
                 raise ImportError("无法导入wxauto库，请确保已正确安装")
 
+        self._initialized = True
         logger.info(f"使用微信自动化库: {self._lib_name}")
+
+    def _ensure_initialized(self):
+        """确保适配器已初始化"""
+        if not self._initialized:
+            with self._lock:
+                if not self._initialized:  # 双重检查
+                    self._perform_initialization()
 
     @property
     def listen(self):
         """获取监听列表"""
+        self._ensure_initialized()
         if self._instance:
             # 直接返回实例的listen属性
             return self._instance.listen
@@ -78,16 +102,39 @@ class WeChatAdapter:
     def _try_import_wxautox(self) -> bool:
         """尝试导入wxautox库"""
         try:
-            # 尝试导入pip安装的wxautox包
-            import wxautox
-            self._lib_name = "wxautox"
-            # 更新日志适配器中的库名称
-            WeChatLibAdapter.set_lib_name_static("wxautox")
-            logger.info("成功导入wxautox库")
-            return True
-        except ImportError as e:
-            logger.warning(f"无法导入wxautox库: {str(e)}")
-            return False
+            # 在打包环境中，直接尝试导入，避免使用检测器（防止库冲突）
+            import sys
+            if getattr(sys, 'frozen', False):
+                logger.info("打包环境中直接尝试导入wxautox库")
+                try:
+                    import wxautox
+                    self._lib_name = "wxautox"
+                    # 更新日志适配器中的库名称
+                    WeChatLibAdapter.set_lib_name_static("wxautox")
+                    logger.info("成功导入wxautox库（打包环境直接导入）")
+                    return True
+                except ImportError as e:
+                    logger.warning(f"打包环境中wxautox库导入失败: {str(e)}")
+                    return False
+                except Exception as e:
+                    logger.error(f"打包环境中wxautox库导入异常: {str(e)}")
+                    return False
+            else:
+                # 在开发环境中，使用统一的库检测器
+                from app.wechat_lib_detector import detector
+
+                available, details = detector.detect_wxautox()
+                if available:
+                    # 实际导入库
+                    import wxautox
+                    self._lib_name = "wxautox"
+                    # 更新日志适配器中的库名称
+                    WeChatLibAdapter.set_lib_name_static("wxautox")
+                    logger.info(f"成功导入wxautox库: {details}")
+                    return True
+                else:
+                    logger.warning(f"wxautox库不可用: {details}")
+                    return False
         except Exception as e:
             logger.error(f"尝试导入wxautox时出现未知错误: {str(e)}")
             return False
@@ -95,22 +142,48 @@ class WeChatAdapter:
     def _try_import_wxauto(self) -> bool:
         """尝试导入wxauto库"""
         try:
-            # 尝试导入pip安装的wxauto包
-            import wxauto
-            self._lib_name = "wxauto"
-            # 更新日志适配器中的库名称
-            WeChatLibAdapter.set_lib_name_static("wxauto")
-            logger.info("成功导入wxauto库")
-            return True
-        except ImportError as e:
-            logger.warning(f"无法导入wxauto库: {str(e)}")
-            return False
+            # 在打包环境中，直接尝试导入，避免使用检测器（防止库冲突）
+            import sys
+            if getattr(sys, 'frozen', False):
+                logger.info("打包环境中直接尝试导入wxauto库")
+                try:
+                    import wxauto
+                    self._lib_name = "wxauto"
+                    # 更新日志适配器中的库名称
+                    WeChatLibAdapter.set_lib_name_static("wxauto")
+                    logger.info("成功导入wxauto库（打包环境直接导入）")
+                    return True
+                except ImportError as e:
+                    logger.warning(f"打包环境中wxauto库导入失败: {str(e)}")
+                    return False
+                except Exception as e:
+                    logger.error(f"打包环境中wxauto库导入异常: {str(e)}")
+                    return False
+            else:
+                # 在开发环境中，使用统一的库检测器
+                from app.wechat_lib_detector import detector
+
+                available, details = detector.detect_wxauto()
+                if available:
+                    # 实际导入库
+                    import wxauto
+                    self._lib_name = "wxauto"
+                    # 更新日志适配器中的库名称
+                    WeChatLibAdapter.set_lib_name_static("wxauto")
+                    logger.info(f"成功导入wxauto库: {details}")
+                    return True
+                else:
+                    logger.warning(f"wxauto库不可用: {details}")
+                    return False
         except Exception as e:
             logger.error(f"尝试导入wxauto时出现未知错误: {str(e)}")
             return False
 
     def initialize(self) -> bool:
         """初始化微信实例"""
+        # 确保适配器已初始化
+        self._ensure_initialized()
+
         with self._lock:
             if not self._instance:
                 try:
@@ -1143,12 +1216,12 @@ try:
     # 记录配置信息
     logger.info(f"从app.config导入配置成功，WECHAT_LIB={Config.WECHAT_LIB}")
 
-    # 创建全局适配器实例
-    wechat_adapter = WeChatAdapter(lib_name=Config.WECHAT_LIB)
-    logger.info(f"成功创建全局适配器实例，使用库: {wechat_adapter.get_lib_name()}")
+    # 创建全局适配器实例（使用延迟初始化避免库冲突）
+    wechat_adapter = WeChatAdapter(lib_name=Config.WECHAT_LIB, lazy_init=True)
+    logger.info(f"成功创建全局适配器实例（延迟初始化），请求库: {Config.WECHAT_LIB}")
 except ImportError as e:
     # 如果无法导入配置，则使用默认值
     logger.error(f"导入app.config失败: {str(e)}，将使用默认值'wxauto'")
-    wechat_adapter = WeChatAdapter(lib_name='wxauto')
+    wechat_adapter = WeChatAdapter(lib_name='wxauto', lazy_init=True)
 
-    logger.info(f"成功创建全局适配器实例，使用库: {wechat_adapter.get_lib_name()}")
+    logger.info(f"成功创建全局适配器实例（延迟初始化），请求库: wxauto")

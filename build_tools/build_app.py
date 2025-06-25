@@ -5,7 +5,6 @@
 
 import os
 import sys
-import shutil
 import subprocess
 import argparse
 import importlib
@@ -100,8 +99,7 @@ def build_app(debug=False, onefile=False):
         "PyInstaller",
         "--clean",
         "--noconfirm",
-         "--paths", 
-         "wxauto",
+        "--additional-hooks-dir", "hooks",  # 添加自定义hook目录
     ]
 
     # 添加图标
@@ -117,11 +115,33 @@ def build_app(debug=False, onefile=False):
         cmd.append("--windowed")
         app_name = "wxauto_http_api"
 
-    # 添加单文件选项
-    if onefile:
+    # 默认使用单文件模式
+    if onefile or not onefile:  # 强制使用单文件模式
         cmd.append("--onefile")
-    else:
-        cmd.append("--onedir")
+        print("使用单文件打包模式")
+
+    # 添加Flask和Web框架相关的隐藏导入
+    cmd.extend([
+        "--hidden-import", "flask",
+        "--hidden-import", "flask.app",
+        "--hidden-import", "flask.blueprints",
+        "--hidden-import", "flask.json",
+        "--hidden-import", "flask.logging",
+        "--hidden-import", "flask.sessions",
+        "--hidden-import", "flask.templating",
+        "--hidden-import", "flask.wrappers",
+        "--hidden-import", "flask_restful",
+        "--hidden-import", "flask_limiter",
+        "--hidden-import", "flask_limiter.util",
+        "--hidden-import", "werkzeug",
+        "--hidden-import", "werkzeug.serving",
+        "--hidden-import", "werkzeug.utils",
+        "--hidden-import", "jinja2",
+        "--hidden-import", "jinja2.runtime",
+        "--hidden-import", "markupsafe",
+        "--hidden-import", "itsdangerous",
+        "--hidden-import", "click",
+    ])
 
     # 确保包含pywin32的所有必要组件
     cmd.extend([
@@ -136,33 +156,68 @@ def build_app(debug=False, onefile=False):
         "--hidden-import", "pywintypes",
     ])
 
-    # 添加wxauto模块及其子模块
+    # 添加微信自动化库的隐藏导入（通过pip包管理）
+    # 只导入主模块，避免子模块导入错误
     cmd.extend([
         "--hidden-import", "wxauto",
-        "--hidden-import", "wxauto.wxauto",
-        "--hidden-import", "wxauto.elements",
-        "--hidden-import", "wxauto.languages",
-        "--hidden-import", "wxauto.utils",
-        "--hidden-import", "wxauto.color",
-        "--hidden-import", "wxauto.errors",
-        "--hidden-import", "wxauto.uiautomation",
-        "--add-data", "wxauto;wxauto",
+        "--hidden-import", "wxautox",
     ])
 
-    # 添加wxauto_wrapper模块及其子模块
-    cmd.extend([
-        "--hidden-import", "app.wxauto_wrapper",
-        "--hidden-import", "app.wxauto_wrapper.wrapper",
-    ])
+    # wxauto_wrapper已不再使用，移除相关导入
 
-    # 添加wxautox可能需要的依赖
+    # 添加网络请求和HTTP相关依赖
     cmd.extend([
-        "--hidden-import", "tenacity",
         "--hidden-import", "requests",
+        "--hidden-import", "requests.adapters",
+        "--hidden-import", "requests.auth",
+        "--hidden-import", "requests.cookies",
+        "--hidden-import", "requests.models",
+        "--hidden-import", "requests.sessions",
         "--hidden-import", "urllib3",
+        "--hidden-import", "urllib3.poolmanager",
+        "--hidden-import", "urllib3.util",
         "--hidden-import", "certifi",
         "--hidden-import", "idna",
         "--hidden-import", "charset_normalizer",
+    ])
+
+    # 添加配置和工具库依赖
+    cmd.extend([
+        "--hidden-import", "tenacity",
+        "--hidden-import", "dotenv",
+        "--hidden-import", "pyyaml",
+        "--hidden-import", "yaml",
+        "--hidden-import", "json",
+        "--hidden-import", "logging",
+        "--hidden-import", "logging.handlers",
+        "--hidden-import", "psutil",
+        "--hidden-import", "pyperclip",
+        "--hidden-import", "comtypes",
+        "--hidden-import", "uiautomation",
+        "--hidden-import", "PIL",
+        "--hidden-import", "PIL.Image",
+        "--hidden-import", "PIL.ImageDraw",
+        "--hidden-import", "PIL.ImageFont",
+    ])
+
+    # 添加JWT和认证相关依赖
+    cmd.extend([
+        "--hidden-import", "jose",
+        "--hidden-import", "jose.jwt",
+        "--hidden-import", "jose.exceptions",
+        "--hidden-import", "cryptography",
+        "--hidden-import", "cryptography.fernet",
+        "--hidden-import", "cryptography.hazmat",
+    ])
+
+    # 添加JWT和认证相关依赖
+    cmd.extend([
+        "--hidden-import", "jose",
+        "--hidden-import", "jose.jwt",
+        "--hidden-import", "jose.exceptions",
+        "--hidden-import", "cryptography",
+        "--hidden-import", "cryptography.fernet",
+        "--hidden-import", "cryptography.hazmat",
     ])
 
     # 添加编码模块，确保UTF-8编码支持
@@ -201,60 +256,17 @@ def build_app(debug=False, onefile=False):
         ("data", "data"),
         ("app", "app"),
         ("icons", "icons"),
-        ("fix_path.py", "."),
-        ("config_manager.py", "."),
-        ("fix_dependencies.py", "."),
         ("requirements.txt", "."),
-        ("app_ui.py", "."),
-        ("app_mutex.py", "."),
-        ("ui_service.py", "."),
-        ("api_service.py", "."),
         ("main.py", "."),
-        ("run.py", "."),
-        ("start_ui.bat", "."),
-        ("start_api.bat", "."),
-        ("start_api_packaged.bat", "."),
-        ("initialize_wechat.bat", "."),
-        ("create_icon.py", "."),
-        ("dynamic_package_manager.py", "."),
-        ("wxauto_import.py", "."),  # 添加wxauto导入辅助模块
     ]
 
-    # 特殊处理wxauto文件夹
-    wxauto_path = os.path.join(os.getcwd(), "wxauto")
-    if os.path.exists(wxauto_path) and os.path.isdir(wxauto_path):
-        print(f"找到wxauto文件夹: {wxauto_path}")
-        # 添加wxauto文件夹
-        data_files.append(("wxauto", "wxauto"))
-
-        # 检查wxauto/wxauto子目录
-        wxauto_inner_path = os.path.join(wxauto_path, "wxauto")
-        if os.path.exists(wxauto_inner_path) and os.path.isdir(wxauto_inner_path):
-            print(f"找到wxauto内部目录: {wxauto_inner_path}")
-            # 确保wxauto/wxauto目录中的所有文件都被包含
-            for root, dirs, files in os.walk(wxauto_inner_path):
-                for file in files:
-                    if file.endswith('.py'):
-                        rel_dir = os.path.relpath(root, wxauto_path)
-                        src_file = os.path.join(root, file)
-                        dst_dir = os.path.join("wxauto", rel_dir)
-                        data_files.append((src_file, dst_dir))
-                        print(f"添加wxauto模块文件: {src_file} -> {dst_dir}")
-
-            # 直接将wxauto模块复制到site-packages目录
-            print("将wxauto模块复制到site-packages目录，确保能够被正确导入")
-            cmd.extend([
-                "--add-data", f"{wxauto_path}{os.pathsep}.",
-            ])
-    else:
-        print("警告: 找不到wxauto文件夹，将无法包含wxauto库")
+    # wxauto和wxautox库现在通过pip包管理，无需特殊处理文件夹
 
     for src, dst in data_files:
         if os.path.exists(src):
             cmd.extend(["--add-data", f"{src}{os.pathsep}{dst}"])
 
-    # 排除wxautox库
-    cmd.extend(["--exclude-module", "wxautox"])
+    # 不再排除wxautox库，允许其被打包
 
     # 添加名称
     cmd.extend(["--name", app_name])
@@ -267,14 +279,6 @@ def build_app(debug=False, onefile=False):
     subprocess.check_call(cmd)
 
     print(f"打包完成，输出目录: {dist_dir / app_name}")
-
-    # 复制wxautox wheel文件到输出目录
-    wheel_files = [f for f in os.listdir() if f.startswith("wxautox-") and f.endswith(".whl")]
-    if wheel_files:
-        wheel_file = wheel_files[0]
-        wheel_dest = dist_dir / app_name / wheel_file
-        shutil.copy2(wheel_file, wheel_dest)
-        print(f"已复制wxautox wheel文件到输出目录: {wheel_dest}")
 
     return dist_dir / app_name
 

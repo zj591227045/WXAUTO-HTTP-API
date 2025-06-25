@@ -60,34 +60,29 @@ def check_dependencies():
         import flask
         import requests
         import psutil
+        import sys
 
-        # 检查wxauto库
-        try:
-            import wxauto
-            logger.info("成功导入wxauto库")
-        except ImportError as e:
-            logger.error(f"导入wxauto库失败: {str(e)}")
-            logger.error("请使用pip安装wxauto库: pip install wxauto")
-            return False
+        # 在打包环境中跳过微信自动化库检测，避免库冲突
+        is_frozen = getattr(sys, 'frozen', False)
+        if is_frozen:
+            logger.info("打包环境中跳过微信自动化库检测，避免库冲突")
+            logger.info("微信自动化库将在实际使用时进行检测和初始化")
+        else:
+            # 使用统一的库检测器检查微信自动化库
+            from app.wechat_lib_detector import detector
 
-        # 检查wxautox是否可用（可选）- 使用subprocess避免影响主进程
-        try:
-            import subprocess
-            result = subprocess.run(
-                [sys.executable, "-c", "import wxautox; print('wxautox_available')"],
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                timeout=10
-            )
+            # 检测所有可用的库
+            available_libs = detector.get_available_libraries()
+            if not available_libs:
+                logger.error("没有检测到可用的微信自动化库")
+                logger.error("请安装wxauto或wxautox库: pip install wxauto wxautox")
+                return False
 
-            if result.returncode == 0 and "wxautox_available" in result.stdout:
-                logger.info("wxautox库已安装")
-            else:
-                logger.info("wxautox库未安装，将使用wxauto库")
-        except Exception as e:
-            logger.info(f"wxautox库检查失败: {str(e)}，将使用wxauto库")
+            logger.info(f"检测到可用的微信自动化库: {', '.join(available_libs)}")
+
+            # 显示检测摘要
+            summary = detector.get_detection_summary()
+            logger.info(f"库检测摘要:\n{summary}")
 
         logger.info("依赖项检查成功")
         return True

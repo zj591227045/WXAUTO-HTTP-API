@@ -45,38 +45,49 @@ def check_dependencies():
     wechat_lib = Config.WECHAT_LIB
     logger.info(f"配置的微信库: {wechat_lib}")
 
-    # 检查wxauto库
-    if wechat_lib == 'wxauto':
-        try:
-            # 尝试导入pip安装的wxauto包
-            import wxauto
-            logger.info("成功导入wxauto库")
-        except ImportError as e:
-            logger.error(f"无法导入wxauto库: {str(e)}")
-            logger.error("请使用pip安装wxauto库: pip install wxauto")
-            sys.exit(1)
-
-    # 检查wxautox库
-    elif wechat_lib == 'wxautox':
-        try:
-            # 尝试导入pip安装的wxautox包
-            import wxautox
-            logger.info("成功导入wxautox库")
-
-            # 检查wxautox是否可用（不执行激活）
-            logger.info("检查wxautox可用性...")
-
-        except ImportError as e:
-            logger.error(f"无法导入wxautox库: {str(e)}")
-            logger.error("请使用pip安装wxautox库: pip install wxautox")
-            logger.error("如需使用wxauto库，请在配置文件中设置 wechat_lib=wxauto")
-            sys.exit(1)
-
-    # 不支持的库
+    # 在打包环境中跳过库检测，避免库冲突
+    is_frozen = getattr(sys, 'frozen', False)
+    if is_frozen:
+        logger.info("打包环境中跳过库检测，避免库冲突")
+        logger.info(f"配置的微信库: {wechat_lib}，将在实际使用时进行检测和初始化")
     else:
-        logger.error(f"不支持的微信库: {wechat_lib}")
-        logger.error("请在.env文件中设置 WECHAT_LIB=wxauto 或 WECHAT_LIB=wxautox")
-        sys.exit(1)
+        # 使用统一的库检测器
+        from app.wechat_lib_detector import detector
+
+        # 检测指定的库
+        if wechat_lib == 'wxauto':
+            available, details = detector.detect_wxauto()
+            if available:
+                logger.info(f"wxauto库检测成功: {details}")
+            else:
+                logger.error(f"wxauto库检测失败: {details}")
+                logger.error("请使用pip安装wxauto库: pip install wxauto")
+                sys.exit(1)
+        elif wechat_lib == 'wxautox':
+            available, details = detector.detect_wxautox()
+            if available:
+                logger.info(f"wxautox库检测成功: {details}")
+                # 检查wxautox是否可用（不执行激活）
+                logger.info("wxautox库已可用，可以正常使用")
+            else:
+                logger.error(f"wxautox库检测失败: {details}")
+                logger.error("请使用pip安装wxautox库: pip install wxautox")
+                logger.error("如需使用wxauto库，请在配置文件中设置 wechat_lib=wxauto")
+                sys.exit(1)
+        else:
+            # 检测所有可用的库
+            available_libs = detector.get_available_libraries()
+            if not available_libs:
+                logger.error("没有检测到可用的微信自动化库")
+                logger.error("请安装wxauto或wxautox库: pip install wxauto wxautox")
+                sys.exit(1)
+            else:
+                logger.info(f"检测到可用的库: {', '.join(available_libs)}")
+                logger.warning(f"配置的库'{wechat_lib}'无效，将使用默认库")
+
+    # 显示检测摘要
+    summary = detector.get_detection_summary()
+    logger.info(f"依赖检测摘要:\n{summary}")
 
 # 退出时清理资源
 def cleanup():
