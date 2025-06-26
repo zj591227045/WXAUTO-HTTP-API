@@ -268,7 +268,7 @@
             margin-top: 15px;
         }
 
-        .api-tester-header {
+        .api-tester-header, .tester-header {
             background: #07C160;
             color: white;
             padding: 8px 12px;
@@ -278,19 +278,23 @@
             font-size: 0.9em;
         }
 
-        .api-tester-form .form-label {
+        .api-tester-form .form-label,
+        .tester-body .form-label {
             font-weight: 600;
             font-size: 0.85em;
             margin-bottom: 4px;
         }
 
         .api-tester-form .form-control,
-        .api-tester-form .form-select {
+        .api-tester-form .form-select,
+        .tester-body .form-control,
+        .tester-body .form-select {
             font-size: 0.85em;
             padding: 6px 10px;
         }
 
-        .api-tester-form textarea {
+        .api-tester-form textarea,
+        .tester-body textarea {
             font-family: 'Courier New', monospace;
             font-size: 0.8em;
         }
@@ -631,7 +635,7 @@
                             <div class="row mb-2">
                                 <div class="col-md-6">
                                     <label class="form-label">服务器地址:</label>
-                                    <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                    <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">API Key:</label>
@@ -705,7 +709,7 @@
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">服务器地址:</label>
-                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">API Key:</label>
@@ -776,7 +780,7 @@
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">服务器地址:</label>
-                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">API Key:</label>
@@ -848,7 +852,7 @@
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">服务器地址:</label>
-                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">API Key:</label>
@@ -930,7 +934,7 @@
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">服务器地址:</label>
-                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">API Key:</label>
@@ -1015,7 +1019,7 @@
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">服务器地址:</label>
-                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">API Key:</label>
@@ -1100,7 +1104,7 @@
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">服务器地址:</label>
-                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">API Key:</label>
@@ -1182,7 +1186,7 @@
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">服务器地址:</label>
-                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">API Key:</label>
@@ -1304,7 +1308,7 @@
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">服务器地址:</label>
-                                        <input type="text" class="form-control api-url-input" placeholder="http://localhost:5000">
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">API Key:</label>
@@ -1334,6 +1338,100 @@
                                 </div>
                                 <div class="mb-3">
                                     <button type="button" class="test-button" onclick="sendApiRequest('message-listen-add-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取监听消息测试工具 -->
+                        <div class="api-tester" id="message-listen-get-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取监听消息 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/listen/get" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">查询参数:</label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" placeholder="who (监听对象名称)" id="listen-get-who">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-listen-get-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 移除监听测试工具 -->
+                        <div class="api-tester" id="message-listen-remove-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 移除监听 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/listen/remove" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="3" placeholder="请输入JSON格式的请求体">{
+  "who": "测试群"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-listen-remove-tester')">
                                         发送请求
                                     </button>
                                 </div>
@@ -1534,6 +1632,288 @@
 }</pre>
                             </div>
                         </div>
+
+                        <!-- 显示聊天窗口测试工具 -->
+                        <div class="api-tester" id="chat-show-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 显示聊天窗口 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/chat/show" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="3" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('chat-show-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 关闭聊天窗口测试工具 -->
+                        <div class="api-tester" id="chat-close-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 关闭聊天窗口 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/chat/close" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="3" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('chat-close-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 加载更多消息测试工具 -->
+                        <div class="api-tester" id="chat-load-more-messages-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 加载更多消息 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/chat/load-more-messages" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="4" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "count": 20
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('chat-load-more-messages-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取所有消息测试工具 -->
+                        <div class="api-tester" id="chat-get-all-messages-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取所有消息 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/chat/get-all-messages" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">查询参数:</label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" placeholder="who (聊天对象名称)" id="chat-get-all-messages-who">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('chat-get-all-messages-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 发送自定义表情测试工具 -->
+                        <div class="api-tester" id="chat-send-emotion-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 发送自定义表情 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/chat/send-emotion" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="4" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "emotion_path": "D:/emotions/happy.gif"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('chat-send-emotion-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 合并转发消息测试工具 -->
+                        <div class="api-tester" id="chat-merge-forward-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 合并转发消息 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/chat/merge-forward" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="5" placeholder="请输入JSON格式的请求体">{
+  "who": "测试群",
+  "target": "张三",
+  "message_indices": [1, 2, 3]
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('chat-merge-forward-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1678,6 +2058,291 @@
                             <span class="version-badge version-plus">Plus版</span>
                         </div>
                         <p>获取最近群聊或通讯录中的群聊列表。</p>
+
+                        <!-- 添加群成员测试工具 -->
+                        <div class="api-tester" id="group-add-members-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 添加群成员 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/group/add-members" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "group": "测试群",
+  "members": ["好友1", "好友2"],
+  "reason": "邀请加入我们的讨论群"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('group-add-members-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取群成员列表测试工具 -->
+                        <div class="api-tester" id="group-get-members-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取群成员列表 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/group/get-members" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">查询参数:</label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" placeholder="who (群组名称)" id="group-get-members-who">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('group-get-members-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 移除群成员测试工具 -->
+                        <div class="api-tester" id="group-remove-members-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 移除群成员 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/group/remove-members" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="5" placeholder="请输入JSON格式的请求体">{
+  "group": "测试群",
+  "members": ["违规用户"]
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('group-remove-members-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 群聊管理测试工具 -->
+                        <div class="api-tester" id="group-manage-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 群聊管理 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/group/manage" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="8" placeholder="请输入JSON格式的请求体">{
+  "who": "测试群",
+  "name": "新群名称",
+  "remark": "群备注",
+  "myname": "我的群昵称",
+  "notice": "群公告内容",
+  "quit_group": false
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('group-manage-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取最近群聊测试工具 -->
+                        <div class="api-tester" id="group-get-recent-groups-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取最近群聊 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/group/get-recent-groups" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('group-get-recent-groups-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取通讯录群聊测试工具 -->
+                        <div class="api-tester" id="group-get-contact-groups-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取通讯录群聊 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/group/get-contact-groups" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">查询参数:</label>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <input type="number" class="form-control" placeholder="speed (默认1)" id="group-get-contact-groups-speed">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="number" step="0.1" class="form-control" placeholder="interval (默认0.1)" id="group-get-contact-groups-interval">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('group-get-contact-groups-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1777,6 +2442,184 @@
                             <span class="version-badge version-plus">Plus版</span>
                         </div>
                         <p>从群聊成员中添加好友。</p>
+
+                        <!-- 获取好友详情测试工具 -->
+                        <div class="api-tester" id="friend-get-details-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取好友详情 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/friend/get-details" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('friend-get-details-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取新好友申请测试工具 -->
+                        <div class="api-tester" id="friend-get-new-friends-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取新好友申请 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/friend/get-new-friends" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('friend-get-new-friends-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 添加新好友测试工具 -->
+                        <div class="api-tester" id="friend-add-new-friend-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 添加新好友 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/friend/add-new-friend" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="8" placeholder="请输入JSON格式的请求体">{
+  "keywords": "张三",
+  "addmsg": "你好，我是李四，想加你为好友",
+  "remark": "张三同学",
+  "tags": ["同学", "朋友"],
+  "permission": "朋友圈"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('friend-add-new-friend-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 好友信息管理测试工具 -->
+                        <div class="api-tester" id="friend-manage-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 好友信息管理 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/friend/manage" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "who": "张三",
+  "remark": "新备注名",
+  "tags": ["朋友", "同事"]
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('friend-manage-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1847,6 +2690,395 @@
                             <span class="version-badge version-plus">Plus版</span>
                         </div>
                         <p>发送链接卡片、检查在线状态、获取个人信息等高级功能。</p>
+
+                        <!-- 获取会话列表测试工具 -->
+                        <div class="api-tester" id="wechat-get-session-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取会话列表 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/get-session" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-get-session-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 打开聊天窗口测试工具 -->
+                        <div class="api-tester" id="wechat-chat-with-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 打开聊天窗口 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/chat-with" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="4" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "exact": false
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-chat-with-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取子窗口测试工具 -->
+                        <div class="api-tester" id="wechat-get-sub-window-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取子窗口 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/get-sub-window" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">查询参数:</label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" placeholder="nickname (好友名称)" id="wechat-get-sub-window-nickname">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-get-sub-window-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取所有子窗口测试工具 -->
+                        <div class="api-tester" id="wechat-get-all-sub-windows-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取所有子窗口 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/get-all-sub-windows" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-get-all-sub-windows-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 开始监听测试工具 -->
+                        <div class="api-tester" id="wechat-start-listening-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 开始监听 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/start-listening" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-start-listening-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 停止监听测试工具 -->
+                        <div class="api-tester" id="wechat-stop-listening-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 停止监听 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/stop-listening" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="3" placeholder="请输入JSON格式的请求体">{
+  "remove": true
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-stop-listening-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 发送链接卡片测试工具 -->
+                        <div class="api-tester" id="wechat-send-url-card-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 发送链接卡片 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/send-url-card" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "url": "https://www.example.com",
+  "friends": ["文件传输助手"],
+  "timeout": 10
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-send-url-card-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 检查在线状态测试工具 -->
+                        <div class="api-tester" id="wechat-is-online-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 检查在线状态 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/is-online" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-is-online-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取个人信息测试工具 -->
+                        <div class="api-tester" id="wechat-get-my-info-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取个人信息 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/wechat/get-my-info" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('wechat-get-my-info-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1902,6 +3134,338 @@
                             <span class="version-badge version-plus">Plus版</span>
                         </div>
                         <p>拍一拍、删除消息等高级操作。</p>
+
+                        <!-- 点击消息测试工具 -->
+                        <div class="api-tester" id="message-click-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 点击消息 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/click" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="5" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "message_id": "消息ID"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-click-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 引用回复测试工具 -->
+                        <div class="api-tester" id="message-quote-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 引用回复 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/quote" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "message_id": "消息ID",
+  "reply_text": "这是回复内容"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-quote-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 转发消息测试工具 -->
+                        <div class="api-tester" id="message-forward-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 转发消息 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/forward" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "message_id": "消息ID",
+  "target": "张三"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-forward-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 下载文件测试工具 -->
+                        <div class="api-tester" id="message-download-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 下载文件 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/download" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "message_id": "消息ID",
+  "save_path": "D:/downloads/"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-download-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 语音转文字测试工具 -->
+                        <div class="api-tester" id="message-to-text-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 语音转文字 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/to-text" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="5" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "message_id": "语音消息ID"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-to-text-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 拍一拍测试工具 -->
+                        <div class="api-tester" id="message-tickle-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 拍一拍 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/tickle" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="5" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "message_id": "消息ID"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-tickle-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 删除消息测试工具 -->
+                        <div class="api-tester" id="message-delete-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 删除消息 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/message/delete" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="5" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "message_id": "消息ID"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('message-delete-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2005,6 +3569,190 @@
 }</pre>
                             </div>
                         </div>
+
+                        <!-- 打开朋友圈测试工具 -->
+                        <div class="api-tester" id="moments-open-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 打开朋友圈 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/moments/open" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('moments-open-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 获取朋友圈内容测试工具 -->
+                        <div class="api-tester" id="moments-get-moments-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 获取朋友圈内容 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="GET" selected>GET</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/moments/get-moments" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">查询参数:</label>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <input type="number" class="form-control" placeholder="n (数量，默认10)" id="moments-get-moments-n">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="number" class="form-control" placeholder="timeout (超时，默认10)" id="moments-get-moments-timeout">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('moments-get-moments-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 点赞朋友圈测试工具 -->
+                        <div class="api-tester" id="moments-like-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 点赞朋友圈 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/moments/like" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="3" placeholder="请输入JSON格式的请求体">{
+  "moment_index": 0
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('moments-like-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 保存朋友圈图片测试工具 -->
+                        <div class="api-tester" id="moments-save-images-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 保存朋友圈图片 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/moments/save-images" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="4" placeholder="请输入JSON格式的请求体">{
+  "moment_index": 0,
+  "save_path": "D:/moments/"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('moments-save-images-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2035,6 +3783,146 @@
                             <span class="version-badge version-plus">Plus版</span>
                         </div>
                         <p>接受或拒绝新好友申请。</p>
+
+                        <!-- 点击会话测试工具 -->
+                        <div class="api-tester" id="auxiliary-session-click-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 点击会话 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/auxiliary/session/click" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="3" placeholder="请输入JSON格式的请求体">{
+  "session_name": "文件传输助手"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('auxiliary-session-click-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 接受好友申请测试工具 -->
+                        <div class="api-tester" id="auxiliary-new-friend-accept-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 接受好友申请 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/auxiliary/new-friend/accept" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "friend_name": "申请人名",
+  "remark": "好友备注",
+  "tags": ["标签"]
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('auxiliary-new-friend-accept-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 拒绝好友申请测试工具 -->
+                        <div class="api-tester" id="auxiliary-new-friend-reject-tester">
+                            <div class="tester-header">
+                                <h6><i class="bi bi-play-circle"></i> 拒绝好友申请 - API测试工具</h6>
+                            </div>
+                            <div class="tester-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Base URL:</label>
+                                        <input type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">API Key:</label>
+                                        <input type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">请求方法:</label>
+                                        <select class="form-select method-select">
+                                            <option value="POST" selected>POST</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label class="form-label">接口路径:</label>
+                                        <input type="text" class="form-control endpoint-input" value="/api/auxiliary/new-friend/reject" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">请求体 (JSON):</label>
+                                    <textarea class="form-control request-body-textarea" rows="3" placeholder="请输入JSON格式的请求体">{
+  "friend_name": "申请人名"
+}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" class="test-button" onclick="sendApiRequest('auxiliary-new-friend-reject-tester')">
+                                        发送请求
+                                    </button>
+                                </div>
+                                <div class="response-section" style="display: none;">
+                                    <div class="response-header">响应结果:</div>
+                                    <div class="response-content"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2318,7 +4206,7 @@ curl -X GET "http://localhost:5000/api/message/listen/get?who=测试群" \
             const apiKey = '123456aA'; // 从配置中获取的默认API Key
 
             // 填充所有URL和API Key字段
-            document.querySelectorAll('.api-url-input').forEach(input => {
+            document.querySelectorAll('.base-url-input').forEach(input => {
                 input.value = baseUrl;
             });
 
@@ -2335,14 +4223,30 @@ curl -X GET "http://localhost:5000/api/message/listen/get?who=测试群" \
             const responseContent = tester.querySelector('.response-content');
 
             // 获取表单数据
-            const baseUrl = tester.querySelector('.api-url-input').value;
+            const baseUrl = tester.querySelector('.base-url-input').value;
             const apiKey = tester.querySelector('.api-key-input').value;
             const method = tester.querySelector('.method-select').value;
             const endpoint = tester.querySelector('.endpoint-input').value;
             const requestBody = tester.querySelector('.request-body-textarea')?.value;
 
-            // 构建完整URL
-            const fullUrl = baseUrl + endpoint;
+            // 处理查询参数
+            let fullUrl = baseUrl + endpoint;
+            if (method === 'GET') {
+                const queryParams = new URLSearchParams();
+
+                // 查找所有查询参数输入框
+                const queryInputs = tester.querySelectorAll('input[id*="-who"], input[id*="-nickname"], input[id*="-speed"], input[id*="-interval"], input[id*="-n"], input[id*="-timeout"]');
+                queryInputs.forEach(input => {
+                    if (input.value.trim()) {
+                        const paramName = input.id.split('-').pop();
+                        queryParams.append(paramName, input.value.trim());
+                    }
+                });
+
+                if (queryParams.toString()) {
+                    fullUrl += '?' + queryParams.toString();
+                }
+            }
 
             // 设置请求头
             const headers = {

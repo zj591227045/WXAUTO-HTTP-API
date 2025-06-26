@@ -908,30 +908,36 @@ class WeChatAdapter:
 
         # 根据不同的库使用不同的处理方法
         if self._lib_name == "wxautox":
-            # 对于wxautox库，只传递who参数，不传递其他参数
+            # 对于wxautox库，使用GetNewMessage方法
             try:
-                # 根据文档，wxautox的GetListenMessage只接受who参数
                 who = args[0] if args else kwargs.get('who')
 
                 # 记录调用信息，帮助调试
-                logger.debug(f"调用wxautox GetListenMessage，参数: who={who}")
+                logger.debug(f"调用wxautox GetNewMessage，参数: who={who}")
 
-                # 只传递who参数
+                # wxautox使用GetNewMessage方法获取新消息
                 if who:
-                    result = self._instance.GetListenMessage(who)
+                    # 如果指定了who参数，获取特定聊天对象的消息
+                    result = self._instance.GetNewMessage(who)
                 else:
-                    result = self._instance.GetListenMessage()
+                    # 如果没有指定who参数，获取所有新消息
+                    result = self._instance.GetNewMessage()
 
                 # 记录返回类型，帮助调试
-                logger.debug(f"wxautox GetListenMessage返回类型: {type(result)}")
+                logger.debug(f"wxautox GetNewMessage返回类型: {type(result)}")
+
+                # 确保返回格式一致
+                if result is None:
+                    return {} if not who else []
+
                 return result
             except Exception as e:
                 # 捕获所有异常，避免崩溃
                 import traceback
                 logger.error(f"wxautox获取监听消息失败: {str(e)}")
-                traceback.print_exc()
-                # 返回空字典，表示没有新消息
-                return {}
+                logger.error(f"错误详情: {traceback.format_exc()}")
+                # 返回空字典或空列表，表示没有新消息
+                return {} if not who else []
         else:
             # 对于wxauto库，使用更健壮的处理方法
             try:
@@ -1035,9 +1041,9 @@ class WeChatAdapter:
 
                             # 再次尝试获取消息
                             if who:
-                                result = self._instance.GetListenMessage(who)
+                                result = self._instance.GetNewMessage(who) if self._lib_name == "wxautox" else self._instance.GetListenMessage(who)
                             else:
-                                result = self._instance.GetListenMessage()
+                                result = self._instance.GetNewMessage() if self._lib_name == "wxautox" else self._instance.GetListenMessage()
                             return result
                         except Exception as retry_e:
                             logger.error(f"重新添加监听对象后获取消息仍然失败: {str(retry_e)}")
@@ -1093,7 +1099,7 @@ class WeChatAdapter:
 
                             # 重新尝试获取所有监听对象的消息
                             try:
-                                result = self._instance.GetListenMessage()
+                                result = self._instance.GetNewMessage() if self._lib_name == "wxautox" else self._instance.GetListenMessage()
                                 return result
                             except Exception as retry_e:
                                 logger.error(f"重新添加所有监听对象后获取消息仍然失败: {str(retry_e)}")
@@ -1138,9 +1144,9 @@ class WeChatAdapter:
 
                             # 再次尝试获取消息
                             if who:
-                                result = self._instance.GetListenMessage(who)
+                                result = self._instance.GetNewMessage(who) if self._lib_name == "wxautox" else self._instance.GetListenMessage(who)
                             else:
-                                result = self._instance.GetListenMessage()
+                                result = self._instance.GetNewMessage() if self._lib_name == "wxautox" else self._instance.GetListenMessage()
                             return result
                         except Exception as retry_e:
                             logger.error(f"重新添加监听对象后获取消息仍然失败: {str(retry_e)}")
