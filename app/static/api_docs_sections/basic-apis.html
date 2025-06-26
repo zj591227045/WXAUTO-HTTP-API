@@ -1,0 +1,106 @@
+<div class="api-endpoints" id="basic-apis">
+                <h3><i class="bi bi-gear"></i> 基础功能</h3>
+
+                <!-- 微信初始化 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/wechat/initialize</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 微信初始化
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>初始化微信实例，建立与微信的连接。这是使用API的第一步，必须先初始化才能进行其他操作。</p>
+
+                            <h6>请求参数</h6>
+                            <p>此接口无需请求参数，只需要在Header中包含有效的API密钥。</p>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/wechat/initialize \
+  -H "X-API-Key: your-api-key"</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "微信初始化成功",
+  "data": {
+    "status": "initialized",
+    "window_name": "微信"
+  }
+}</pre>
+                            </div>
+
+                            <h6>错误码说明</h6>
+                            <ul style="font-size: 0.9em;">
+                                <li><code>0</code> - 成功</li>
+                                <li><code>1001</code> - 微信未启动</li>
+                                <li><code>1002</code> - 初始化失败</li>
+                            </ul>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="wechat-initialize-tester" data-api-config="wechat-initialize"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取微信状态 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/wechat/status</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 获取微信状态
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取当前微信连接状态和相关信息，包括连接状态、窗口名称、当前使用的库版本等。</p>
+
+                            <h6>请求参数</h6>
+                            <p>此接口无需请求参数。</p>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X GET http://localhost:5000/api/wechat/status \
+  -H "X-API-Key: your-api-key"</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "获取状态成功",
+  "data": {
+    "is_connected": true,
+    "window_name": "微信",
+    "current_lib": "wxauto"
+  }
+}</pre>
+                            </div>
+
+                            <h6>响应字段说明</h6>
+                            <ul style="font-size: 0.9em;">
+                                <li><code>is_connected</code> - 是否已连接微信</li>
+                                <li><code>window_name</code> - 微信窗口名称</li>
+                                <li><code>current_lib</code> - 当前使用的库（wxauto/wxautox）</li>
+                            </ul>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="wechat-status-tester" data-api-config="wechat-status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat类功能 - 主要接口 -->

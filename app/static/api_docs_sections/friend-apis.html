@@ -1,0 +1,139 @@
+<div class="api-endpoints" id="friend-apis">
+                <h3><i class="bi bi-person-plus"></i> 好友管理</h3>
+
+                <!-- 获取好友详情 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/friend/get-details</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取好友详情
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取好友的详细信息列表。</p>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "获取好友详情成功",
+    "data": {
+        "friends": [
+            {
+                "name": "好友1",
+                "remark": "备注名",
+                "avatar": "头像路径"
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="friend-get-details-tester" data-api-config="friend-get-details"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 添加新好友 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/friend/add-new-friend</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 添加新好友
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>发送好友申请。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>username</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>用户名或微信号</td>
+                                    </tr>
+                                    <tr>
+                                        <td>message</td>
+                                        <td>string</td>
+                                        <td>否</td>
+                                        <td>申请消息</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "好友申请已发送",
+    "data": {
+        "username": "test_user",
+        "status": "sent"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="friend-add-new-tester" data-api-config="friend-add-new"></div>
+                                        <pre class="response-content"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取新好友申请 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/friend/get-new-requests</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取新好友申请
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取新的好友申请列表。</p>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "code": 0,
+    "message": "获取新好友申请成功",
+    "data": {
+        "requests": [
+            {
+                "name": "申请人姓名",
+                "message": "申请消息",
+                "time": "2024-01-01 12:00:00"
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="friend-get-requests-tester" data-api-config="friend-get-requests"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>

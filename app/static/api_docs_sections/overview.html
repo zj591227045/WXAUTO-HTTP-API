@@ -1,0 +1,121 @@
+<div class="doc-overview">
+    <h2><i class="bi bi-book"></i> 概述</h2>
+    
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>WxAuto HTTP API</strong> 是基于 wxauto/wxautox 库开发的微信自动化HTTP接口服务，提供简单易用的RESTful API来控制微信客户端。
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h4><i class="bi bi-check-circle text-success"></i> 主要特性</h4>
+            <ul>
+                <li>🚀 <strong>简单易用</strong> - RESTful API设计，支持多种编程语言</li>
+                <li>🔒 <strong>安全可靠</strong> - API密钥认证，确保接口安全</li>
+                <li>📱 <strong>功能丰富</strong> - 支持消息发送、文件传输、群组管理等</li>
+                <li>🔄 <strong>实时监听</strong> - 支持消息监听和实时获取</li>
+                <li>🎯 <strong>精确控制</strong> - 基于UI自动化，操作精确可靠</li>
+                <li>📊 <strong>状态监控</strong> - 实时监控微信状态和连接情况</li>
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h4><i class="bi bi-gear text-primary"></i> 技术架构</h4>
+            <ul>
+                <li><strong>后端框架</strong>: Flask + Python</li>
+                <li><strong>微信控制</strong>: wxauto/wxautox</li>
+                <li><strong>API风格</strong>: RESTful</li>
+                <li><strong>认证方式</strong>: API Key</li>
+                <li><strong>数据格式</strong>: JSON</li>
+                <li><strong>平台支持</strong>: Windows</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4><i class="bi bi-lightning text-warning"></i> 快速开始</h4>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="bi bi-1-circle"></i> 启动服务</h6>
+                        <p class="card-text">运行HTTP API服务，默认端口5000</p>
+                        <code>python app.py</code>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="bi bi-2-circle"></i> 初始化微信</h6>
+                        <p class="card-text">调用初始化接口连接微信客户端</p>
+                        <code>POST /api/wechat/initialize</code>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="bi bi-3-circle"></i> 发送消息</h6>
+                        <p class="card-text">使用Chat类API发送消息</p>
+                        <code>POST /api/chat/send-message</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4><i class="bi bi-question-circle text-info"></i> 常见问题</h4>
+        <div class="accordion" id="faqAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        支持哪些微信版本？
+                    </button>
+                </h2>
+                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        支持微信3.9.8及以上版本，推荐使用3.9.8版本以获得最佳稳定性。
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        会不会被封号？
+                    </button>
+                </h2>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        本项目基于Windows官方API开发，不涉及任何侵入、破解、抓包微信客户端应用，完全以人操作微信的行为执行操作，正常使用不会被封号。
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                        如何获取API密钥？
+                    </button>
+                </h2>
+                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        API密钥在配置文件 <code>data/api/config/app_config.json</code> 中设置，默认为 <code>test-key-2</code>。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>重要提示：</strong>
+            <ul class="mb-0">
+                <li>请确保微信客户端已登录并保持在前台</li>
+                <li>首次使用需要调用初始化接口</li>
+                <li>建议在测试环境中先熟悉各个接口的使用方法</li>
+                <li>生产环境使用时请修改默认的API密钥</li>
+            </ul>
+        </div>
+    </div>
+</div>

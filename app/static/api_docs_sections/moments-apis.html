@@ -1,0 +1,229 @@
+<div class="api-endpoints" id="moments-apis">
+                <h3><i class="bi bi-heart"></i> 朋友圈</h3>
+
+                <!-- 打开朋友圈 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/moments/open</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 打开朋友圈
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>打开微信朋友圈界面。</p>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "朋友圈已打开",
+    "data": {
+        "status": "opened",
+        "timestamp": "2024-01-01 12:00:00"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="moments-open-tester" data-api-config="moments-open"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取朋友圈消息 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/moments/get-messages</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取朋友圈消息
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取朋友圈的消息列表。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>limit</td>
+                                        <td>number</td>
+                                        <td>否</td>
+                                        <td>获取数量，默认10</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "获取朋友圈消息成功",
+    "data": {
+        "messages": [
+            {
+                "author": "张三",
+                "content": "今天天气真好",
+                "time": "2024-01-01 12:00:00"
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="moments-get-tester" data-api-config="moments-get">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="123456aA">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="POST" selected>POST</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/moments/open" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button class="btn btn-primary test-button" onclick="sendApiRequest('moments-open-tester')">
+                                                <i class="bi bi-send"></i> 发送请求
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <h6>响应结果:</h6>
+                                        <pre class="response-content"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取朋友圈内容 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/moments/get-moments</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取朋友圈内容
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取朋友圈的动态内容。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>count</td>
+                                        <td>number</td>
+                                        <td>否</td>
+                                        <td>获取数量，默认10</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "获取朋友圈内容成功",
+    "data": {
+        "moments": [
+            {
+                "author": "好友名称",
+                "content": "朋友圈文字内容",
+                "images": ["image1.jpg", "image2.jpg"],
+                "time": "2小时前",
+                "likes": 5,
+                "comments": 2
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div class="api-tester" id="moments-get-tester">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="123456aA">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="GET" selected>GET</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/moments/get-moments" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">获取数量 (count):</label> type="number" class="form-control" id="moments-get-count" placeholder="10" value="10">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button class="btn btn-primary test-button" onclick="sendApiRequest('moments-get-tester')">
+                                                <i class="bi bi-send"></i> 发送请求
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <h6>响应结果:</h6>
+                                        <pre class="response-content"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>

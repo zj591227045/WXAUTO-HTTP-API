@@ -1,0 +1,121 @@
+/* 兼容性接口简化样式 */
+
+/* 兼容性接口容器 - 简化版本 */
+.compatibility-interface {
+    position: relative;
+}
+
+/* 兼容性接口标题样式 - 简化版本 */
+.compatibility-interface h3 {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+/* 兼容性接口端点容器 - 简化版本 */
+.compatibility-interface .api-endpoint-container {
+    position: relative;
+}
+
+/* 兼容性接口头部 - 简化版本 */
+.compatibility-interface .api-endpoint-header {
+    position: relative;
+}
+
+/* 兼容性接口测试工具样式 - 简化版本 */
+.compatibility-interface .api-test-section {
+    position: relative;
+}
+
+/* 兼容性接口表单样式 - 简化版本 */
+.compatibility-interface .api-test-form {
+    /* 保持原有样式，不添加特殊效果 */
+}
+
+/* 兼容性接口按钮样式 - 简化版本 */
+.compatibility-interface .btn-primary {
+    /* 保持原有样式，不添加特殊效果 */
+}
+
+/* 兼容性接口响应区域 - 简化版本 */
+.compatibility-interface .response-section {
+    /* 保持原有样式，不添加特殊效果 */
+}
+
+/* 兼容性说明卡片 - 简化版本 */
+.compatibility-notice-card {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    position: relative;
+}
+
+.compatibility-notice-card h5 {
+    color: #856404;
+}
+
+.compatibility-notice-card .alert {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ffc107;
+    color: #856404;
+}
+
+/* 迁移建议样式 - 简化版本 */
+.migration-suggestion {
+    background: #d1ecf1;
+    border: 1px solid #17a2b8;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    position: relative;
+}
+
+.migration-suggestion h6 {
+    color: #0c5460;
+}
+
+.migration-suggestion code {
+    background: rgba(255, 255, 255, 0.8);
+    color: #0c5460;
+    border: 1px solid #17a2b8;
+}
+
+/* 推荐替代接口链接 - 简化版本 */
+.recommended-alternative {
+    display: inline-block;
+    background: #d4edda;
+    border: 1px solid #28a745;
+    border-radius: 4px;
+    padding: 6px 12px;
+    margin: 4px 0;
+    text-decoration: none;
+    color: #155724;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.recommended-alternative:hover {
+    background: #c3e6cb;
+    color: #155724;
+    text-decoration: none;
+}
+
+/* 响应式适配 - 简化版本 */
+@media (max-width: 768px) {
+    .compatibility-notice-card {
+        margin: 10px 0;
+        padding: 15px;
+    }
+
+    .migration-suggestion {
+        margin: 10px 0;
+        padding: 10px;
+    }
+
+    .recommended-alternative {
+        display: block;
+        text-align: center;
+        margin: 8px 0;
+    }
+}

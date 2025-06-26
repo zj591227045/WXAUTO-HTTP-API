@@ -1,0 +1,34 @@
+<div class="doc-overview" id="auth">
+                <h3><i class="bi bi-shield-lock"></i> 认证方式</h3>
+
+                <p class="mb-3">所有API请求都需要在HTTP Header中包含API密钥：</p>
+
+                <div class="code-block">
+                    <code>X-API-Key: your_api_key_here</code>
+                </div>
+
+                <div class="alert alert-warning py-2 mt-3">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>安全提示：</strong>
+                    请妥善保管您的API密钥，不要在客户端代码中硬编码API密钥。建议使用环境变量或配置文件来管理密钥。
+                </div>
+
+                <h5 class="mt-4">API密钥验证示例</h5>
+                <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/auth/verify \
+  -H "X-API-Key: your-api-key"</pre>
+                </div>
+
+                <h6>成功响应：</h6>
+                <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "验证成功",
+  "data": {
+    "valid": true
+  }
+}</pre>
+                </div>
+            </div>
+
+            <!-- API端点区域 -->

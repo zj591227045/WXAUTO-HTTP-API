@@ -156,5 +156,12 @@ def create_app():
         from flask import render_template
         return render_template('api_docs_new.html')
 
+    # 添加模块化API文档路由
+    @app.route('/api-docs-modular')
+    def api_docs_modular():
+        """模块化API文档路由"""
+        from flask import render_template
+        return render_template('api_docs_modular.html')
+
     logging.info("Flask应用创建完成")
     return app

@@ -1,0 +1,47 @@
+<!-- 兼容性接口说明 -->
+<div class="doc-overview">
+    <h3><i class="bi bi-info-circle"></i> 兼容性接口说明</h3>
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>注意：</strong>以下接口为兼容性接口，主要用于向后兼容。建议新项目优先使用上述Chat类功能接口。
+    </div>
+    <p>兼容性接口包括：</p>
+    <ul>
+        <li><strong>消息功能 (/api/message/)</strong> - 提供基础的消息发送和接收功能</li>
+        <li><strong>聊天窗口 (/api/chat-window/)</strong> - 提供聊天窗口相关操作</li>
+    </ul>
+    <p>这些接口功能与Chat类接口重复，但保留用于兼容现有项目。</p>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <h5><i class="bi bi-arrow-right"></i> 推荐使用</h5>
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-success">Chat类功能</h6>
+                    <ul class="list-unstyled">
+                        <li><code>/api/chat/show</code></li>
+                        <li><code>/api/chat/send-message</code></li>
+                        <li><code>/api/chat/send-file</code></li>
+                        <li><code>/api/chat/get-messages</code></li>
+                    </ul>
+                    <small class="text-muted">基于wxauto库核心设计，功能完整</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <h5><i class="bi bi-arrow-down"></i> 兼容性接口</h5>
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-warning">传统接口</h6>
+                    <ul class="list-unstyled">
+                        <li><code>/api/message/send</code></li>
+                        <li><code>/api/message/send-file</code></li>
+                        <li><code>/api/chat-window/message/send</code></li>
+                        <li><code>/api/message/get-next-new</code></li>
+                    </ul>
+                    <small class="text-muted">保留用于向后兼容</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

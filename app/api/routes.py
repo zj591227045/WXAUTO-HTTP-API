@@ -1894,3 +1894,59 @@ def get_queue_status():
             'message': f'获取队列状态失败: {str(e)}',
             'data': None
         }), 500
+
+@api_bp.route('/config/get-api-settings', methods=['GET'])
+def get_api_settings():
+    """获取API测试工具的配置设置（仅限localhost访问）"""
+    try:
+        # 安全检查：仅允许localhost访问
+        client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', ''))
+        if client_ip:
+            client_ip = client_ip.split(',')[0].strip()
+
+        # 允许的本地IP地址
+        allowed_ips = ['127.0.0.1', '::1', 'localhost']
+
+        if client_ip not in allowed_ips and not client_ip.startswith('127.') and not client_ip.startswith('192.168.'):
+            logger.warning(f"配置API访问被拒绝，来源IP: {client_ip}")
+            return jsonify({
+                'code': 4003,
+                'message': '访问被拒绝：此API仅限本地访问',
+                'data': None
+            }), 403
+
+        # 使用现有的Config类
+        host = Config.HOST
+        port = Config.PORT
+
+        # 如果host是0.0.0.0，则使用localhost
+        if host == '0.0.0.0':
+            host = 'localhost'
+
+        base_url = f"http://{host}:{port}"
+
+        # 获取API密钥（取第一个）
+        api_keys = Config.get_api_keys()
+        api_key = api_keys[0] if api_keys else 'test-key-2'
+
+        return jsonify({
+            'code': 0,
+            'message': '获取API设置成功',
+            'data': {
+                'base_url': base_url,
+                'api_key': api_key,
+                'host': host,
+                'port': port
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"获取API设置失败: {str(e)}")
+        return jsonify({
+            'code': 5003,
+            'message': f'获取API设置失败: {str(e)}',
+            'data': {
+                'base_url': 'http://localhost:5000',
+                'api_key': 'test-key-2'
+            }
+        }), 200  # 返回200但提供默认值

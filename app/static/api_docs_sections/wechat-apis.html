@@ -1,0 +1,281 @@
+<div class="api-endpoints" id="wechat-apis">
+                <h3><i class="bi bi-wechat"></i> WeChat扩展</h3>
+
+                <!-- 获取会话列表 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/wechat/get-session</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 获取会话列表
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取当前会话列表。</p>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "获取会话列表成功",
+    "data": {
+        "sessions": [
+            {
+                "name": "文件传输助手",
+                "last_message": "最后一条消息",
+                "time": "12:00"
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="wechat-get-session-tester" data-api-config="wechat-get-contacts">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="123456aA">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="GET" selected>GET</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/wechat/get-session" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button class="btn btn-primary test-button" onclick="sendApiRequest('wechat-get-session-tester')">
+                                                <i class="bi bi-send"></i> 发送请求
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <h6>响应结果:</h6>
+                                        <pre class="response-content"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 打开聊天窗口 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/wechat/chat-with</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 打开聊天窗口
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>打开与指定联系人的聊天窗口。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>who</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>联系人名称</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "聊天窗口已打开",
+    "data": {
+        "contact": "文件传输助手",
+        "window_id": "chat_window_1"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="wechat-chat-with-tester" data-api-config="wechat-get-user-info"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取子窗口 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/wechat/get-sub-windows</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取子窗口
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取微信的子窗口列表。</p>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "获取子窗口成功",
+    "data": {
+        "windows": [
+            {
+                "title": "微信",
+                "handle": "123456"
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="wechat-get-sub-windows-tester" data-api-config="wechat-set-remark">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="123456aA">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="POST" selected>POST</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/wechat/chat-with" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">联系人名称 (who):</label> type="text" class="form-control" id="chat-with-who" placeholder="输入联系人名称">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">请求体:</label>
+                                            <textarea class="form-control request-body-textarea" rows="2" placeholder='{"who": "文件传输助手"}'></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button class="btn btn-primary test-button" onclick="sendApiRequest('wechat-chat-with-tester')">
+                                                <i class="bi bi-send"></i> 发送请求
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <h6>响应结果:</h6>
+                                        <pre class="response-content"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取子窗口 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/wechat/get-sub-windows</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 获取子窗口
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取所有子窗口列表。</p>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "code": 0,
+    "message": "获取所有子窗口成功",
+    "data": {
+        "sub_windows": [
+            {
+                "who": "文件传输助手",
+                "window_id": "window_001"
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div class="api-tester" id="wechat-get-sub-windows-tester">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="123456aA">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="GET" selected>GET</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/wechat/get-sub-windows" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button class="btn btn-primary test-button" onclick="sendApiRequest('wechat-get-sub-windows-tester')">
+                                                <i class="bi bi-send"></i> 发送请求
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <h6>响应结果:</h6>
+                                        <pre class="response-content"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>

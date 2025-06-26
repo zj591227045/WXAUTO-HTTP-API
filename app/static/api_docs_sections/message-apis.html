@@ -1,0 +1,348 @@
+<div class="api-endpoints" id="message-apis">
+                <h3><i class="bi bi-chat-dots text-muted"></i> 消息功能 <span class="badge bg-secondary ms-2">兼容性接口</span></h3>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>说明：</strong>此接口为兼容性接口，建议新项目使用 <a href="#chat-class-apis" class="alert-link">Chat类功能接口</a> 以获得更好的性能和功能支持。
+                </div>
+
+                <!-- 发送普通消息 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/send</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 发送普通消息
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>向指定联系人或群组发送文本消息，支持@功能和清空输入框选项。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>receiver</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>接收者名称（联系人或群组名）</td>
+                                    </tr>
+                                    <tr>
+                                        <td>message</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>要发送的消息内容</td>
+                                    </tr>
+                                    <tr>
+                                        <td>at_list</td>
+                                        <td>array</td>
+                                        <td>否</td>
+                                        <td>@的用户列表（仅群组有效）</td>
+                                    </tr>
+                                    <tr>
+                                        <td>clear</td>
+                                        <td>boolean</td>
+                                        <td>否</td>
+                                        <td>发送后是否清空输入框，默认true</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/message/send \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiver": "文件传输助手",
+    "message": "这是一条测试消息",
+    "at_list": ["张三", "李四"],
+    "clear": true
+  }'</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "消息发送成功",
+  "data": {
+    "receiver": "文件传输助手",
+    "message": "这是一条测试消息",
+    "sent_at": "2025-01-24 10:30:15"
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-send-tester" data-api-config="message-send"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 发送文件 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/send-file</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 发送文件
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>向指定联系人或群组发送文件，支持多种文件类型，可同时发送多个文件。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>receiver</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>接收者名称</td>
+                                    </tr>
+                                    <tr>
+                                        <td>file_paths</td>
+                                        <td>array</td>
+                                        <td>是</td>
+                                        <td>文件路径列表</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/message/send-file \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiver": "文件传输助手",
+    "file_paths": ["D:/test/document.pdf", "D:/test/image.jpg"]
+  }'</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "文件发送成功",
+  "data": {
+    "receiver": "文件传输助手",
+    "files_sent": 2,
+    "file_paths": ["D:/test/document.pdf", "D:/test/image.jpg"]
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-send-file-tester" data-api-config="message-send-file"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 发送图片 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/send-image</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 发送图片
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>向指定联系人或群组发送图片消息。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>receiver</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>接收者名称</td>
+                                    </tr>
+                                    <tr>
+                                        <td>image_path</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>图片文件路径</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "图片发送成功",
+  "data": {
+    "receiver": "文件传输助手",
+    "image_path": "C:/image.jpg"
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div class="api-tester" id="message-send-image-tester">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="123456aA">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="POST" selected>POST</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/message/send-image" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">接收者:</label> type="text" class="form-control" placeholder="文件传输助手">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">图片路径:</label> type="text" class="form-control" placeholder="C:/image.jpg">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-12">
+                                            <label class="form-label">请求体:</label>
+                                            <textarea class="form-control request-body-textarea" rows="3" placeholder='{"receiver": "文件传输助手", "image_path": "C:/image.jpg"}'></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button class="btn btn-primary test-button" onclick="sendApiRequest('message-send-image-tester')">
+                                                <i class="bi bi-send"></i> 发送请求
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <h6>响应结果:</h6>
+                                        <pre class="response-content"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取新消息 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/message/get-next-new</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 获取新消息
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取主窗口的未读新消息。</p>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "获取新消息成功",
+  "data": {
+    "sender": "好友名称",
+    "content": "消息内容",
+    "time": "2024-01-01 12:00:00",
+    "type": "text"
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div class="api-tester" id="message-get-next-new-tester">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="123456aA">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="GET" selected>GET</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/message/get-next-new" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <button class="btn btn-primary test-button" onclick="sendApiRequest('message-get-next-new-tester')">
+                                                <i class="bi bi-send"></i> 发送请求
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <h6>响应结果:</h6>
+                                        <pre class="response-content"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>

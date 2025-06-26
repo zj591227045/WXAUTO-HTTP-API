@@ -1,0 +1,210 @@
+<div class="api-endpoints" id="group-apis">
+                <h3><i class="bi bi-people"></i> 群组管理</h3>
+
+                <!-- 添加群成员 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/group/add-members</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 添加群成员
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>向指定群组添加新成员。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>group_name</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>群组名称</td>
+                                    </tr>
+                                    <tr>
+                                        <td>members</td>
+                                        <td>array</td>
+                                        <td>是</td>
+                                        <td>要添加的成员列表</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "成功添加群成员",
+    "data": {
+        "added_members": ["用户1", "用户2"],
+        "failed_members": []
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="group-add-members-tester" data-api-config="group-add-members"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取群成员列表 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/group/get-members</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取群成员列表
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取指定群组的成员列表。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>who</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>群组名称</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "获取群成员列表成功",
+    "data": {
+        "group_name": "测试群",
+        "members": [
+            {
+                "name": "群主",
+                "role": "owner"
+            },
+            {
+                "name": "成员1",
+                "role": "member"
+            }
+        ]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="group-get-members-tester" data-api-config="group-get-members"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取最近群聊 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/group/get-recent-groups</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取最近群聊
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取最近群聊名称列表。</p>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "code": 0,
+    "message": "获取最近群聊成功",
+    "data": {
+        "groups": ["群聊1", "群聊2", "群聊3"]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="group-get-recent-tester" data-api-config="group-get-recent"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取通讯录群聊 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/group/get-contact-groups</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 获取通讯录群聊
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取通讯录中的群聊列表。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>speed</td>
+                                        <td>number</td>
+                                        <td>否</td>
+                                        <td>滚动速度，默认1</td>
+                                    </tr>
+                                    <tr>
+                                        <td>interval</td>
+                                        <td>number</td>
+                                        <td>否</td>
+                                        <td>滚动间隔，默认0.1</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "code": 0,
+    "message": "获取通讯录群聊成功",
+    "data": {
+        "groups": ["群聊1", "群聊2", "群聊3"]
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="group-get-contact-tester" data-api-config="group-get-contact"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>

@@ -1,0 +1,66 @@
+<div class="doc-overview" id="examples">
+                <h3><i class="bi bi-code-slash"></i> 使用示例</h3>
+
+                <h5>Python示例</h5>
+                <div class="code-block">
+<pre>import requests
+
+API_BASE = "http://localhost:5000"
+API_KEY = "your-api-key"
+
+headers = {
+    "X-API-Key": API_KEY,
+    "Content-Type": "application/json"
+}
+
+# 初始化微信
+response = requests.post(f"{API_BASE}/api/wechat/initialize", headers=headers)
+print(response.json())
+
+# 发送消息
+data = {
+    "receiver": "文件传输助手",
+    "message": "Hello from Python!"
+}
+response = requests.post(f"{API_BASE}/api/message/send", json=data, headers=headers)
+print(response.json())</pre>
+                </div>
+
+                <h5>JavaScript示例</h5>
+                <div class="code-block">
+<pre>class WxAutoAPI {
+    constructor(baseUrl, apiKey) {
+        this.baseUrl = baseUrl;
+        this.headers = {
+            'X-API-Key': apiKey,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    async initialize() {
+        const response = await fetch(`${this.baseUrl}/api/wechat/initialize`, {
+            method: 'POST',
+            headers: this.headers
+        });
+        return response.json();
+    }
+
+    async sendMessage(receiver, message) {
+        const response = await fetch(`${this.baseUrl}/api/message/send`, {
+            method: 'POST',
+            headers: this.headers,
+            body: JSON.stringify({ receiver, message })
+        });
+        return response.json();
+    }
+}
+
+// 使用示例
+const api = new WxAutoAPI('http://localhost:5000', 'your-api-key');
+api.initialize().then(() => {
+    return api.sendMessage('文件传输助手', 'Hello from JavaScript!');
+}).then(result => {
+    console.log(result);
+});</pre>
+                </div>
+            </div>

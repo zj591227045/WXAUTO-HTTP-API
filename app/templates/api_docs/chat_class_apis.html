@@ -1,0 +1,303 @@
+<!-- Chat类功能 - 主要接口 -->
+<div class="api-endpoints" id="chat-class-apis">
+    <h3><i class="bi bi-chat-square-text"></i> Chat类功能 <span class="badge bg-primary ms-2">推荐使用</span></h3>
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>说明：</strong>Chat类API是基于wxauto库核心设计的主要接口，提供完整的聊天窗口操作功能，推荐优先使用。
+    </div>
+
+    <!-- 显示聊天窗口 API -->
+    <div class="api-endpoint-container">
+        <div class="api-endpoint-header">
+            <span class="method-badge method-post">POST</span>
+            <code>/api/chat/show</code>
+            <span class="version-badge version-basic">基础版</span>
+            - 显示聊天窗口
+        </div>
+        <div class="api-endpoint-content">
+            <!-- 左侧文档说明 -->
+            <div class="api-doc-section">
+                <h5>接口说明</h5>
+                <p>显示指定联系人或群组的聊天窗口，相当于在微信中点击打开聊天。</p>
+
+                <h6>请求参数</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>参数名</th>
+                            <th>类型</th>
+                            <th>必填</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>who</td>
+                            <td>string</td>
+                            <td>是</td>
+                            <td>聊天对象名称</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h6>响应示例</h6>
+                <pre><code>{
+    "code": 0,
+    "message": "显示聊天窗口成功",
+    "data": {
+        "who": "测试群"
+    }
+}</code></pre>
+            </div>
+
+            <!-- 右侧测试工具 -->
+            <div class="api-test-section">
+                <h5>接口测试</h5>
+                <form class="api-test-form" data-endpoint="/api/chat/show" data-method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">聊天对象</label>
+                        <input type="text" class="form-control" name="who" placeholder="请输入聊天对象名称" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-play-fill"></i> 发送请求
+                    </button>
+                </form>
+                <div class="response-section mt-3" style="display: none;">
+                    <h6>响应结果</h6>
+                    <pre class="response-content"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 发送消息 API -->
+    <div class="api-endpoint-container">
+        <div class="api-endpoint-header">
+            <span class="method-badge method-post">POST</span>
+            <code>/api/chat/send-message</code>
+            <span class="version-badge version-basic">基础版</span>
+            - 发送消息
+        </div>
+        <div class="api-endpoint-content">
+            <!-- 左侧文档说明 -->
+            <div class="api-doc-section">
+                <h5>接口说明</h5>
+                <p>通过Chat类向指定联系人或群组发送文本消息，支持@功能。</p>
+
+                <h6>请求参数</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>参数名</th>
+                            <th>类型</th>
+                            <th>必填</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>who</td>
+                            <td>string</td>
+                            <td>是</td>
+                            <td>聊天对象名称</td>
+                        </tr>
+                        <tr>
+                            <td>message</td>
+                            <td>string</td>
+                            <td>是</td>
+                            <td>消息内容</td>
+                        </tr>
+                        <tr>
+                            <td>at_list</td>
+                            <td>array</td>
+                            <td>否</td>
+                            <td>@的用户列表</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h6>响应示例</h6>
+                <pre><code>{
+    "code": 0,
+    "message": "发送成功",
+    "data": {
+        "who": "测试群",
+        "message": "测试消息"
+    }
+}</code></pre>
+            </div>
+
+            <!-- 右侧测试工具 -->
+            <div class="api-test-section">
+                <h5>接口测试</h5>
+                <form class="api-test-form" data-endpoint="/api/chat/send-message" data-method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">聊天对象</label>
+                        <input type="text" class="form-control" name="who" placeholder="请输入聊天对象名称" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">消息内容</label>
+                        <textarea class="form-control" name="message" rows="3" placeholder="请输入消息内容" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@用户列表 (可选)</label>
+                        <input type="text" class="form-control" name="at_list" placeholder="多个用户用逗号分隔">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-play-fill"></i> 发送请求
+                    </button>
+                </form>
+                <div class="response-section mt-3" style="display: none;">
+                    <h6>响应结果</h6>
+                    <pre class="response-content"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 发送文件 API -->
+    <div class="api-endpoint-container">
+        <div class="api-endpoint-header">
+            <span class="method-badge method-post">POST</span>
+            <code>/api/chat/send-file</code>
+            <span class="version-badge version-basic">基础版</span>
+            - 发送文件
+        </div>
+        <div class="api-endpoint-content">
+            <!-- 左侧文档说明 -->
+            <div class="api-doc-section">
+                <h5>接口说明</h5>
+                <p>通过Chat类向指定联系人或群组发送文件。</p>
+
+                <h6>请求参数</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>参数名</th>
+                            <th>类型</th>
+                            <th>必填</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>who</td>
+                            <td>string</td>
+                            <td>是</td>
+                            <td>聊天对象名称</td>
+                        </tr>
+                        <tr>
+                            <td>file_path</td>
+                            <td>string</td>
+                            <td>是</td>
+                            <td>文件路径</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h6>响应示例</h6>
+                <pre><code>{
+    "code": 0,
+    "message": "发送成功",
+    "data": {
+        "who": "测试群",
+        "file_path": "C:/test.txt"
+    }
+}</code></pre>
+            </div>
+
+            <!-- 右侧测试工具 -->
+            <div class="api-test-section">
+                <h5>接口测试</h5>
+                <form class="api-test-form" data-endpoint="/api/chat/send-file" data-method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">聊天对象</label>
+                        <input type="text" class="form-control" name="who" placeholder="请输入聊天对象名称" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">文件路径</label>
+                        <input type="text" class="form-control" name="file_path" placeholder="请输入文件完整路径" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-play-fill"></i> 发送请求
+                    </button>
+                </form>
+                <div class="response-section mt-3" style="display: none;">
+                    <h6>响应结果</h6>
+                    <pre class="response-content"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 获取消息 API -->
+    <div class="api-endpoint-container">
+        <div class="api-endpoint-header">
+            <span class="method-badge method-get">GET</span>
+            <code>/api/chat/get-messages</code>
+            <span class="version-badge version-basic">基础版</span>
+            - 获取消息
+        </div>
+        <div class="api-endpoint-content">
+            <!-- 左侧文档说明 -->
+            <div class="api-doc-section">
+                <h5>接口说明</h5>
+                <p>获取指定聊天窗口的消息列表。</p>
+
+                <h6>请求参数</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>参数名</th>
+                            <th>类型</th>
+                            <th>必填</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>who</td>
+                            <td>string</td>
+                            <td>是</td>
+                            <td>聊天对象名称</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h6>响应示例</h6>
+                <pre><code>{
+    "code": 0,
+    "message": "获取成功",
+    "data": {
+        "messages": [
+            {
+                "sender": "张三",
+                "content": "你好",
+                "type": "text",
+                "time": "2024-01-01 12:00:00"
+            }
+        ]
+    }
+}</code></pre>
+            </div>
+
+            <!-- 右侧测试工具 -->
+            <div class="api-test-section">
+                <h5>接口测试</h5>
+                <form class="api-test-form" data-endpoint="/api/chat/get-messages" data-method="GET">
+                    <div class="mb-3">
+                        <label class="form-label">聊天对象</label>
+                        <input type="text" class="form-control" name="who" placeholder="请输入聊天对象名称" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-play-fill"></i> 发送请求
+                    </button>
+                </form>
+                <div class="response-section mt-3" style="display: none;">
+                    <h6>响应结果</h6>
+                    <pre class="response-content"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

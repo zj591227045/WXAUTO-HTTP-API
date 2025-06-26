@@ -1,0 +1,166 @@
+<div class="doc-overview">
+    <h3><i class="bi bi-info-circle"></i> 兼容性接口说明</h3>
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>重要提醒：</strong>以下接口为兼容性接口，主要用于向后兼容。建议新项目优先使用Chat类功能接口，以获得更好的性能和功能支持。
+    </div>
+    
+    <p>兼容性接口包括：</p>
+    <ul>
+        <li><strong>消息功能 (/api/message/)</strong> - 提供基础的消息发送和接收功能</li>
+        <li><strong>聊天窗口 (/api/chat-window/)</strong> - 提供聊天窗口相关操作</li>
+    </ul>
+    <p>这些接口功能与Chat类接口重复，但保留用于兼容现有项目。</p>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <h5><i class="bi bi-arrow-right text-success"></i> 推荐使用</h5>
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-success">Chat类功能</h6>
+                    <ul class="list-unstyled">
+                        <li><code>/api/chat/show</code></li>
+                        <li><code>/api/chat/send-message</code></li>
+                        <li><code>/api/chat/send-file</code></li>
+                        <li><code>/api/chat/get-messages</code></li>
+                    </ul>
+                    <small class="text-muted">基于wxauto库核心设计，功能完整</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <h5><i class="bi bi-arrow-down text-warning"></i> 兼容性接口</h5>
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-warning">传统接口</h6>
+                    <ul class="list-unstyled">
+                        <li><code>/api/message/send</code></li>
+                        <li><code>/api/message/send-file</code></li>
+                        <li><code>/api/chat-window/message/send</code></li>
+                        <li><code>/api/message/get-next-new</code></li>
+                    </ul>
+                    <small class="text-muted">保留用于向后兼容</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h5><i class="bi bi-lightbulb text-info"></i> 迁移建议</h5>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>兼容性接口</th>
+                        <th>推荐替代接口</th>
+                        <th>主要区别</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/api/message/send</code></td>
+                        <td><code>/api/chat/send-message</code></td>
+                        <td>Chat类接口支持更多参数和功能</td>
+                        <td><a href="#chat-class-apis" class="btn btn-sm btn-outline-success">立即迁移</a></td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/message/send-file</code></td>
+                        <td><code>/api/chat/send-file</code></td>
+                        <td>Chat类接口提供更好的错误处理</td>
+                        <td><a href="#chat-class-apis" class="btn btn-sm btn-outline-success">立即迁移</a></td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/message/send-image</code></td>
+                        <td><code>/api/chat/send-file</code></td>
+                        <td>Chat类接口统一处理文件和图片</td>
+                        <td><a href="#chat-class-apis" class="btn btn-sm btn-outline-success">立即迁移</a></td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/message/get-next-new</code></td>
+                        <td><code>/api/chat/get-messages</code></td>
+                        <td>Chat类接口提供更完整的消息信息</td>
+                        <td><a href="#chat-class-apis" class="btn btn-sm btn-outline-success">立即迁移</a></td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/chat-window/message/send</code></td>
+                        <td><code>/api/chat/send-message</code></td>
+                        <td>Chat类接口更简洁，功能更强</td>
+                        <td><a href="#chat-class-apis" class="btn btn-sm btn-outline-success">立即迁移</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h5><i class="bi bi-clock text-secondary"></i> 兼容性时间表</h5>
+        <div class="alert alert-info">
+            <ul class="mb-0">
+                <li><strong>当前版本</strong>：兼容性接口正常工作，建议新项目使用Chat类接口</li>
+                <li><strong>下个版本</strong>：兼容性接口将标记为废弃（Deprecated）</li>
+                <li><strong>未来版本</strong>：可能移除兼容性接口，请及时迁移</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h5><i class="bi bi-code-slash text-primary"></i> 迁移示例</h5>
+        
+        <h6>发送消息迁移示例</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-warning">兼容性接口 (不推荐)</h6>
+                <pre><code>POST /api/message/send
+{
+    "receiver": "测试群",
+    "message": "你好",
+    "at_list": ["张三"]
+}</code></pre>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-success">推荐接口</h6>
+                <pre><code>POST /api/chat/send-message
+{
+    "who": "测试群",
+    "message": "你好",
+    "at_list": ["张三"]
+}</code></pre>
+            </div>
+        </div>
+
+        <h6 class="mt-3">发送文件迁移示例</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-warning">兼容性接口 (不推荐)</h6>
+                <pre><code>POST /api/message/send-file
+{
+    "receiver": "测试群",
+    "file_path": "C:/test.txt"
+}</code></pre>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-success">推荐接口</h6>
+                <pre><code>POST /api/chat/send-file
+{
+    "who": "测试群",
+    "file_path": "C:/test.txt"
+}</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i>
+            <strong>迁移完成后的好处：</strong>
+            <ul class="mb-0">
+                <li>更好的性能和稳定性</li>
+                <li>更完整的功能支持</li>
+                <li>更清晰的错误信息</li>
+                <li>更好的文档和示例</li>
+                <li>持续的功能更新和维护</li>
+            </ul>
+        </div>
+    </div>
+</div>

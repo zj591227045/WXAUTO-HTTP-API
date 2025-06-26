@@ -1,0 +1,325 @@
+<div class="api-endpoints" id="chat-apis">
+                <h3><i class="bi bi-window text-muted"></i> 聊天窗口 <span class="badge bg-secondary ms-2">兼容性接口</span></h3>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>说明：</strong>此接口为兼容性接口，建议新项目使用 <a href="#chat-class-apis" class="alert-link">Chat类功能接口</a> 以获得更好的性能和功能支持。
+                </div>
+
+                <!-- 添加监听 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/listen/add</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 添加消息监听
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>为指定的聊天对象添加消息监听，可以实时获取该聊天窗口的新消息。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>who</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>要监听的聊天对象名称</td>
+                                    </tr>
+                                    <tr>
+                                        <td>savepic</td>
+                                        <td>boolean</td>
+                                        <td>否</td>
+                                        <td>是否保存图片，默认false</td>
+                                    </tr>
+                                    <tr>
+                                        <td>savefile</td>
+                                        <td>boolean</td>
+                                        <td>否</td>
+                                        <td>是否保存文件，默认false</td>
+                                    </tr>
+                                    <tr>
+                                        <td>savevoice</td>
+                                        <td>boolean</td>
+                                        <td>否</td>
+                                        <td>是否保存语音，默认false</td>
+                                    </tr>
+                                    <tr>
+                                        <td>savevideo</td>
+                                        <td>boolean</td>
+                                        <td>否</td>
+                                        <td>是否保存视频（仅Plus版），默认false</td>
+                                    </tr>
+                                    <tr>
+                                        <td>parseurl</td>
+                                        <td>boolean</td>
+                                        <td>否</td>
+                                        <td>是否解析URL（仅Plus版），默认false</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/message/listen/add \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "who": "测试群",
+    "savepic": true,
+    "savefile": true,
+    "savevoice": false
+  }'</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "添加监听成功",
+  "data": {
+    "who": "测试群"
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-listen-add-tester" data-api-config="message-listen-add"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取监听消息 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/message/listen/get</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 获取监听消息
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取已监听的消息列表。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>who</td>
+                                        <td>string</td>
+                                        <td>否</td>
+                                        <td>联系人名称，不填则获取所有</td>
+                                    </tr>
+                                    <tr>
+                                        <td>limit</td>
+                                        <td>number</td>
+                                        <td>否</td>
+                                        <td>获取数量，默认10</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "获取监听消息成功",
+    "data": {
+        "messages": [
+            {
+                "who": "文件传输助手",
+                "content": "测试消息",
+                "time": "2024-01-01 12:00:00",
+                "type": "text"
+            }
+        ]
+    }
+}</pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-listen-get-tester" data-api-config="message-listen-get">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="POST" selected>POST</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/message/listen/add" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">请求体 (JSON):</label>
+                                        <textarea class="form-control request-body-textarea" rows="6" placeholder="请输入JSON格式的请求体">{
+  "who": "文件传输助手",
+  "savepic": true,
+  "savefile": true,
+  "savevoice": false,
+  "savevideo": false,
+  "parseurl": false
+}</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <button type="button" class="test-button" onclick="sendApiRequest('message-listen-add-tester')">
+                                            发送请求
+                                        </button>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <div class="response-header">响应结果:</div>
+                                        <div class="response-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 获取监听消息 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-get">GET</span>
+                        <code>/api/message/listen/get</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 获取监听消息
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>获取已监听聊天对象的新消息。可以获取所有监听对象的消息，也可以指定特定对象。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>who</td>
+                                        <td>string</td>
+                                        <td>否</td>
+                                        <td>指定聊天对象，不指定则获取所有</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X GET "http://localhost:5000/api/message/listen/get?who=测试群" \
+  -H "X-API-Key: your-api-key"</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "获取成功",
+  "data": {
+    "messages": {
+      "测试群": [
+        {
+          "type": "text",
+          "content": "这是一条消息",
+          "sender": "张三",
+          "id": "msg_001",
+          "mtype": null,
+          "sender_remark": null
+        }
+      ]
+    }
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div class="api-tester" id="message-listen-get-tester">
+                                <div class="tester-header">
+                                    <i class="bi bi-play-circle"></i> API接口测试
+                                </div>
+                                <div class="tester-body">
+                                    <div class="row mb-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">服务器地址:</label> type="text" class="form-control base-url-input" value="http://localhost:5000">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label optional">API Key:</label> type="text" class="form-control api-key-input" placeholder="your-api-key">
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label">请求方法:</label>
+                                            <select class="form-select method-select">
+                                                <option value="GET" selected>GET</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <label class="form-label optional">接口路径:</label> type="text" class="form-control endpoint-input" value="/api/message/listen/get" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">查询参数:</label>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label optional">聊天对象 (who):</label> type="text" class="form-control" id="listen-get-who" placeholder="可选，不填则获取所有">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <button type="button" class="test-button" onclick="sendApiRequest('message-listen-get-tester')">
+                                            发送请求
+                                        </button>
+                                    </div>
+                                    <div class="response-section" style="display: none;">
+                                        <div class="response-header">响应结果:</div>
+                                        <div class="response-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>

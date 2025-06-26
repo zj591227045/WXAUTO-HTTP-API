@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WxAuto HTTP API 文档</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/api_test_tools.css">
+    <link rel="stylesheet" href="/static/css/compatibility_interface_styles.css">
+    <link rel="stylesheet" href="/static/css/unified_api_tester.css">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background-color: #07C160;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            height: 60px;
+        }
+        .navbar-brand {
+            color: white;
+            font-weight: bold;
+        }
+
+        /* 主容器 - 第一层布局 */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            padding-top: 60px; /* 为固定导航栏留出空间 */
+        }
+
+        /* 左侧导航容器 */
+        .sidebar-container {
+            width: 280px;
+            background: white;
+            border-right: 1px solid #e9ecef;
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-container.collapsed {
+            width: 60px;
+        }
+
+        /* 导航栏切换按钮 */
+        .sidebar-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #07C160;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .sidebar-toggle:hover {
+            background: #06a050;
+        }
+
+        /* 导航内容 */
+        .sidebar-content {
+            padding: 15px;
+        }
+
+        .sidebar-container.collapsed .sidebar-content {
+            padding: 15px 5px;
+        }
+
+        .sidebar-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #495057;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar-container.collapsed .sidebar-title {
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* 导航链接 */
+        .nav-link {
+            color: #495057;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 2px 0;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .nav-link i {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
+        }
+
+        .sidebar-container.collapsed .nav-link {
+            justify-content: center;
+            padding: 8px;
+        }
+
+        .sidebar-container.collapsed .nav-link span {
+            display: none;
+        }
+
+        .nav-link:hover {
+            background-color: #e9ecef;
+            color: #07C160;
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            background-color: #07C160;
+            color: white;
+            font-weight: bold;
+            transform: translateX(8px);
+            box-shadow: 0 2px 8px rgba(7, 193, 96, 0.3);
+            border-left: 4px solid #05a050;
+        }
+
+        .nav-link.active i {
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        /* 右侧内容容器 */
+        .content-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* 文档说明区域 */
+        .doc-overview {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        /* 章节分割线 */
+        .doc-overview:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #e9ecef, transparent);
+        }
+
+        /* API端点区域 */
+        .api-endpoints {
+            display: block; /* 始终显示，允许连续滚动 */
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        /* API端点区域分割线 */
+        .api-endpoints:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #07C160, transparent);
+        }
+
+        /* API端点容器 - 第二层布局 */
+        .api-endpoint-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+        }
+
+        .api-endpoint-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .api-endpoint-content {
+            display: flex;
+            min-height: 400px;
+        }
+
+        /* 左侧文档说明 */
+        .api-doc-section {
+            flex: 1;
+            padding: 20px;
+            border-right: 1px solid #e9ecef;
+            overflow-y: auto;
+        }
+
+        /* 右侧测试工具 */
+        .api-test-section {
+            flex: 1;
+            padding: 20px;
+            background: #f8f9fa;
+            overflow-y: auto;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar-container {
+                width: 100%;
+                height: auto;
+                max-height: 200px;
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .api-endpoint-content {
+                flex-direction: column;
+            }
+            
+            .api-doc-section {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+        }
+
+        /* 移动端侧边栏覆盖层 */
+        @media (max-width: 768px) {
+            .sidebar-container {
+                position: fixed;
+                top: 60px;
+                left: -100%;
+                width: 280px;
+                height: calc(100vh - 60px);
+                max-height: none;
+                transition: left 0.3s ease;
+                z-index: 1040;
+            }
+
+            .sidebar-container.show {
+                left: 0;
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                top: 60px;
+                left: 0;
+                width: 100%;
+                height: calc(100vh - 60px);
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1030;
+                display: none;
+            }
+
+            .sidebar-overlay.show {
+                display: block;
+            }
+
+            .content-container {
+                width: 100%;
+                padding: 15px;
+            }
+        }
+
+        /* 通用样式 */
+        .method-badge {
+            font-size: 0.75em;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .method-get { background-color: #28a745; color: white; }
+        .method-post { background-color: #007bff; color: white; }
+        .method-put { background-color: #ffc107; color: black; }
+        .method-delete { background-color: #dc3545; color: white; }
+
+        .version-badge {
+            font-size: 0.75em;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .version-basic { background-color: #6c757d; color: white; }
+        .version-plus { background-color: #fd7e14; color: white; }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="bi bi-wechat"></i>
+                WxAuto HTTP API 文档
+            </span>
+            <button class="navbar-toggler d-md-none" type="button" style="border: none; color: white;">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 移动端侧边栏覆盖层 -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 左侧导航栏 -->
+        <div class="sidebar-container">
+            <button class="sidebar-toggle">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            
+            <div class="sidebar-content">
+                <h5 class="sidebar-title"><i class="bi bi-list"></i> <span>目录</span></h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" data-section="overview">
+                        <i class="bi bi-book"></i><span>概述</span>
+                    </a>
+                    <a class="nav-link" data-section="features">
+                        <i class="bi bi-star"></i><span>功能特性</span>
+                    </a>
+                    <a class="nav-link" data-section="versions">
+                        <i class="bi bi-layers"></i><span>版本对比</span>
+                    </a>
+                    <a class="nav-link" data-section="auth">
+                        <i class="bi bi-shield-lock"></i><span>认证方式</span>
+                    </a>
+                    <a class="nav-link" data-section="basic-apis">
+                        <i class="bi bi-gear"></i><span>基础功能</span>
+                    </a>
+                    <a class="nav-link" data-section="chat-class-apis">
+                        <i class="bi bi-chat-square-text"></i><span>Chat类功能</span>
+                    </a>
+                    <a class="nav-link" data-section="message-ops">
+                        <i class="bi bi-tools"></i><span>消息操作</span>
+                    </a>
+                    <a class="nav-link" data-section="group-apis">
+                        <i class="bi bi-people"></i><span>群组管理</span>
+                    </a>
+                    <a class="nav-link" data-section="friend-apis">
+                        <i class="bi bi-person-plus"></i><span>好友管理</span>
+                    </a>
+                    <a class="nav-link" data-section="wechat-apis">
+                        <i class="bi bi-wechat"></i><span>WeChat扩展</span>
+                    </a>
+                    <a class="nav-link" data-section="moments-apis">
+                        <i class="bi bi-heart"></i><span>朋友圈</span>
+                    </a>
+                    <a class="nav-link" data-section="auxiliary-apis">
+                        <i class="bi bi-puzzle"></i><span>辅助功能</span>
+                    </a>
+                    <!-- 兼容性接口分组 -->
+                    <div style="margin: 15px 0; padding: 8px 0; border-top: 1px solid #e9ecef;">
+                        <small style="color: #6c757d; font-weight: bold; padding: 0 12px;">兼容性接口</small>
+                    </div>
+                    <a class="nav-link" data-section="compatibility-notice">
+                        <i class="bi bi-info-circle text-muted"></i><span style="color: #6c757d;">兼容性说明</span>
+                    </a>
+                    <a class="nav-link" data-section="message-apis">
+                        <i class="bi bi-chat-dots text-muted"></i><span style="color: #6c757d;">消息功能 (兼容)</span>
+                    </a>
+                    <a class="nav-link" data-section="chat-apis">
+                        <i class="bi bi-window text-muted"></i><span style="color: #6c757d;">聊天窗口 (兼容)</span>
+                    </a>
+                    <a class="nav-link" data-section="error-codes">
+                        <i class="bi bi-exclamation-triangle"></i><span>错误码</span>
+                    </a>
+                    <a class="nav-link" data-section="examples">
+                        <i class="bi bi-code-slash"></i><span>使用示例</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 右侧内容区域 -->
+        <div class="content-container">
+            <div id="content-area">
+                <div class="loading">
+                    <i class="bi bi-hourglass-split"></i> 加载中...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/unified_api_tester.js"></script>
+    <script src="/static/js/api_tester_configs.js"></script>
+    <script>
+        // 模块化内容加载器
+        class ModularDocLoader {
+            constructor() {
+                this.currentSection = 'overview';
+                this.contentArea = document.getElementById('content-area');
+                this.navLinks = document.querySelectorAll('.nav-link[data-section]');
+                this.init();
+            }
+
+            init() {
+                // 绑定导航事件
+                this.navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const section = link.dataset.section;
+                        this.loadSection(section);
+                        this.setActiveNav(link);
+                    });
+                });
+
+                // 侧边栏切换
+                this.initSidebar();
+
+                // 加载默认内容
+                this.loadSection(this.currentSection);
+            }
+
+            async loadSection(sectionName) {
+                try {
+                    this.showLoading();
+                    
+                    // 构建文件路径
+                    const filePath = `/static/api_docs_sections/${sectionName}.html`;
+                    
+                    const response = await fetch(filePath);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const content = await response.text();
+                    this.contentArea.innerHTML = content;
+                    this.currentSection = sectionName;
+                    
+                    // 初始化API测试功能
+                    this.initApiTesting();
+
+                    // 初始化新的统一API测试工具
+                    this.initUnifiedApiTesters();
+                    
+                } catch (error) {
+                    this.showError(`加载失败: ${error.message}`);
+                }
+            }
+
+            showLoading() {
+                this.contentArea.innerHTML = `
+                    <div class="loading">
+                        <i class="bi bi-hourglass-split"></i> 加载中...
+                    </div>
+                `;
+            }
+
+            showError(message) {
+                this.contentArea.innerHTML = `
+                    <div class="error">
+                        <i class="bi bi-exclamation-triangle"></i> ${message}
+                    </div>
+                `;
+            }
+
+            setActiveNav(activeLink) {
+                this.navLinks.forEach(link => link.classList.remove('active'));
+                activeLink.classList.add('active');
+            }
+
+            initSidebar() {
+                const sidebarToggle = document.querySelector('.sidebar-toggle');
+                const sidebar = document.querySelector('.sidebar-container');
+                
+                if (sidebarToggle && sidebar) {
+                    sidebarToggle.addEventListener('click', function() {
+                        sidebar.classList.toggle('collapsed');
+                    });
+                }
+
+                // 移动端侧边栏
+                const mobileToggle = document.querySelector('.navbar-toggler');
+                const sidebarOverlay = document.querySelector('.sidebar-overlay');
+                
+                if (mobileToggle) {
+                    mobileToggle.addEventListener('click', function() {
+                        sidebar.classList.toggle('show');
+                        if (sidebarOverlay) {
+                            sidebarOverlay.classList.toggle('show');
+                        }
+                    });
+                }
+                
+                if (sidebarOverlay) {
+                    sidebarOverlay.addEventListener('click', function() {
+                        sidebar.classList.remove('show');
+                        this.classList.remove('show');
+                    });
+                }
+            }
+
+            initApiTesting() {
+                // API测试功能
+                const apiConfig = {
+                    baseUrl: window.location.origin,
+                    apiKey: 'test-key-2'
+                };
+
+                // 为所有API测试表单添加事件监听
+                document.querySelectorAll('.api-test-form').forEach(form => {
+                    form.addEventListener('submit', async function(e) {
+                        e.preventDefault();
+
+                        const endpoint = this.dataset.endpoint;
+                        const method = this.dataset.method;
+                        const responseSection = this.parentElement.querySelector('.response-section');
+                        const responseContent = responseSection.querySelector('.response-content');
+                        const submitBtn = this.querySelector('button[type="submit"]');
+
+                        // 表单验证
+                        if (!this.checkValidity()) {
+                            this.classList.add('was-validated');
+                            return;
+                        }
+
+                        // 收集表单数据
+                        const formData = new FormData(this);
+                        const data = {};
+
+                        for (let [key, value] of formData.entries()) {
+                            if (key === 'at_list' && value) {
+                                data[key] = value.split(',').map(s => s.trim()).filter(s => s);
+                            } else if (value) {
+                                data[key] = value;
+                            }
+                        }
+
+                        try {
+                            // 设置加载状态
+                            this.classList.add('loading');
+                            submitBtn.disabled = true;
+                            responseSection.classList.remove('success', 'error');
+
+                            const url = method === 'GET' ?
+                                `${apiConfig.baseUrl}${endpoint}?${new URLSearchParams(data)}` :
+                                `${apiConfig.baseUrl}${endpoint}`;
+
+                            const options = {
+                                method: method,
+                                headers: {
+                                    'X-API-Key': apiConfig.apiKey,
+                                    'Content-Type': 'application/json'
+                                }
+                            };
+
+                            if (method !== 'GET') {
+                                options.body = JSON.stringify(data);
+                            }
+
+                            responseContent.textContent = '🚀 发送请求中...';
+                            responseSection.style.display = 'block';
+
+                            const response = await fetch(url, options);
+                            const result = await response.json();
+
+                            // 格式化响应内容
+                            responseContent.textContent = JSON.stringify(result, null, 2);
+
+                            // 设置成功/错误状态
+                            if (response.ok && result.code === 0) {
+                                responseSection.classList.add('success');
+                            } else {
+                                responseSection.classList.add('error');
+                            }
+
+                        } catch (error) {
+                            responseContent.textContent = `❌ 请求失败: ${error.message}`;
+                            responseSection.classList.add('error');
+                            responseSection.style.display = 'block';
+                        } finally {
+                            // 移除加载状态
+                            this.classList.remove('loading');
+                            submitBtn.disabled = false;
+                        }
+                    });
+
+                    // 添加实时验证
+                    form.querySelectorAll('.form-control').forEach(input => {
+                        input.addEventListener('input', function() {
+                            if (this.checkValidity()) {
+                                this.classList.remove('is-invalid');
+                                this.classList.add('is-valid');
+                            } else {
+                                this.classList.remove('is-valid');
+                                this.classList.add('is-invalid');
+                            }
+                        });
+                    });
+                });
+            }
+
+            initUnifiedApiTesters() {
+                // 初始化页面中的统一API测试工具
+                if (typeof initializePageApiTesters === 'function') {
+                    setTimeout(() => {
+                        initializePageApiTesters();
+                    }, 100);
+                }
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            new ModularDocLoader();
+        });
+    </script>
+</body>
+</html>

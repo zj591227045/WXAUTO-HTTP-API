@@ -1,0 +1,240 @@
+<div class="api-endpoints" id="message-ops">
+                <h3><i class="bi bi-tools"></i> 消息操作</h3>
+
+                <!-- 转发消息 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/forward</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 转发消息
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>转发消息给指定联系人或群组。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>message_id</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>要转发的消息ID</td>
+                                    </tr>
+                                    <tr>
+                                        <td>to_contact</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>转发目标联系人</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "消息转发成功",
+    "data": {
+        "message_id": "msg_001",
+        "to_contact": "文件传输助手",
+        "forward_time": "2024-01-01 12:00:00"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-forward-tester" data-api-config="message-forward"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 下载文件 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/download</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 下载文件
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>下载消息中的图片或文件到本地。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>message_id</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>包含文件的消息ID</td>
+                                    </tr>
+                                    <tr>
+                                        <td>save_path</td>
+                                        <td>string</td>
+                                        <td>否</td>
+                                        <td>保存路径，默认为下载文件夹</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "文件下载成功",
+    "data": {
+        "message_id": "msg_001",
+        "file_path": "C:/Downloads/image.jpg",
+        "file_size": "1.2MB"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-download-tester" data-api-config="message-download"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 点击消息 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/click</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 点击消息
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>点击指定的消息元素。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>who</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>聊天对象名称</td>
+                                    </tr>
+                                    <tr>
+                                        <td>message_id</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>消息ID</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "消息点击成功",
+    "data": {
+        "who": "文件传输助手",
+        "message_id": "msg_001"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-click-tester" data-api-config="message-click"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 拍一拍 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/tickle</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 拍一拍
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>对指定消息进行拍一拍操作。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>who</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>聊天对象名称</td>
+                                    </tr>
+                                    <tr>
+                                        <td>message_id</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>消息ID</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "success": true,
+    "message": "拍一拍成功",
+    "data": {
+        "who": "文件传输助手",
+        "message_id": "msg_001"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-tickle-tester" data-api-config="message-tickle"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>

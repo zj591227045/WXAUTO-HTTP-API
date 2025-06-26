@@ -1,0 +1,373 @@
+/* 统一API测试工具样式 */
+
+/* 主容器 */
+.unified-api-tester {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* CURL预览区域样式 */
+
+/* CURL预览区域 */
+.api-curl-preview {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+}
+
+/* 表单区域 */
+.api-form-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #dee2e6;
+}
+
+.api-form-section h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 表单组 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.form-group label.required::after {
+    content: " *";
+    color: #ef4444;
+    font-weight: bold;
+}
+
+.form-group label.optional::after {
+    content: " (可选)";
+    color: #6b7280;
+    font-weight: normal;
+    font-size: 0.8em;
+}
+
+/* 输入框样式 */
+.form-control {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background-color: #fafbfc;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    border-color: #07C160;
+    box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.1);
+    background-color: white;
+    outline: none;
+}
+
+.form-control:hover {
+    border-color: #d1d5db;
+    background-color: white;
+}
+
+/* 文本域 */
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* 选择框 */
+select.form-control {
+    cursor: pointer;
+}
+
+/* 提示文本 */
+.form-text {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 按钮区域 */
+.button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #07C160 0%, #05a050 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(7, 193, 96, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+    justify-content: center;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #06a050 0%, #058a44 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(7, 193, 96, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(7, 193, 96, 0.3);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+    transform: translateY(-1px);
+}
+
+/* 移除原来的右侧预览区域样式，现在使用api-curl-preview */
+
+/* CURL预览 */
+.curl-preview {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.curl-preview-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* 响应结果区域 */
+.response-section {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-top: 20px;
+    display: none;
+}
+
+.response-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.response-content {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    margin: 0;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* 状态指示 */
+.response-section.success .response-content {
+    border-left: 4px solid #10b981;
+}
+
+.response-section.error .response-content {
+    border-left: 4px solid #ef4444;
+}
+
+.response-section.success .response-header::before {
+    content: "✅";
+    font-size: 1em;
+}
+
+.response-section.error .response-header::before {
+    content: "❌";
+    font-size: 1em;
+}
+
+/* 加载状态 */
+.api-tester.loading .btn-primary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.api-tester.loading .btn-primary::after {
+    content: "";
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 滚动条样式 */
+.curl-preview::-webkit-scrollbar,
+.response-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.curl-preview::-webkit-scrollbar-track,
+.response-content::-webkit-scrollbar-track {
+    background: #334155;
+    border-radius: 4px;
+}
+
+.curl-preview::-webkit-scrollbar-thumb,
+.response-content::-webkit-scrollbar-thumb {
+    background: #64748b;
+    border-radius: 4px;
+}
+
+.curl-preview::-webkit-scrollbar-thumb:hover,
+.response-content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .unified-api-tester {
+        gap: 12px;
+    }
+
+    .api-form-section {
+        padding: 16px;
+    }
+
+    .form-control {
+        padding: 10px 12px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+        padding: 14px 20px;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .curl-preview,
+    .response-content {
+        font-size: 0.8rem;
+        max-height: 200px;
+    }
+}
+
+/* 动画效果 */
+.unified-api-tester {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 表单验证样式 */
+.form-control.is-invalid {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.form-control.is-valid {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.invalid-feedback {
+    color: #ef4444;
+    font-size: 0.8rem;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.valid-feedback {
+    color: #10b981;
+    font-size: 0.8rem;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
