@@ -149,5 +149,12 @@ def create_app():
         from flask import render_template
         return render_template('api_docs.html')
 
+    # 添加新版API文档路由
+    @app.route('/api-docs-new')
+    def api_docs_new():
+        """新版API文档路由"""
+        from flask import render_template
+        return render_template('api_docs_new.html')
+
     logging.info("Flask应用创建完成")
     return app
