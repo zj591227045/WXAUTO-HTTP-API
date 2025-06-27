@@ -8,7 +8,7 @@ from app.config import Config
 
 # 创建一个动态日志文件处理器，支持跨天自动切换日志文件
 class DailyRotatingFileHandler(logging.Handler):
-    """动态日志文件处理器，支持跨天自动切换日志文件"""
+    """动态日志文件处理器，支持跨天自动切换日志文件，线程安全"""
 
     def __init__(self, log_dir, filename_prefix="api", max_bytes=20*1024*1024, backup_count=5):
         super().__init__()
@@ -18,6 +18,9 @@ class DailyRotatingFileHandler(logging.Handler):
         self.backup_count = backup_count
         self.current_date = None
         self.current_handler = None
+        # 添加线程锁，确保线程安全
+        import threading
+        self._lock = threading.RLock()
 
     def _get_current_log_file(self):
         """获取当前日期的日志文件路径"""
@@ -26,97 +29,138 @@ class DailyRotatingFileHandler(logging.Handler):
         return os.path.join(self.log_dir, filename)
 
     def _ensure_handler(self):
-        """确保当前有有效的文件处理器"""
+        """确保当前有有效的文件处理器，线程安全"""
         current_date = datetime.now().strftime('%Y%m%d')
 
-        # 如果日期发生变化或者还没有处理器，创建新的处理器
-        if self.current_date != current_date or self.current_handler is None:
-            # 关闭旧的处理器
-            if self.current_handler:
-                self.current_handler.close()
+        # 使用锁确保线程安全
+        with self._lock:
+            # 如果日期发生变化或者还没有处理器，创建新的处理器
+            if self.current_date != current_date or self.current_handler is None:
+                # 安全关闭旧的处理器
+                if self.current_handler:
+                    try:
+                        self.current_handler.close()
+                    except Exception:
+                        pass  # 忽略关闭时的异常
 
-            # 创建新的处理器
-            log_file = self._get_current_log_file()
-            self.current_handler = RotatingFileHandler(
-                log_file,
-                maxBytes=self.max_bytes,
-                backupCount=self.backup_count,
-                encoding='utf-8'
-            )
+                # 创建新的处理器
+                try:
+                    log_file = self._get_current_log_file()
+                    self.current_handler = RotatingFileHandler(
+                        log_file,
+                        maxBytes=self.max_bytes,
+                        backupCount=self.backup_count,
+                        encoding='utf-8'
+                    )
 
-            # 设置格式化器和过滤器
-            if hasattr(self, 'formatter') and self.formatter:
-                self.current_handler.setFormatter(self.formatter)
-            if hasattr(self, 'filters'):
-                for filter_obj in self.filters:
-                    self.current_handler.addFilter(filter_obj)
+                    # 设置格式化器和过滤器
+                    if hasattr(self, 'formatter') and self.formatter:
+                        self.current_handler.setFormatter(self.formatter)
+                    if hasattr(self, 'filters'):
+                        for filter_obj in self.filters:
+                            self.current_handler.addFilter(filter_obj)
 
-            self.current_date = current_date
+                    self.current_date = current_date
+                except Exception:
+                    # 如果创建处理器失败，设置为None
+                    self.current_handler = None
 
     def emit(self, record):
-        """发送日志记录"""
+        """发送日志记录，线程安全"""
         try:
             self._ensure_handler()
-            if self.current_handler:
-                self.current_handler.emit(record)
+            # 使用锁确保emit操作的线程安全
+            with self._lock:
+                if self.current_handler:
+                    self.current_handler.emit(record)
         except Exception:
             self.handleError(record)
 
+    def flush(self):
+        """刷新日志，线程安全"""
+        try:
+            with self._lock:
+                if self.current_handler:
+                    self.current_handler.flush()
+        except (ValueError, OSError, AttributeError):
+            # 忽略文件已关闭或其他I/O错误
+            pass
+
     def setFormatter(self, formatter):
-        """设置格式化器"""
+        """设置格式化器，线程安全"""
         super().setFormatter(formatter)
-        if self.current_handler:
-            self.current_handler.setFormatter(formatter)
+        with self._lock:
+            if self.current_handler:
+                self.current_handler.setFormatter(formatter)
 
     def addFilter(self, filter_obj):
-        """添加过滤器"""
+        """添加过滤器，线程安全"""
         super().addFilter(filter_obj)
-        if self.current_handler:
-            self.current_handler.addFilter(filter_obj)
+        with self._lock:
+            if self.current_handler:
+                self.current_handler.addFilter(filter_obj)
 
     def close(self):
-        """关闭处理器"""
-        if self.current_handler:
-            self.current_handler.close()
+        """关闭处理器，线程安全"""
+        with self._lock:
+            if self.current_handler:
+                try:
+                    self.current_handler.close()
+                except Exception:
+                    pass  # 忽略关闭时的异常
+                finally:
+                    self.current_handler = None
         super().close()
 
 # 创建一个内存日志处理器，用于捕获最近的错误日志
 class MemoryLogHandler(logging.Handler):
-    """内存日志处理器，用于捕获最近的错误日志"""
+    """内存日志处理器，用于捕获最近的错误日志，线程安全"""
 
     def __init__(self, capacity=100):
         super().__init__()
         self.capacity = capacity
         self.buffer = []
         self.error_logs = []
+        # 添加线程锁，确保线程安全
+        import threading
+        self._lock = threading.RLock()
 
     def emit(self, record):
         try:
             # 将日志记录添加到缓冲区
             msg = self.format(record)
-            self.buffer.append(msg)
 
-            # 如果是错误日志，单独保存
-            if record.levelno >= logging.ERROR:
-                self.error_logs.append(msg)
+            # 使用锁确保线程安全
+            with self._lock:
+                self.buffer.append(msg)
 
-            # 如果缓冲区超过容量，移除最旧的记录
-            if len(self.buffer) > self.capacity:
-                self.buffer.pop(0)
+                # 如果是错误日志，单独保存
+                if record.levelno >= logging.ERROR:
+                    self.error_logs.append(msg)
 
-            # 如果错误日志超过容量，移除最旧的记录
-            if len(self.error_logs) > self.capacity:
-                self.error_logs.pop(0)
+                # 如果缓冲区超过容量，移除最旧的记录
+                if len(self.buffer) > self.capacity:
+                    self.buffer.pop(0)
+
+                # 如果错误日志超过容量，移除最旧的记录
+                if len(self.error_logs) > self.capacity:
+                    self.error_logs.pop(0)
         except Exception:
             self.handleError(record)
 
+    def flush(self):
+        """刷新处理器（内存处理器无需实际刷新）"""
+        pass
+
     def get_logs(self):
-        """获取所有日志"""
-        return self.buffer
+        """获取所有日志，线程安全"""
+        with self._lock:
+            return self.buffer.copy()
 
     def get_error_logs(self):
-        """获取错误日志"""
-        return self.error_logs
+        """获取错误日志，线程安全"""
+        with self._lock:
+            return self.error_logs.copy()
 
     def clear(self):
         """清空日志缓冲区"""
@@ -135,6 +179,40 @@ class MemoryLogHandler(logging.Handler):
                 return True
 
         return False
+
+# 创建一个安全的流处理器，避免I/O错误
+class SafeStreamHandler(logging.StreamHandler):
+    """安全的流处理器，避免I/O操作错误"""
+
+    def __init__(self, stream=None):
+        super().__init__(stream)
+        import threading
+        self._lock = threading.RLock()
+
+    def emit(self, record):
+        """安全地发送日志记录"""
+        try:
+            with self._lock:
+                super().emit(record)
+        except (ValueError, OSError, AttributeError, RuntimeError):
+            # 忽略I/O错误、属性错误或运行时错误
+            pass
+        except Exception:
+            # 忽略其他所有异常
+            pass
+
+    def flush(self):
+        """安全地刷新流"""
+        try:
+            with self._lock:
+                if self.stream and hasattr(self.stream, 'flush'):
+                    self.stream.flush()
+        except (ValueError, OSError, AttributeError, RuntimeError):
+            # 忽略I/O错误、属性错误或运行时错误
+            pass
+        except Exception:
+            # 忽略其他所有异常
+            pass
 
 # 创建一个自定义的日志记录器，用于添加当前使用的库信息
 class WeChatLibAdapter(logging.LoggerAdapter):
@@ -273,7 +351,7 @@ def setup_logger():
     logger.addHandler(file_handler)
 
     # 添加控制台处理器
-    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler = SafeStreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     console_handler.addFilter(http_filter)  # 添加过滤器
     # 设置为INFO级别，减少日志量

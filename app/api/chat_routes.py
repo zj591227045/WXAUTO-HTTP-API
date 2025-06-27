@@ -850,7 +850,10 @@ def listen_add():
 @chat_bp.route('/listen/get', methods=['GET'])
 @require_api_key
 def listen_get():
-    """获取监听消息"""
+    """获取监听消息 - 使用GetNextNewMessage方法 - 已更新版本"""
+    # 添加调试日志来确认这个函数被调用了
+    logger.info("=== 调用了更新后的 listen_get 函数 ===")
+
     wx_instance = wechat_manager.get_instance()
     if not wx_instance:
         return jsonify({
@@ -860,124 +863,174 @@ def listen_get():
         }), 400
 
     try:
-        who = request.args.get('who')
+        who = request.args.get('who')  # 可选参数
         limit = int(request.args.get('limit', 10))
 
-        if not who:
-            return jsonify({
-                'code': 4001,
-                'message': '缺少必要参数: who',
-                'data': None
-            }), 400
+        # 获取参数
+        savepic = request.args.get('savepic', 'false').lower() == 'true'
+        savevideo = request.args.get('savevideo', 'false').lower() == 'true'
+        savefile = request.args.get('savefile', 'false').lower() == 'true'
+        savevoice = request.args.get('savevoice', 'false').lower() == 'true'
+        parseurl = request.args.get('parseurl', 'false').lower() == 'true'
+        filter_mute = request.args.get('filter_mute', 'false').lower() == 'true'
 
-        # 使用与成功API完全相同的实现方式
+        # 获取当前使用的库
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
+        logger.debug(f"获取监听消息，当前使用的库: {lib_name}")
+
+        # 根据不同的库构建不同的参数
+        if lib_name == 'wxautox':
+            # wxautox支持所有参数，包括filter_mute
+            params = {
+                'savepic': savepic,
+                'savevideo': savevideo,
+                'savefile': savefile,
+                'savevoice': savevoice,
+                'parseurl': parseurl,
+                'filter_mute': filter_mute
+            }
+        else:
+            # wxauto不支持savevideo、parseurl和filter_mute参数
+            params = {
+                'savepic': savepic,
+                'savefile': savefile,
+                'savevoice': savevoice
+            }
+
+        # 调用GetNextNewMessage方法
         try:
-            # 获取当前使用的库
-            lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
-            logger.debug(f"获取监听消息，当前使用的库: {lib_name}")
+            messages = wx_instance.GetNextNewMessage(**params)
+        except Exception as e:
+            logger.error(f"获取新消息失败: {str(e)}")
+            # 如果出现异常，返回空字典表示没有新消息
+            messages = {}
 
-            # 根据不同的库构建不同的参数
-            if lib_name == 'wxautox':
-                # wxautox的GetListenMessage方法只接受who参数
-                params = {
-                    'who': who
-                }
-            else:
-                # wxauto支持更多参数
-                params = {
-                    'who': who,
-                    'savepic': True,
-                    'savefile': True,
-                    'savevoice': True
-                }
+        # 处理返回的消息
+        if not messages:
+            return jsonify({
+                'code': 0,
+                'message': '没有新消息',
+                'data': {'messages': {}} if not who else {'who': who, 'messages': [], 'count': 0}
+            })
 
-            # 如果指定了who参数，检查该对象是否在监听列表中
-            if who:
-                try:
-                    listen_list = wx_instance.listen
+        # 辅助函数：清理群名中的人数信息
+        def clean_group_name(name):
+            import re
+            return re.sub(r'\s*\(\d+\)$', '', name)
 
-                    # 检查是否在监听列表中
-                    if who not in listen_list:
-                        logger.warning(f"聊天对象 {who} 不在监听列表中，尝试自动添加")
-                        # 自动添加到监听列表
-                        add_params = params.copy()
-                        wx_instance.AddListenChat(**add_params)
-                        logger.info(f"已自动添加聊天对象 {who} 到监听列表")
-                    else:
-                        # 对象已在监听列表中，不做任何操作
-                        logger.debug(f"聊天对象 {who} 已在监听列表中，直接获取消息")
-                except Exception as check_e:
-                    logger.error(f"检查或添加监听对象失败: {str(check_e)}")
-                    # 继续执行，让后续代码处理可能的错误
+        # 格式化消息 - 处理不同库的返回格式
+        formatted_messages = {}
 
-            # 调用GetListenMessage方法（与成功API相同）
-            try:
-                messages = wx_instance.GetListenMessage(**params)
-            except Exception as e:
-                logger.error(f"调用GetListenMessage方法失败: {str(e)}")
-                messages = {}
+        if lib_name == "wxautox":
+            # wxautox返回格式: {'chat_name': 'name', 'chat_type': 'type', 'msg': [messages]}
+            if isinstance(messages, dict) and 'chat_name' in messages and 'msg' in messages:
+                chat_name = messages.get('chat_name', 'Unknown')
+                msg_list = messages.get('msg', [])
 
-            # 处理返回的消息（使用与成功API相同的处理逻辑）
-            if not messages:
-                return jsonify({
-                    'code': 0,
-                    'message': '没有新消息',
-                    'data': {'messages': {}}
-                })
-
-            # 格式化消息（简化版，只返回指定用户的消息）
-            formatted_messages = []
-            if who and who in messages:
-                msg_list = messages[who]
-                # 限制消息数量
-                if isinstance(msg_list, list):
-                    msg_list = msg_list[-limit:] if limit > 0 else msg_list
+                # 清理群名中的人数信息
+                clean_name = clean_group_name(chat_name)
+                formatted_messages[clean_name] = []
 
                 for msg in msg_list:
                     try:
-                        if hasattr(msg, '__dict__'):
-                            formatted_msg = {
-                                'content': getattr(msg, 'content', ''),
+                        # 检查msg是否是对象
+                        if hasattr(msg, 'type'):
+                            formatted_messages[clean_name].append({
+                                'type': getattr(msg, 'type', 'unknown'),
+                                'content': getattr(msg, 'content', str(msg)),
                                 'sender': getattr(msg, 'sender', ''),
-                                'time': getattr(msg, 'time', ''),
-                                'type': getattr(msg, 'type', 'text'),
                                 'id': getattr(msg, 'id', ''),
-                                'sender_remark': getattr(msg, 'sender_remark', ''),
-                                'file_path': getattr(msg, 'file_path', '')
-                            }
+                                'mtype': getattr(msg, 'mtype', None),
+                                'sender_remark': getattr(msg, 'sender_remark', None),
+                                'file_path': getattr(msg, 'file_path', None)
+                            })
                         else:
-                            formatted_msg = {
+                            # 如果msg是字符串或其他类型，转换为文本消息
+                            formatted_messages[clean_name].append({
+                                'type': 'text',
                                 'content': str(msg),
                                 'sender': '',
-                                'time': '',
-                                'type': 'text',
                                 'id': '',
-                                'sender_remark': '',
-                                'file_path': ''
-                            }
-
-                        formatted_messages.append(formatted_msg)
-                    except Exception as format_error:
-                        logger.error(f"格式化消息失败: {str(format_error)}")
+                                'mtype': None,
+                                'sender_remark': None,
+                                'file_path': None
+                            })
+                    except Exception as e:
+                        logger.error(f"处理消息时出错: {str(e)}")
                         continue
+        else:
+            # wxauto库的处理方式 - 返回格式: Dict[str, List[Message]]
+            if isinstance(messages, dict):
+                for chat_name, msg_list in messages.items():
+                    try:
+                        # 清理群名中的人数信息
+                        clean_name = clean_group_name(chat_name)
+                        formatted_messages[clean_name] = []
+
+                        for msg in msg_list:
+                            try:
+                                # 检查msg是否是对象
+                                if hasattr(msg, 'type'):
+                                    formatted_messages[clean_name].append({
+                                        'type': getattr(msg, 'type', 'unknown'),
+                                        'content': getattr(msg, 'content', str(msg)),
+                                        'sender': getattr(msg, 'sender', ''),
+                                        'id': getattr(msg, 'id', ''),
+                                        'mtype': getattr(msg, 'mtype', None),
+                                        'sender_remark': getattr(msg, 'sender_remark', None),
+                                        'file_path': getattr(msg, 'file_path', None)
+                                    })
+                                else:
+                                    # 如果msg是字符串或其他类型，转换为文本消息
+                                    formatted_messages[clean_name].append({
+                                        'type': 'text',
+                                        'content': str(msg),
+                                        'sender': '',
+                                        'id': '',
+                                        'mtype': None,
+                                        'sender_remark': None,
+                                        'file_path': None
+                                    })
+                            except Exception as e:
+                                logger.error(f"处理消息时出错: {str(e)}")
+                                continue
+                    except Exception as e:
+                        logger.error(f"处理聊天窗口消息失败: {str(e)}")
+                        continue
+
+        # 如果指定了who参数，只返回该聊天对象的消息
+        if who:
+            # 查找匹配的聊天对象（支持模糊匹配）
+            target_messages = []
+            clean_who = clean_group_name(who)
+
+            for chat_name, msg_list in formatted_messages.items():
+                if clean_who == chat_name or who == chat_name:
+                    target_messages = msg_list
+                    break
+
+            # 限制消息数量
+            if limit > 0 and len(target_messages) > limit:
+                target_messages = target_messages[-limit:]
 
             return jsonify({
                 'code': 0,
                 'message': '获取监听消息成功',
                 'data': {
                     'who': who,
-                    'messages': formatted_messages,
-                    'count': len(formatted_messages)
+                    'messages': target_messages,
+                    'count': len(target_messages)
                 }
             })
-
-        except Exception as listen_error:
-            logger.error(f"获取监听消息失败: {str(listen_error)}")
+        else:
+            # 返回所有消息
             return jsonify({
-                'code': 3001,
-                'message': f'获取监听消息失败: {str(listen_error)}',
-                'data': None
-            }), 500
+                'code': 0,
+                'message': '获取监听消息成功',
+                'data': {
+                    'messages': formatted_messages
+                }
+            })
 
     except Exception as e:
         logger.error(f"获取监听消息失败: {str(e)}")
@@ -986,6 +1039,16 @@ def listen_get():
             'message': f'获取监听消息失败: {str(e)}',
             'data': None
         }), 500
+
+@chat_bp.route('/test-updated', methods=['GET'])
+@require_api_key
+def test_updated():
+    """测试更新后的代码是否生效"""
+    return jsonify({
+        'code': 0,
+        'message': '更新后的代码已生效',
+        'data': {'version': 'updated'}
+    })
 
 @chat_bp.route('/listen/remove', methods=['POST'])
 @require_api_key

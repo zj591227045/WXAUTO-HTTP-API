@@ -16,14 +16,26 @@ api_bp = Blueprint('api', __name__)
 # 记录程序启动时间
 start_time = time.time()
 
+def _safe_flush_handlers(handlers):
+    """安全地刷新日志处理器，避免I/O错误"""
+    for handler in handlers:
+        try:
+            if hasattr(handler, 'flush') and callable(handler.flush):
+                handler.flush()
+        except (ValueError, OSError, AttributeError, RuntimeError):
+            # 忽略已关闭的文件句柄、属性错误或运行时错误
+            pass
+        except Exception:
+            # 忽略其他所有异常，确保不影响请求处理
+            pass
+
 @api_bp.before_request
 def before_request():
     g.start_time = time.time()
     # 记录请求信息，但不记录详细的请求头和请求体
     logger.info(f"收到请求: {request.method} {request.path}")
-    # 确保日志立即刷新
-    for handler in logger.logger.handlers:
-        handler.flush()
+    # 安全地刷新日志处理器
+    _safe_flush_handlers(logger.logger.handlers)
 
     # 只在开发环境下记录请求体，且不记录请求头
     if Config.DEBUG and request.method in ['POST', 'PUT', 'PATCH']:
@@ -34,12 +46,8 @@ def before_request():
                     logger.debug(f"请求体: {json_data}")
         except Exception as e:
             logger.debug(f"无法解析请求体: {str(e)}")
-        # 确保日志立即刷新
-        for handler in logger.logger.handlers:
-            try:
-                handler.flush()
-            except (ValueError, OSError):
-                pass
+        # 安全地刷新日志处理器
+        _safe_flush_handlers(logger.logger.handlers)
 
 @api_bp.after_request
 def after_request(response):
@@ -47,13 +55,8 @@ def after_request(response):
         duration = time.time() - g.start_time
         # 修改日志格式，确保API计数器能够正确识别 - 确保状态码周围有空格
         logger.info(f"请求处理完成: {request.method} {request.path} - 状态码: {response.status_code} - 耗时: {duration:.2f}秒")
-        # 确保日志立即刷新，但要处理可能的文件句柄关闭异常
-        for handler in logger.logger.handlers:
-            try:
-                handler.flush()
-            except (ValueError, OSError) as e:
-                # 忽略已关闭的文件句柄或其他I/O错误
-                pass
+        # 安全地刷新日志处理器
+        _safe_flush_handlers(logger.logger.handlers)
     return response
 
 @api_bp.errorhandler(Exception)
@@ -757,6 +760,7 @@ def add_listen_chat():
 @api_bp.route('/message/listen/get', methods=['GET'])
 @require_api_key
 def get_listen_messages():
+    """获取监听消息 - 使用GetNextNewMessage方法"""
     wx_instance = wechat_manager.get_instance()
     if not wx_instance:
         return jsonify({
@@ -778,87 +782,38 @@ def get_listen_messages():
         savefile = request.args.get('savefile', 'true').lower() in ('true', '1', 'yes', 'y', 'on')
         savevoice = request.args.get('savevoice', 'true').lower() in ('true', '1', 'yes', 'y', 'on')
         parseurl = request.args.get('parseurl', 'false').lower() in ('true', '1', 'yes', 'y', 'on')
+        filter_mute = request.args.get('filter_mute', 'false').lower() in ('true', '1', 'yes', 'y', 'on')
 
         # 根据不同的库构建不同的参数
         if lib_name == 'wxautox':
-            # wxautox的GetListenMessage方法只接受who参数
+            # wxautox支持所有参数，包括filter_mute
             params = {
-                'who': who
+                'savepic': savepic,
+                'savevideo': savevideo,
+                'savefile': savefile,
+                'savevoice': savevoice,
+                'parseurl': parseurl,
+                'filter_mute': filter_mute
             }
             logger.debug(f"使用wxautox参数: {params}")
         else:
-            # wxauto不支持savevideo和parseurl参数
+            # wxauto不支持savevideo、parseurl和filter_mute参数
             params = {
-                'who': who,
                 'savepic': savepic,
                 'savefile': savefile,
                 'savevoice': savevoice
             }
             logger.debug(f"使用wxauto参数: {params}")
 
-        # 如果指定了who参数，检查该对象是否在监听列表中
-        if who:
-            try:
-                listen_list = wx_instance.listen
-
-                # 检查是否在监听列表中
-                if who not in listen_list:
-                    logger.warning(f"聊天对象 {who} 不在监听列表中，尝试自动添加")
-                    # 自动添加到监听列表
-                    add_params = params.copy()
-                    wx_instance.AddListenChat(**add_params)
-                    logger.info(f"已自动添加聊天对象 {who} 到监听列表")
-                else:
-                    # 对象已在监听列表中，不做任何操作
-                    logger.debug(f"聊天对象 {who} 已在监听列表中，直接获取消息")
-            except Exception as check_e:
-                logger.error(f"检查或添加监听对象失败: {str(check_e)}")
-                # 继续执行，让后续代码处理可能的错误
-
-        # 调用GetListenMessage方法
+        # 调用GetNextNewMessage方法
         try:
-            messages = wx_instance.GetListenMessage(**params)
+            messages = wx_instance.GetNextNewMessage(**params)
         except Exception as e:
-            error_str = str(e)
-            logger.error(f"调用GetListenMessage方法失败: {error_str}")
+            logger.error(f"获取新消息失败: {str(e)}")
+            # 如果出现异常，返回空字典表示没有新消息
+            messages = {}
 
-            # 检查是否是窗口激活失败的错误
-            if "激活聊天窗口失败" in error_str or "SetWindowPos" in error_str or "无效的窗口句柄" in error_str:
-                logger.warning(f"检测到窗口激活失败，尝试重新添加监听对象: {who}")
-
-                if who:
-                    # 先移除监听对象
-                    try:
-                        wx_instance.RemoveListenChat(who)
-                        logger.info(f"已移除监听对象: {who}")
-                    except Exception as e:
-                        logger.warning(f"移除监听对象失败: {str(e)}")
-
-                    # 尝试打开聊天窗口
-                    try:
-                        wx_instance.ChatWith(who)
-                        logger.info(f"已打开聊天窗口: {who}")
-                        # 等待窗口打开
-                        import time
-                        time.sleep(0.5)
-                    except Exception as e:
-                        logger.warning(f"打开聊天窗口失败: {str(e)}")
-
-                    # 重新添加监听对象
-                    wx_instance.AddListenChat(**params)
-                    logger.info(f"已重新添加监听对象: {who}")
-
-                    # 再次尝试获取消息
-                    try:
-                        messages = wx_instance.GetListenMessage(**params)
-                    except Exception as e:
-                        logger.error(f"重新添加监听对象后获取消息仍然失败: {str(e)}")
-                        messages = {}
-                else:
-                    messages = {}
-            else:
-                messages = {}
-
+        # 处理返回的消息
         if not messages:
             return jsonify({
                 'code': 0,
@@ -866,121 +821,122 @@ def get_listen_messages():
                 'data': {'messages': {}}
             })
 
-        # 检查当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
-
         # 辅助函数：清理群名中的人数信息
         def clean_group_name(name):
-            # 匹配群名后面的 (数字) 模式
             import re
             return re.sub(r'\s*\(\d+\)$', '', name)
 
-        # 初始化格式化消息字典
+        # 格式化消息 - 处理不同库的返回格式
         formatted_messages = {}
 
-        # 检查messages的类型，处理不同的返回格式
-        if isinstance(messages, list):
-            # 如果返回的是列表（指定了who参数时可能发生）
-            logger.debug(f"GetListenMessage返回了列表，长度: {len(messages)}")
+        if lib_name == "wxautox":
+            # wxautox返回格式: {'chat_name': 'name', 'chat_type': 'type', 'msg': [messages]}
+            if isinstance(messages, dict) and 'chat_name' in messages and 'msg' in messages:
+                chat_name = messages.get('chat_name', 'Unknown')
+                msg_list = messages.get('msg', [])
 
-            if who:
-                # 如果指定了who参数，将消息列表添加到该聊天对象下
-                try:
-                    # 清理群名中的人数信息
-                    clean_who = clean_group_name(who)
-                    formatted_messages[clean_who] = []
-                    for msg in messages:
-                        try:
-                            # 格式化单条消息
-                            formatted_msg = {
+                # 清理群名中的人数信息
+                clean_name = clean_group_name(chat_name)
+                formatted_messages[clean_name] = []
+
+                for msg in msg_list:
+                    try:
+                        # 检查msg是否是对象
+                        if hasattr(msg, 'type'):
+                            formatted_messages[clean_name].append({
                                 'type': getattr(msg, 'type', 'unknown'),
-                                'content': getattr(msg, 'content', ''),
+                                'content': getattr(msg, 'content', str(msg)),
                                 'sender': getattr(msg, 'sender', ''),
                                 'id': getattr(msg, 'id', ''),
                                 'mtype': getattr(msg, 'mtype', None),
-                                'sender_remark': getattr(msg, 'sender_remark', None)
-                            }
-                            formatted_messages[clean_who].append(formatted_msg)
-                        except Exception as msg_e:
-                            logger.error(f"格式化消息失败: {str(msg_e)}")
-                            # 继续处理下一条消息
-                            continue
-                except Exception as e:
-                    logger.error(f"处理消息列表失败: {str(e)}")
-            else:
-                # 如果没有指定who参数但返回了列表，这是一种异常情况
-                logger.warning("GetListenMessage返回了列表，但未指定who参数")
-        elif isinstance(messages, dict):
-            # 如果返回的是字典（未指定who参数时应该发生）
-            logger.debug(f"GetListenMessage返回了字典，键数量: {len(messages)}")
-
-            # 根据不同的库使用不同的格式化方法
-            if lib_name == 'wxautox':
-                # 对于wxautox库，使用原有的格式化方法
-                for chat_wnd, msg_list in messages.items():
+                                'sender_remark': getattr(msg, 'sender_remark', None),
+                                'file_path': getattr(msg, 'file_path', None)
+                            })
+                        else:
+                            # 如果msg是字符串或其他类型，转换为文本消息
+                            formatted_messages[clean_name].append({
+                                'type': 'text',
+                                'content': str(msg),
+                                'sender': '',
+                                'id': '',
+                                'mtype': None,
+                                'sender_remark': None,
+                                'file_path': None
+                            })
+                    except Exception as e:
+                        logger.error(f"处理消息时出错: {str(e)}")
+                        continue
+        else:
+            # wxauto库的处理方式 - 返回格式: Dict[str, List[Message]]
+            if isinstance(messages, dict):
+                for chat_name, msg_list in messages.items():
                     try:
-                        chat_name = getattr(chat_wnd, 'who', str(chat_wnd))
                         # 清理群名中的人数信息
                         clean_name = clean_group_name(chat_name)
-                        formatted_messages[clean_name] = [{
-                            'type': msg.type,
-                            'content': msg.content,
-                            'sender': msg.sender,
-                            'id': msg.id,
-                            'mtype': getattr(msg, 'mtype', None),
-                            'sender_remark': getattr(msg, 'sender_remark', None)
-                        } for msg in msg_list]
-                    except Exception as e:
-                        logger.error(f"格式化wxautox消息失败: {str(e)}")
-                        continue
-            else:
-                # 对于wxauto库，使用更健壮的格式化方法
-                try:
-                    # 遍历消息并格式化
-                    for chat_wnd, msg_list in messages.items():
-                        try:
-                            # 获取聊天窗口名称
-                            chat_name = getattr(chat_wnd, 'who', str(chat_wnd))
-                            # 清理群名中的人数信息
-                            clean_name = clean_group_name(chat_name)
-                            formatted_messages[clean_name] = []
+                        formatted_messages[clean_name] = []
 
-                            # 遍历消息列表
-                            for msg in msg_list:
-                                try:
-                                    # 格式化单条消息
-                                    formatted_msg = {
+                        for msg in msg_list:
+                            try:
+                                # 检查msg是否是对象
+                                if hasattr(msg, 'type'):
+                                    formatted_messages[clean_name].append({
                                         'type': getattr(msg, 'type', 'unknown'),
-                                        'content': getattr(msg, 'content', ''),
+                                        'content': getattr(msg, 'content', str(msg)),
                                         'sender': getattr(msg, 'sender', ''),
                                         'id': getattr(msg, 'id', ''),
                                         'mtype': getattr(msg, 'mtype', None),
-                                        'sender_remark': getattr(msg, 'sender_remark', None)
-                                    }
-                                    formatted_messages[clean_name].append(formatted_msg)
-                                except Exception as msg_e:
-                                    logger.error(f"格式化消息失败: {str(msg_e)}")
-                                    # 继续处理下一条消息
-                                    continue
-                        except Exception as chat_e:
-                            logger.error(f"处理聊天窗口消息失败: {str(chat_e)}")
-                            # 继续处理下一个聊天窗口
-                            continue
-                except Exception as format_e:
-                    logger.error(f"格式化消息列表失败: {str(format_e)}")
-                    # 如果格式化失败，返回空消息列表
-                    formatted_messages = {}
-        else:
-            # 如果返回的既不是列表也不是字典，记录错误
-            logger.error(f"GetListenMessage返回了意外的类型: {type(messages)}")
+                                        'sender_remark': getattr(msg, 'sender_remark', None),
+                                        'file_path': getattr(msg, 'file_path', None)
+                                    })
+                                else:
+                                    # 如果msg是字符串或其他类型，转换为文本消息
+                                    formatted_messages[clean_name].append({
+                                        'type': 'text',
+                                        'content': str(msg),
+                                        'sender': '',
+                                        'id': '',
+                                        'mtype': None,
+                                        'sender_remark': None,
+                                        'file_path': None
+                                    })
+                            except Exception as e:
+                                logger.error(f"处理消息时出错: {str(e)}")
+                                continue
+                    except Exception as e:
+                        logger.error(f"处理聊天窗口消息失败: {str(e)}")
+                        continue
 
-        return jsonify({
-            'code': 0,
-            'message': '获取成功',
-            'data': {
-                'messages': formatted_messages
-            }
-        })
+        # 如果指定了who参数，只返回该聊天对象的消息
+        if who:
+            # 查找匹配的聊天对象（支持模糊匹配）
+            target_messages = {}
+            clean_who = clean_group_name(who)
+
+            for chat_name, msg_list in formatted_messages.items():
+                if clean_who == chat_name or who == chat_name:
+                    target_messages[chat_name] = msg_list
+                    break
+
+            # 如果没有找到匹配的聊天对象，返回空消息
+            if not target_messages:
+                target_messages = {who: []}
+
+            return jsonify({
+                'code': 0,
+                'message': '获取成功',
+                'data': {
+                    'messages': target_messages
+                }
+            })
+        else:
+            # 返回所有消息
+            return jsonify({
+                'code': 0,
+                'message': '获取成功',
+                'data': {
+                    'messages': formatted_messages
+                }
+            })
     except Exception as e:
         logger.error(f"获取监听消息失败: {str(e)}", exc_info=True)
         return jsonify({
