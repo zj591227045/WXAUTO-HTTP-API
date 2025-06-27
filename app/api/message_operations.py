@@ -246,7 +246,7 @@ def tickle_message():
 
     try:
         # 检查当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
         if lib_name != 'wxautox':
             return jsonify({
                 'code': 3001,
@@ -324,7 +324,7 @@ def delete_message():
 
     try:
         # 检查当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
         if lib_name != 'wxautox':
             return jsonify({
                 'code': 3001,

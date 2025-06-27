@@ -567,6 +567,7 @@ class WeChatAdapter:
             raise AttributeError("微信实例未初始化")
 
         # 只有在使用wxauto库时才需要设置保存路径
+        logger.debug(f"_handle_GetNextNewMessage: 当前库名称 = {self._lib_name}")
         if self._lib_name == "wxauto":
             # 确保使用正确的保存路径
             try:
@@ -820,18 +821,21 @@ class WeChatAdapter:
         if not self._instance:
             raise AttributeError("微信实例未初始化")
 
-        # 确保使用正确的保存路径
-        try:
-            # 导入配置管理器
-            import config_manager
-
-            # 尝试导入wxauto.elements模块
+        # 只有在使用wxauto库时才需要设置保存路径
+        logger.debug(f"_handle_GetListenMessage: 当前库名称 = {self._lib_name}")
+        if self._lib_name == "wxauto":
+            # 确保使用正确的保存路径
             try:
-                # 首先尝试直接导入
-                from wxauto.elements import WxParam
-                logger.debug("成功直接导入wxauto.elements.WxParam")
-            except ImportError as e:
-                logger.warning(f"直接导入wxauto.elements.WxParam失败: {str(e)}")
+                # 导入配置管理器
+                import config_manager
+
+                # 尝试导入wxauto.elements模块
+                try:
+                    # 首先尝试直接导入
+                    from wxauto.elements import WxParam
+                    logger.debug("成功直接导入wxauto.elements.WxParam")
+                except ImportError as e:
+                    logger.warning(f"直接导入wxauto.elements.WxParam失败: {str(e)}")
 
                 # 尝试使用与_try_import_wxauto相同的逻辑查找wxauto路径
                 import sys
@@ -890,21 +894,23 @@ class WeChatAdapter:
                 if WxParam is None:
                     raise ImportError("无法导入wxauto.elements.WxParam")
 
-            # 确保目录存在
-            config_manager.ensure_dirs()
+                # 确保目录存在
+                config_manager.ensure_dirs()
 
-            # 获取临时目录路径
-            temp_dir = str(config_manager.TEMP_DIR.absolute())
+                # 获取临时目录路径
+                temp_dir = str(config_manager.TEMP_DIR.absolute())
 
-            # 记录原始保存路径
-            original_path = WxParam.DEFALUT_SAVEPATH
-            logger.debug(f"原始wxauto保存路径: {original_path}")
+                # 记录原始保存路径
+                original_path = WxParam.DEFALUT_SAVEPATH
+                logger.debug(f"原始wxauto保存路径: {original_path}")
 
-            # 修改为新的保存路径
-            WxParam.DEFALUT_SAVEPATH = temp_dir
-            logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
-        except Exception as path_e:
-            logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
+                # 修改为新的保存路径
+                WxParam.DEFALUT_SAVEPATH = temp_dir
+                logger.debug(f"已修改wxauto保存路径为: {temp_dir}")
+            except Exception as path_e:
+                logger.error(f"设置wxauto保存路径失败: {str(path_e)}")
+        else:
+            logger.debug(f"使用{self._lib_name}库，跳过wxauto保存路径设置")
 
         # 根据不同的库使用不同的处理方法
         if self._lib_name == "wxautox":

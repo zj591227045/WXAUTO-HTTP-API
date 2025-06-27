@@ -528,7 +528,8 @@ def get_next_new_message():
             logger.debug(f"使用wxauto参数: {params}")
 
         # 检查当前使用的库，只有wxauto库才需要设置保存路径
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
+        logger.debug(f"当前使用的库: {lib_name}")
         if lib_name == "wxauto":
             # 确保保存路径设置正确
             try:
@@ -571,7 +572,7 @@ def get_next_new_message():
         formatted_messages = {}
 
         # 检查当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
 
         if lib_name == "wxautox":
             # wxautox返回格式: {'chat_name': 'name', 'chat_type': 'type', 'msg': [messages]}
@@ -712,7 +713,7 @@ def add_listen_chat():
 
     try:
         # 获取当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
         logger.debug(f"当前使用的库: {lib_name}")
 
         # 根据不同的库构建不同的参数
@@ -768,7 +769,7 @@ def get_listen_messages():
 
     try:
         # 获取当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
         logger.debug(f"获取监听消息，当前使用的库: {lib_name}")
 
         # 获取请求参数
@@ -1413,7 +1414,7 @@ def get_chat_window_info():
 
     try:
         # 检查当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
         logger.debug(f"获取聊天窗口信息，当前使用的库: {lib_name}")
 
         # 安全地获取listen属性
@@ -1584,7 +1585,7 @@ def health_check():
     if wx_instance:
         wx_status = "connected" if wechat_manager.check_connection() else "disconnected"
         # 获取当前使用的库名称
-        wx_lib = getattr(wx_instance, '_lib_name', 'wxauto')
+        wx_lib = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
 
     return jsonify({
         'code': 0,
@@ -1673,7 +1674,7 @@ def add_current_chat_to_listen():
             }), 400
 
         # 获取当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
         logger.debug(f"添加当前聊天窗口到监听列表，当前使用的库: {lib_name}")
 
         # 根据不同的库构建不同的参数
@@ -1747,7 +1748,7 @@ def reactivate_listen_chat():
 
     try:
         # 获取当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
         logger.debug(f"重新激活监听对象，当前使用的库: {lib_name}")
 
         # 获取请求参数

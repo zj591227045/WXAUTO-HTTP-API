@@ -3,7 +3,14 @@
  */
 class UnifiedApiTester {
     constructor(containerId, config = {}) {
+        console.log(`正在创建API测试工具: ${containerId}`, config);
+
         this.container = document.getElementById(containerId);
+        if (!this.container) {
+            console.error(`容器元素未找到: ${containerId}`);
+            return;
+        }
+
         this.config = {
             baseUrl: config.baseUrl || window.location.origin,
             apiKey: config.apiKey || 'test-key-2',
@@ -12,6 +19,8 @@ class UnifiedApiTester {
             parameters: config.parameters || [],
             ...config
         };
+
+        console.log(`API测试工具配置:`, this.config);
 
         this.loadConfigFromServer().then(() => {
             this.init();
@@ -141,32 +150,52 @@ class UnifiedApiTester {
     bindEvents() {
         const form = this.container.querySelector('.api-test-form');
         const copyBtn = this.container.querySelector('.copy-curl-btn');
-        
+
+        if (!form) {
+            console.error('API测试表单未找到');
+            return;
+        }
+
+        if (!copyBtn) {
+            console.error('复制CURL按钮未找到');
+            return;
+        }
+
         // 表单提交事件
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             this.sendRequest();
         });
-        
+
         // 复制CURL命令事件
         copyBtn.addEventListener('click', () => {
             this.copyCurlCommand();
         });
-        
+
         // 表单字段变化时更新CURL预览
         form.addEventListener('input', () => {
             this.updateCurlPreview();
         });
-        
+
         // 实时验证
-        form.querySelectorAll('.form-control').forEach(input => {
-            input.addEventListener('input', () => {
-                this.validateField(input);
+        const formControls = form.querySelectorAll('.form-control');
+        if (formControls) {
+            formControls.forEach(input => {
+                if (input) {
+                    input.addEventListener('input', () => {
+                        this.validateField(input);
+                    });
+                }
             });
-        });
+        }
     }
 
     validateField(input) {
+        if (!input || !input.classList) {
+            console.error('无效的输入元素');
+            return;
+        }
+
         if (input.hasAttribute('required')) {
             if (input.value.trim()) {
                 input.classList.remove('is-invalid');
@@ -180,17 +209,24 @@ class UnifiedApiTester {
 
     getFormData() {
         const form = this.container.querySelector('.api-test-form');
+        if (!form) {
+            console.error('API测试表单未找到');
+            return {};
+        }
+
         const formData = new FormData(form);
         const data = {};
-        
+
         for (let [key, value] of formData.entries()) {
             if (key === 'at_list' && value) {
+                data[key] = value.split(',').map(s => s.trim()).filter(s => s);
+            } else if (key === 'file_paths' && value) {
                 data[key] = value.split(',').map(s => s.trim()).filter(s => s);
             } else if (value) {
                 data[key] = value;
             }
         }
-        
+
         return data;
     }
 
@@ -224,6 +260,10 @@ class UnifiedApiTester {
 
     updateCurlPreview() {
         const curlPreview = this.container.querySelector('.curl-preview');
+        if (!curlPreview) {
+            console.error('CURL预览元素未找到');
+            return;
+        }
         curlPreview.textContent = this.generateCurlCommand();
     }
 
@@ -251,9 +291,14 @@ class UnifiedApiTester {
         const responseContent = this.container.querySelector('.response-content');
         const submitBtn = this.container.querySelector('.btn-primary');
         
+        if (!responseSection || !responseContent || !submitBtn) {
+            console.error('响应区域元素未找到');
+            return;
+        }
+
         try {
             // 设置加载状态
-            this.container.querySelector('.unified-api-tester').classList.add('loading');
+            this.container.classList.add('loading');
             submitBtn.disabled = true;
             responseSection.classList.remove('success', 'error');
             
@@ -298,8 +343,10 @@ class UnifiedApiTester {
             this.showToast(`请求失败: ${error.message}`, 'error');
         } finally {
             // 移除加载状态
-            this.container.querySelector('.unified-api-tester').classList.remove('loading');
-            submitBtn.disabled = false;
+            this.container.classList.remove('loading');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+            }
         }
     }
 

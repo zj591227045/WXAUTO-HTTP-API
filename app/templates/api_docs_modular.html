@@ -647,10 +647,13 @@
 
             initUnifiedApiTesters() {
                 // 初始化页面中的统一API测试工具
-                if (typeof initializePageApiTesters === 'function') {
+                if (typeof window.initializePageApiTesters === 'function') {
                     setTimeout(() => {
-                        initializePageApiTesters();
-                    }, 100);
+                        console.log('正在初始化API测试工具...');
+                        window.initializePageApiTesters();
+                    }, 200);
+                } else {
+                    console.error('initializePageApiTesters函数未找到');
                 }
             }
         }

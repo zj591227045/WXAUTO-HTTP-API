@@ -18,6 +18,70 @@ const API_TESTER_CONFIGS = {
         parameters: []
     },
 
+    // Chat类 - 获取下一条新消息
+    'chat-get-next-new': {
+        endpoint: '/api/chat/get-next-new',
+        method: 'GET',
+        parameters: []
+    },
+
+    // Chat类 - 添加消息监听
+    'chat-listen-add': {
+        endpoint: '/api/chat/listen/add',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'who',
+                label: '聊天对象',
+                type: 'text',
+                required: true,
+                placeholder: '文件传输助手',
+                description: '要添加监听的联系人或群组名称'
+            }
+        ]
+    },
+
+    // Chat类 - 获取监听消息
+    'chat-listen-get': {
+        endpoint: '/api/chat/listen/get',
+        method: 'GET',
+        parameters: [
+            {
+                name: 'who',
+                label: '聊天对象',
+                type: 'text',
+                required: true,
+                placeholder: '文件传输助手',
+                description: '要获取消息的联系人或群组名称'
+            },
+            {
+                name: 'limit',
+                label: '消息数量',
+                type: 'number',
+                required: false,
+                default: '10',
+                placeholder: '10',
+                description: '要获取的消息数量，默认10条'
+            }
+        ]
+    },
+
+    // Chat类 - 移除消息监听
+    'chat-listen-remove': {
+        endpoint: '/api/chat/listen/remove',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'who',
+                label: '聊天对象',
+                type: 'text',
+                required: true,
+                placeholder: '文件传输助手',
+                description: '要移除监听的联系人或群组名称'
+            }
+        ]
+    },
+
     // Chat类 - 显示聊天窗口
     'chat-show': {
         endpoint: '/api/chat/show',
@@ -80,20 +144,22 @@ const API_TESTER_CONFIGS = {
                 description: '输入要发送文件的联系人或群组名称'
             },
             {
-                name: 'file_path',
-                label: '文件路径',
+                name: 'file_paths',
+                label: '文件路径列表',
                 type: 'text',
                 required: true,
                 placeholder: 'C:\\Users\\用户名\\Desktop\\文件.txt',
-                description: '输入要发送文件的完整路径，支持各种文件类型'
+                description: '输入要发送文件的完整路径，多个文件用逗号分隔'
             }
         ]
     },
 
-    // Chat类 - 获取消息
-    'chat-get-messages': {
-        endpoint: '/api/chat/get-messages',
-        method: 'POST',
+
+
+    // Chat类 - 获取所有消息（监听模式）
+    'chat-get-all-messages': {
+        endpoint: '/api/chat/get-all-messages',
+        method: 'GET',
         parameters: [
             {
                 name: 'who',
@@ -101,16 +167,7 @@ const API_TESTER_CONFIGS = {
                 type: 'text',
                 required: true,
                 placeholder: '文件传输助手',
-                description: '输入要获取消息的联系人或群组名称'
-            },
-            {
-                name: 'limit',
-                label: '消息数量',
-                type: 'number',
-                required: false,
-                default: '10',
-                placeholder: '10',
-                description: '要获取的消息数量，默认为10条'
+                description: '要获取消息的联系人或群组名称（需要先添加到监听列表）'
             }
         ]
     },
@@ -624,25 +681,52 @@ const API_TESTER_CONFIGS = {
  * @param {object} overrides - 覆盖配置
  */
 function createApiTesterFromConfig(containerId, configKey, overrides = {}) {
+    console.log(`🔧 创建API测试器: containerId=${containerId}, configKey=${configKey}`);
+
     const config = API_TESTER_CONFIGS[configKey];
     if (!config) {
-        console.error(`API配置 '${configKey}' 不存在`);
+        console.error(`❌ API配置 '${configKey}' 不存在`);
         return null;
     }
-    
+
+    console.log(`📋 找到配置:`, config);
+
     const finalConfig = { ...config, ...overrides };
-    return new UnifiedApiTester(containerId, finalConfig);
+    console.log(`⚙️ 最终配置:`, finalConfig);
+
+    try {
+        const tester = new UnifiedApiTester(containerId, finalConfig);
+        console.log(`✅ 成功创建UnifiedApiTester实例`);
+        return tester;
+    } catch (error) {
+        console.error(`❌ 创建UnifiedApiTester实例失败:`, error);
+        return null;
+    }
 }
 
 /**
  * 批量初始化页面中的所有API测试器
  */
 function initializePageApiTesters() {
+    console.log('开始初始化页面API测试工具...');
+
     // 查找所有带有 data-api-config 属性的容器
-    document.querySelectorAll('[data-api-config]').forEach(container => {
+    const containers = document.querySelectorAll('[data-api-config]');
+    console.log(`找到 ${containers.length} 个API测试工具容器`);
+
+    containers.forEach(container => {
         const configKey = container.dataset.apiConfig;
         const overrides = {};
-        
+
+        console.log(`正在初始化容器: ${container.id}, 配置: ${configKey}`);
+
+        // 检查配置是否存在
+        if (!API_TESTER_CONFIGS[configKey]) {
+            console.error(`配置 '${configKey}' 不存在于 API_TESTER_CONFIGS 中`);
+            console.log('可用的配置键:', Object.keys(API_TESTER_CONFIGS));
+            return;
+        }
+
         // 从data属性中读取覆盖配置
         if (container.dataset.apiEndpoint) {
             overrides.endpoint = container.dataset.apiEndpoint;
@@ -650,9 +734,20 @@ function initializePageApiTesters() {
         if (container.dataset.apiMethod) {
             overrides.method = container.dataset.apiMethod;
         }
-        
-        createApiTesterFromConfig(container.id, configKey, overrides);
+
+        try {
+            const tester = createApiTesterFromConfig(container.id, configKey, overrides);
+            if (tester) {
+                console.log(`✅ 成功创建测试工具: ${container.id}`);
+            } else {
+                console.error(`❌ 创建测试工具失败: ${container.id}`);
+            }
+        } catch (error) {
+            console.error(`❌ 创建测试工具时出错: ${container.id}`, error);
+        }
     });
+
+    console.log('API测试工具初始化完成');
 }
 
 // 页面加载完成后自动初始化
