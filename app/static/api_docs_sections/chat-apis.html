@@ -322,4 +322,66 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 移除监听对象 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/message/listen/remove</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 移除监听对象
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>从监听列表中移除指定的聊天对象，停止接收该对象的新消息。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>nickname</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>要移除的聊天对象名称</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X POST "http://localhost:5000/api/message/listen/remove" \
+  -H "X-API-Key: your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nickname": "测试群"
+  }'</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <pre><code>{
+    "code": 0,
+    "message": "移除监听成功",
+    "data": {
+        "nickname": "测试群",
+        "library": "wxauto"
+    }
+}</code></pre>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="message-listen-remove-tester" data-api-config="message-listen-remove"></div>
+                        </div>
+                    </div>
+                </div>
             </div>

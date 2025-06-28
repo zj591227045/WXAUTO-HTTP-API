@@ -481,12 +481,23 @@ class WeChatAdapter:
         if self._instance is None:
             raise AttributeError(f"微信实例未初始化，无法调用 {name} 方法")
 
+        # 明确排除已删除的方法，直接代理到原始实例
+        excluded_methods = ['AddListenChat', 'GetNextNewMessage', 'GetListenMessage', 'RemoveListenChat']
+        if name in excluded_methods:
+            logger.debug(f"直接代理{name}到原始实例（跳过适配器处理）")
+            return getattr(self._instance, name)
+
         # 检查是否需要特殊处理的方法
         handler = getattr(self, f"_handle_{name}", None)
         if handler:
-            return handler
+            logger.debug(f"使用特殊处理方法: _handle_{name}")
+            # 返回一个包装函数，避免直接返回handler导致的问题
+            def wrapper(*args, **kwargs):
+                return handler(*args, **kwargs)
+            return wrapper
 
         # 直接代理到实际实例
+        logger.debug(f"直接代理{name}到原始实例")
         return getattr(self._instance, name)
 
     def _handle_ChatWith(self, *args, **kwargs):
@@ -561,7 +572,8 @@ class WeChatAdapter:
                 logger.error(f"{self._lib_name}既没有SendFiles也没有SendFile方法")
                 raise AttributeError(f"{self._lib_name}不支持文件发送功能")
 
-    def _handle_GetNextNewMessage(self, *args, **kwargs):
+    # 删除复杂的GetNextNewMessage处理逻辑 - 统一使用直接调用
+    def _handle_GetNextNewMessage_DELETED(self, *args, **kwargs):
         """处理GetNextNewMessage方法的差异"""
         if not self._instance:
             raise AttributeError("微信实例未初始化")
@@ -659,7 +671,7 @@ class WeChatAdapter:
 
         # 根据不同的库调整参数
         if self._lib_name == "wxautox":
-            # wxautox的GetNextNewMessage方法参数格式不同
+            # wxautox的GetNextNewMessage方法参数格式
             # 根据文档，wxautox只接受filter_mute参数
             logger.debug("使用wxautox库，调整参数格式")
 
@@ -674,9 +686,64 @@ class WeChatAdapter:
             logger.debug(f"wxautox调整后的参数: {adjusted_kwargs}")
 
             try:
-                return self._instance.GetNextNewMessage(*args, **adjusted_kwargs)
+                # 添加详细的调试信息
+                logger.info(f"=== wxautox GetNextNewMessage 调试开始 ===")
+                logger.info(f"调用参数: {adjusted_kwargs}")
+
+                # 检查实例状态
+                logger.info(f"微信实例类型: {type(self._instance)}")
+                logger.info(f"微信实例是否有GetNextNewMessage方法: {hasattr(self._instance, 'GetNextNewMessage')}")
+
+                # 检查监听状态
+                if hasattr(self._instance, 'listen'):
+                    listen_info = getattr(self._instance, 'listen', {})
+                    logger.info(f"当前监听对象: {list(listen_info.keys()) if listen_info else '无'}")
+                else:
+                    logger.info("实例没有listen属性")
+
+                # 新策略：直接从我们的消息缓存中获取消息，不调用原始的GetNextNewMessage
+                logger.info("使用自定义缓存获取消息，避免GetNextNewMessage的阻塞问题...")
+
+                # 检查是否有消息缓存
+                if not hasattr(self, '_message_cache') or not self._message_cache:
+                    logger.info("消息缓存为空，返回空结果")
+                    return {}
+
+                # 获取所有缓存的消息并清空缓存（避免重复获取）
+                cached_messages = {}
+                for chat_name, messages in self._message_cache.items():
+                    if messages:  # 只返回有消息的聊天
+                        cached_messages[chat_name] = messages.copy()
+                        logger.info(f"从缓存获取到 {len(messages)} 条来自 {chat_name} 的消息")
+
+                # 清空缓存（已读取的消息不再重复返回）
+                self._message_cache.clear()
+                logger.info("已清空消息缓存")
+
+                if cached_messages:
+                    # 转换为wxautox格式的返回结果
+                    # wxautox返回格式: {'chat_name': 'name', 'chat_type': 'type', 'msg': [messages]}
+                    for chat_name, messages in cached_messages.items():
+                        logger.info(f"返回 {chat_name} 的 {len(messages)} 条消息")
+                        # 返回第一个聊天的消息（如果有多个聊天，可以后续优化）
+                        result = {
+                            'chat_name': chat_name,
+                            'chat_type': 'friend',  # 暂时假设是好友，后续可以优化
+                            'msg': messages
+                        }
+                        logger.info(f"=== wxautox GetNextNewMessage 调试结束 ===")
+                        return result
+
+                logger.info("缓存中没有新消息，返回空结果")
+                logger.info(f"=== wxautox GetNextNewMessage 调试结束 ===")
+                return {}
+
             except Exception as e:
-                logger.error(f"wxautox GetNextNewMessage调用失败: {str(e)}")
+                error_str = str(e)
+                logger.error(f"=== wxautox GetNextNewMessage 异常 ===")
+                logger.error(f"异常类型: {type(e)}")
+                logger.error(f"异常信息: {error_str}")
+                logger.error(f"=== 异常详情结束 ===")
                 return {}
         else:
             # wxauto不支持savevideo和parseurl参数
@@ -688,96 +755,146 @@ class WeChatAdapter:
                 logger.debug("移除wxauto不支持的参数: parseurl")
                 kwargs.pop("parseurl", None)
 
-        try:
-            # 在调用GetNextNewMessage前，先检查是否有打开的聊天窗口
-            # 如果没有，先打开一个聊天窗口
             try:
-                # 尝试检查是否有打开的聊天窗口
-                # 通过尝试获取会话列表来检查微信状态
-                session_dict = self._instance.GetSessionList(reset=True)
-                if not session_dict:
-                    logger.debug("没有可用的会话，可能没有打开的聊天窗口")
-                    # 尝试打开文件传输助手作为默认聊天窗口
-                    try:
-                        logger.debug("尝试打开文件传输助手窗口")
-                        self._instance.ChatWith("文件传输助手")
-                        # 等待窗口打开
-                        import time
-                        time.sleep(0.5)
-                    except Exception as chat_e:
-                        logger.warning(f"打开文件传输助手窗口失败: {str(chat_e)}")
-                else:
-                    logger.debug(f"找到 {len(session_dict)} 个可用会话")
+                # 直接调用原始方法，不使用任何缓存机制
+                logger.debug(f"调用wxauto GetNextNewMessage方法，参数: {kwargs}")
+                result = self._instance.GetNextNewMessage(*args, **kwargs)
+                logger.debug(f"wxauto GetNextNewMessage返回结果: {type(result)}, 内容: {result}")
+                return result if result else []
+
             except Exception as e:
-                logger.warning(f"检查聊天窗口状态失败: {str(e)}")
-                # 继续执行，让原始的错误处理逻辑处理
+                error_str = str(e)
+                logger.debug(f"wxauto GetNextNewMessage调用失败: {error_str}")
 
-            # 调用原始方法
-            logger.debug(f"调用GetNextNewMessage方法，参数: {kwargs}")
-            return self._instance.GetNextNewMessage(*args, **kwargs)
-        except Exception as e:
-            error_str = str(e)
-            logger.error(f"调用GetNextNewMessage方法失败: {error_str}")
-
-            # 如果是"Find Control Timeout"错误，可能是因为没有打开的聊天窗口
-            if "Find Control Timeout" in error_str and "消息" in error_str:
-                logger.warning("找不到'消息'控件，可能没有打开的聊天窗口")
-                # 我们已经在调用前尝试打开聊天窗口，如果仍然失败，直接返回空结果
-                logger.info("返回空列表表示没有新消息")
-                return []
-
-            # 如果是参数错误，尝试使用最基本的参数重试
-            if "参数" in error_str or "parameter" in error_str.lower() or "argument" in error_str.lower():
-                logger.warning("可能是参数错误，尝试使用基本参数重试")
-                # 只保留基本参数
-                basic_kwargs = {}
-                if "savepic" in kwargs:
-                    basic_kwargs["savepic"] = kwargs["savepic"]
-                if "savefile" in kwargs:
-                    basic_kwargs["savefile"] = kwargs["savefile"]
-                if "savevoice" in kwargs:
-                    basic_kwargs["savevoice"] = kwargs["savevoice"]
-
-                logger.debug(f"使用基本参数重试: {basic_kwargs}")
-                try:
-                    return self._instance.GetNextNewMessage(*args, **basic_kwargs)
-                except Exception as retry_e:
-                    logger.error(f"使用基本参数重试失败: {str(retry_e)}")
-                    # 如果重试失败，返回空列表表示没有新消息
+                # 如果是"没有新消息"相关的错误，返回空结果
+                if "没有新消息" in error_str or "no new message" in error_str.lower():
+                    logger.debug("wxauto没有新消息")
                     return []
 
-            # 对于其他错误，返回空列表表示没有新消息
-            logger.warning(f"无法处理的错误，返回空列表: {error_str}")
-            return []
+                # 其他错误也返回空列表
+                logger.warning(f"wxauto GetNextNewMessage其他错误: {error_str}")
+                return []
 
-    def _handle_AddListenChat(self, *args, **kwargs):
-        """处理AddListenChat方法的差异"""
+
+
+    # 彻底删除AddListenChat处理逻辑 - 统一使用直接调用
+    def _handle_AddListenChat_COMPLETELY_REMOVED(self, *args, **kwargs):
+        """处理AddListenChat方法的差异 - 简化版本，完全按照文档使用"""
         if not self._instance:
             raise AttributeError("微信实例未初始化")
 
+        # 初始化消息缓存（如果还没有）
+        if not hasattr(self, '_message_cache'):
+            self._message_cache = {}
+            logger.debug("初始化消息缓存")
+
         # 根据不同的库处理参数
         if self._lib_name == "wxautox":
-            # wxautox的AddListenChat方法参数格式不同
-            # 需要 nickname 和 callback 参数
+            # wxautox的AddListenChat方法需要nickname和callback参数
             logger.debug("使用wxautox库，调整AddListenChat参数格式")
 
-            # 从kwargs中获取who参数作为nickname
-            who = kwargs.get('who') or (args[0] if args else None)
+            # 从kwargs中获取nickname或who参数
+            who = kwargs.get('nickname') or kwargs.get('who') or (args[0] if args else None)
+            logger.debug(f"AddListenChat参数检查: nickname={kwargs.get('nickname')}, who={kwargs.get('who')}, args={args}")
             if not who:
                 raise ValueError("缺少必要参数: who/nickname")
 
-            # 创建一个简单的回调函数，用于兼容API调用
-            def simple_callback(msg, chat):
-                """简单的回调函数，用于兼容API调用"""
-                logger.debug(f"收到来自 {chat} 的消息: {getattr(msg, 'content', str(msg))}")
+            # 创建回调函数，将消息存储到我们自己的缓存中
+            def message_callback(msg, chat):
+                """消息回调函数，存储消息到缓存"""
+                try:
+                    logger.info(f"=== 收到新消息回调 ===")
+                    logger.info(f"消息对象类型: {type(msg)}")
+                    logger.info(f"聊天对象类型: {type(chat)}")
+                    logger.info(f"聊天对象内容: {chat}")
 
-            # 调用wxautox的AddListenChat方法
+                    # 获取消息内容
+                    content = getattr(msg, 'content', str(msg))
+                    sender = getattr(msg, 'sender', '未知发送者')
+                    msg_type = getattr(msg, 'type', '未知类型')
+                    msg_id = getattr(msg, 'id', '')
+                    timestamp = getattr(msg, 'timestamp', None)
+
+                    logger.info(f"消息发送者: {sender}")
+                    logger.info(f"消息类型: {msg_type}")
+                    logger.info(f"消息内容: {content[:100]}...")
+
+                    # 获取聊天名称
+                    chat_name = str(chat) if hasattr(chat, '__str__') else getattr(chat, 'who', str(chat))
+
+                    # 清理群名中的人数信息
+                    import re
+                    clean_name = re.sub(r'\s*\(\d+\)$', '', chat_name)
+
+                    # 初始化该聊天的消息列表
+                    if clean_name not in self._message_cache:
+                        self._message_cache[clean_name] = []
+
+                    # 将消息添加到缓存
+                    msg_data = {
+                        'type': msg_type,
+                        'content': content,
+                        'sender': sender,
+                        'id': msg_id,
+                        'timestamp': timestamp,
+                        'mtype': getattr(msg, 'mtype', None),
+                        'sender_remark': getattr(msg, 'sender_remark', None),
+                        'file_path': getattr(msg, 'file_path', None)
+                    }
+
+                    self._message_cache[clean_name].append(msg_data)
+                    logger.info(f"消息已缓存到 {clean_name}: {content[:50]}...")
+
+                    # 限制缓存大小，保留最新的100条消息
+                    if len(self._message_cache[clean_name]) > 100:
+                        self._message_cache[clean_name] = self._message_cache[clean_name][-100:]
+
+                    logger.info(f"=== 消息回调结束 ===")
+                except Exception as e:
+                    logger.error(f"回调函数处理消息时出错: {str(e)}")
+                    logger.error(f"异常类型: {type(e)}")
+                    import traceback
+                    logger.error(f"异常堆栈: {traceback.format_exc()}")
+
+            # 调用wxautox的AddListenChat方法，使用正确的参数格式
             try:
-                result = self._instance.AddListenChat(nickname=who, callback=simple_callback)
-                logger.debug(f"wxautox AddListenChat成功: {result}")
+                logger.info(f"=== wxautox AddListenChat 调试开始 ===")
+                logger.info(f"目标监听对象: {who}")
+                logger.info(f"微信实例类型: {type(self._instance)}")
+                logger.info(f"微信实例是否有AddListenChat方法: {hasattr(self._instance, 'AddListenChat')}")
+
+                # 检查当前监听状态
+                if hasattr(self._instance, 'listen'):
+                    current_listen = getattr(self._instance, 'listen', {})
+                    logger.info(f"添加前的监听对象: {list(current_listen.keys()) if current_listen else '无'}")
+
+                logger.info("开始调用AddListenChat...")
+                result = self._instance.AddListenChat(nickname=who, callback=message_callback)
+                logger.info(f"AddListenChat调用完成，返回结果: {result}")
+
+                # 检查添加后的监听状态
+                if hasattr(self._instance, 'listen'):
+                    updated_listen = getattr(self._instance, 'listen', {})
+                    logger.info(f"添加后的监听对象: {list(updated_listen.keys()) if updated_listen else '无'}")
+
+                # 根据文档要求，添加监听后必须调用StartListening
+                try:
+                    if hasattr(self._instance, 'StartListening'):
+                        logger.info("开始调用StartListening...")
+                        self._instance.StartListening()
+                        logger.info(f"StartListening调用完成，已自动启动监听服务")
+                    else:
+                        logger.warning("当前库不支持StartListening方法")
+                except Exception as start_e:
+                    logger.error(f"自动启动监听失败: {str(start_e)}")
+
+                logger.info(f"=== wxautox AddListenChat 调试结束 ===")
                 return result
             except Exception as e:
-                logger.error(f"wxautox AddListenChat失败: {str(e)}")
+                logger.error(f"=== wxautox AddListenChat 异常 ===")
+                logger.error(f"异常类型: {type(e)}")
+                logger.error(f"异常信息: {str(e)}")
+                logger.error(f"=== 异常详情结束 ===")
                 raise
         else:
             # wxauto库的处理
@@ -792,7 +909,19 @@ class WeChatAdapter:
             try:
                 # 调用原始方法
                 logger.debug(f"调用AddListenChat方法，参数: {kwargs}")
-                return self._instance.AddListenChat(*args, **kwargs)
+                result = self._instance.AddListenChat(*args, **kwargs)
+
+                # 自动启动监听
+                try:
+                    if hasattr(self._instance, 'StartListening'):
+                        self._instance.StartListening()
+                        logger.info(f"已自动启动监听服务")
+                    else:
+                        logger.warning("当前库不支持StartListening方法")
+                except Exception as start_e:
+                    logger.warning(f"自动启动监听失败: {str(start_e)}")
+
+                return result
             except Exception as e:
                 logger.error(f"调用AddListenChat方法失败: {str(e)}")
                 # 如果是参数错误，尝试使用最基本的参数重试
@@ -812,11 +941,24 @@ class WeChatAdapter:
                         basic_kwargs["savevoice"] = kwargs["savevoice"]
 
                     logger.debug(f"使用基本参数重试: {basic_kwargs}")
-                    return self._instance.AddListenChat(*args, **basic_kwargs)
+                    result = self._instance.AddListenChat(*args, **basic_kwargs)
+
+                    # 自动启动监听（重试成功后）
+                    try:
+                        if hasattr(self._instance, 'StartListening'):
+                            self._instance.StartListening()
+                            logger.info(f"已自动启动监听服务")
+                        else:
+                            logger.warning("当前库不支持StartListening方法")
+                    except Exception as start_e:
+                        logger.warning(f"自动启动监听失败: {str(start_e)}")
+
+                    return result
                 # 重新抛出原始异常
                 raise
 
-    def _handle_GetListenMessage(self, *args, **kwargs):
+    # 删除复杂的GetListenMessage处理逻辑 - 统一使用直接调用
+    def _handle_GetListenMessage_DELETED(self, *args, **kwargs):
         """处理GetListenMessage方法的差异，并添加异常处理"""
         if not self._instance:
             raise AttributeError("微信实例未初始化")
@@ -1161,7 +1303,8 @@ class WeChatAdapter:
                 who = args[0] if args else kwargs.get('who')
                 return [] if who else {}
 
-    def _handle_RemoveListenChat(self, *args, **kwargs):
+    # 删除复杂的RemoveListenChat处理逻辑 - 统一使用直接调用
+    def _handle_RemoveListenChat_DELETED(self, *args, **kwargs):
         """处理RemoveListenChat方法的差异，并添加异常处理"""
         if not self._instance:
             raise AttributeError("微信实例未初始化")

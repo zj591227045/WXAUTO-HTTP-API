@@ -72,11 +72,11 @@ const API_TESTER_CONFIGS = {
         method: 'POST',
         parameters: [
             {
-                name: 'who',
-                label: '聊天对象',
+                name: 'nickname',
+                label: '聊天对象昵称',
                 type: 'text',
                 required: true,
-                placeholder: '文件传输助手',
+                placeholder: '测试群',
                 description: '要移除监听的联系人或群组名称'
             }
         ]
@@ -630,20 +630,12 @@ const API_TESTER_CONFIGS = {
         method: 'POST',
         parameters: [
             {
-                name: 'who',
-                label: '联系人',
+                name: 'nickname',
+                label: '联系人/群组',
                 type: 'text',
                 required: true,
-                placeholder: '文件传输助手',
-                description: '要监听消息的联系人名称'
-            },
-            {
-                name: 'callback_url',
-                label: '回调URL',
-                type: 'text',
-                required: false,
-                placeholder: 'http://localhost:8080/callback',
-                description: '接收消息的回调URL'
+                placeholder: '测试test',
+                description: '要监听消息的联系人或群组名称'
             }
         ]
     },
@@ -655,20 +647,27 @@ const API_TESTER_CONFIGS = {
         parameters: [
             {
                 name: 'who',
-                label: '联系人',
+                label: '联系人/群组',
                 type: 'text',
                 required: false,
-                placeholder: '文件传输助手',
-                description: '要获取消息的联系人名称，不填则获取所有'
-            },
+                placeholder: '测试test',
+                description: '要获取消息的联系人或群组名称'
+            }
+        ]
+    },
+
+    // 聊天窗口兼容 - 移除监听对象
+    'message-listen-remove': {
+        endpoint: '/api/message/listen/remove',
+        method: 'POST',
+        parameters: [
             {
-                name: 'limit',
-                label: '获取数量',
-                type: 'number',
-                required: false,
-                default: '10',
-                placeholder: '10',
-                description: '要获取的消息数量'
+                name: 'nickname',
+                label: '联系人/群组昵称',
+                type: 'text',
+                required: true,
+                placeholder: '测试群',
+                description: '要移除监听的联系人或群组名称'
             }
         ]
     }

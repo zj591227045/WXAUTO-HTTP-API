@@ -13,6 +13,9 @@ import functools
 
 api_bp = Blueprint('api', __name__)
 
+# 全局消息缓存 - 用于存储回调函数接收到的消息
+_message_cache = {}
+
 # 记录程序启动时间
 start_time = time.time()
 
@@ -512,13 +515,9 @@ def get_next_new_message():
 
         # 根据不同的库构建不同的参数
         if lib_name == 'wxautox':
-            # wxautox支持所有参数
+            # wxautox的GetNextNewMessage只支持filter_mute参数
             params = {
-                'savepic': savepic,
-                'savevideo': savevideo,
-                'savefile': savefile,
-                'savevoice': savevoice,
-                'parseurl': parseurl
+                'filter_mute': False  # 默认不过滤免打扰消息
             }
             logger.debug(f"使用wxautox参数: {params}")
         else:
@@ -696,6 +695,7 @@ def get_next_new_message():
 @api_bp.route('/message/listen/add', methods=['POST'])
 @require_api_key
 def add_listen_chat():
+    """添加消息监听 - 按照官方文档实现"""
     wx_instance = wechat_manager.get_instance()
     if not wx_instance:
         return jsonify({
@@ -705,49 +705,111 @@ def add_listen_chat():
         }), 400
 
     data = request.get_json()
-    who = data.get('who')
-
-    if not who:
+    if not data:
         return jsonify({
             'code': 1002,
-            'message': '缺少必要参数',
+            'message': '请求数据不能为空',
+            'data': None
+        }), 400
+
+    # 获取必要参数
+    nickname = data.get('nickname')
+    if not nickname:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数: nickname',
             'data': None
         }), 400
 
     try:
-        # 获取当前使用的库
+        # 获取原始微信实例（绕过WeChatAdapter的复杂处理）
+        original_instance = wx_instance._instance if hasattr(wx_instance, '_instance') else wx_instance
         lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
-        logger.debug(f"当前使用的库: {lib_name}")
 
-        # 根据不同的库构建不同的参数
+        logger.info(f"添加监听对象: {nickname}, 使用库: {lib_name}")
+        logger.info(f"wx_instance类型: {type(wx_instance)}")
+        logger.info(f"original_instance类型: {type(original_instance)}")
+        logger.info(f"是否有_instance属性: {hasattr(wx_instance, '_instance')}")
+        logger.info(f"original_instance是否等于wx_instance: {original_instance is wx_instance}")
+
+        # 统一处理：创建消息缓存（如果不存在）
+        if not hasattr(original_instance, '_api_message_cache'):
+            original_instance._api_message_cache = {}
+
         if lib_name == 'wxautox':
-            # wxautox支持所有参数
-            params = {
-                'who': who,
-                'savepic': data.get('savepic', False),
-                'savevideo': data.get('savevideo', False),
-                'savefile': data.get('savefile', False),
-                'savevoice': data.get('savevoice', False),
-                'parseurl': data.get('parseurl', False)
-            }
-            logger.debug(f"使用wxautox参数: {params}")
-        else:
-            # wxauto不支持savevideo和parseurl参数
-            params = {
-                'who': who,
-                'savepic': data.get('savepic', False),
-                'savefile': data.get('savefile', False),
-                'savevoice': data.get('savevoice', False)
-            }
-            logger.debug(f"使用wxauto参数: {params}")
+            # wxautox实现
+            def message_callback(msg, chat):
+                """wxautox的消息回调函数，统一使用全局缓存"""
+                try:
+                    logger.info(f"wxautox收到消息: {msg}, 来自聊天: {chat}")
 
-        # 调用AddListenChat方法
-        wx_instance.AddListenChat(**params)
+                    # 将wxautox消息对象转换为可序列化的字典格式
+                    serializable_msg = {
+                        'type': getattr(msg, 'type', 'unknown'),
+                        'content': getattr(msg, 'content', str(msg)),
+                        'sender': getattr(msg, 'sender', ''),
+                        'id': getattr(msg, 'id', ''),
+                        'mtype': getattr(msg, 'mtype', None),
+                        'sender_remark': getattr(msg, 'sender_remark', None),
+                        'file_path': getattr(msg, 'file_path', None),
+                        'time': getattr(msg, 'time', None)
+                    }
+
+                    # 将消息存储到全局缓存中
+                    if nickname not in _message_cache:
+                        _message_cache[nickname] = []
+                    _message_cache[nickname].append(serializable_msg)
+
+                    logger.info(f"已将消息转换并存储到缓存: {serializable_msg}")
+                except Exception as e:
+                    logger.error(f"回调函数处理消息时出错: {str(e)}")
+
+            # 调用AddListenChat
+            result = original_instance.AddListenChat(nickname=nickname, callback=message_callback)
+
+            # 调用StartListening（按照文档要求）
+            if hasattr(original_instance, 'StartListening'):
+                original_instance.StartListening()
+                logger.info("已调用StartListening")
+        else:
+            # wxauto实现 - 需要提供callback参数
+            def message_callback(msg, chat):
+                """wxauto的消息回调函数，接收msg和chat两个参数"""
+                try:
+                    logger.info(f"wxauto收到消息: {msg}, 来自聊天: {chat}")
+
+                    # 将wxauto消息对象转换为可序列化的字典格式
+                    serializable_msg = {
+                        'type': getattr(msg, 'type', 'unknown'),
+                        'content': getattr(msg, 'content', str(msg)),
+                        'sender': getattr(msg, 'sender', ''),
+                        'id': getattr(msg, 'id', ''),
+                        'mtype': getattr(msg, 'mtype', None),
+                        'sender_remark': getattr(msg, 'sender_remark', None),
+                        'file_path': getattr(msg, 'file_path', None),
+                        'time': getattr(msg, 'time', None)
+                    }
+
+                    # 将消息存储到全局缓存中
+                    if nickname not in _message_cache:
+                        _message_cache[nickname] = []
+                    _message_cache[nickname].append(serializable_msg)
+
+                    logger.info(f"已将消息转换并存储到缓存: {serializable_msg}")
+                except Exception as e:
+                    logger.error(f"wxauto回调函数处理消息时出错: {str(e)}")
+
+            result = original_instance.AddListenChat(nickname, message_callback)
+
+        logger.info(f"成功添加监听对象: {nickname}")
 
         return jsonify({
             'code': 0,
             'message': '添加监听成功',
-            'data': {'who': who}
+            'data': {
+                'nickname': nickname,
+                'library': lib_name
+            }
         })
     except Exception as e:
         logger.error(f"添加监听失败: {str(e)}")
@@ -760,7 +822,7 @@ def add_listen_chat():
 @api_bp.route('/message/listen/get', methods=['GET'])
 @require_api_key
 def get_listen_messages():
-    """获取监听消息 - 使用GetNextNewMessage方法"""
+    """获取监听消息 - 统一处理wxauto和wxautox"""
     wx_instance = wechat_manager.get_instance()
     if not wx_instance:
         return jsonify({
@@ -769,185 +831,48 @@ def get_listen_messages():
             'data': None
         }), 400
 
-    who = request.args.get('who')  # 可选参数
-
     try:
-        # 获取当前使用的库
         lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
-        logger.debug(f"获取监听消息，当前使用的库: {lib_name}")
+        logger.info(f"获取监听消息，使用库: {lib_name}")
 
-        # 获取请求参数
-        savepic = request.args.get('savepic', 'true').lower() in ('true', '1', 'yes', 'y', 'on')
-        savevideo = request.args.get('savevideo', 'false').lower() in ('true', '1', 'yes', 'y', 'on')
-        savefile = request.args.get('savefile', 'true').lower() in ('true', '1', 'yes', 'y', 'on')
-        savevoice = request.args.get('savevoice', 'true').lower() in ('true', '1', 'yes', 'y', 'on')
-        parseurl = request.args.get('parseurl', 'false').lower() in ('true', '1', 'yes', 'y', 'on')
-        filter_mute = request.args.get('filter_mute', 'false').lower() in ('true', '1', 'yes', 'y', 'on')
+        # 统一从全局消息缓存获取消息
+        messages = {}
+        if _message_cache:
+            logger.info(f"缓存中的聊天对象: {list(_message_cache.keys())}")
 
-        # 根据不同的库构建不同的参数
-        if lib_name == 'wxautox':
-            # wxautox支持所有参数，包括filter_mute
-            params = {
-                'savepic': savepic,
-                'savevideo': savevideo,
-                'savefile': savefile,
-                'savevoice': savevoice,
-                'parseurl': parseurl,
-                'filter_mute': filter_mute
-            }
-            logger.debug(f"使用wxautox参数: {params}")
-        else:
-            # wxauto不支持savevideo、parseurl和filter_mute参数
-            params = {
-                'savepic': savepic,
-                'savefile': savefile,
-                'savevoice': savevoice
-            }
-            logger.debug(f"使用wxauto参数: {params}")
-
-        # 调用GetNextNewMessage方法
-        try:
-            messages = wx_instance.GetNextNewMessage(**params)
-        except Exception as e:
-            logger.error(f"获取新消息失败: {str(e)}")
-            # 如果出现异常，返回空字典表示没有新消息
-            messages = {}
-
-        # 处理返回的消息
-        if not messages:
-            return jsonify({
-                'code': 0,
-                'message': '没有新消息',
-                'data': {'messages': {}}
-            })
-
-        # 辅助函数：清理群名中的人数信息
-        def clean_group_name(name):
-            import re
-            return re.sub(r'\s*\(\d+\)$', '', name)
-
-        # 格式化消息 - 处理不同库的返回格式
-        formatted_messages = {}
-
-        if lib_name == "wxautox":
-            # wxautox返回格式: {'chat_name': 'name', 'chat_type': 'type', 'msg': [messages]}
-            if isinstance(messages, dict) and 'chat_name' in messages and 'msg' in messages:
-                chat_name = messages.get('chat_name', 'Unknown')
-                msg_list = messages.get('msg', [])
-
-                # 清理群名中的人数信息
-                clean_name = clean_group_name(chat_name)
-                formatted_messages[clean_name] = []
-
-                for msg in msg_list:
-                    try:
-                        # 检查msg是否是对象
-                        if hasattr(msg, 'type'):
-                            formatted_messages[clean_name].append({
-                                'type': getattr(msg, 'type', 'unknown'),
-                                'content': getattr(msg, 'content', str(msg)),
-                                'sender': getattr(msg, 'sender', ''),
-                                'id': getattr(msg, 'id', ''),
-                                'mtype': getattr(msg, 'mtype', None),
-                                'sender_remark': getattr(msg, 'sender_remark', None),
-                                'file_path': getattr(msg, 'file_path', None)
-                            })
-                        else:
-                            # 如果msg是字符串或其他类型，转换为文本消息
-                            formatted_messages[clean_name].append({
-                                'type': 'text',
-                                'content': str(msg),
-                                'sender': '',
-                                'id': '',
-                                'mtype': None,
-                                'sender_remark': None,
-                                'file_path': None
-                            })
-                    except Exception as e:
-                        logger.error(f"处理消息时出错: {str(e)}")
-                        continue
-        else:
-            # wxauto库的处理方式 - 返回格式: Dict[str, List[Message]]
-            if isinstance(messages, dict):
-                for chat_name, msg_list in messages.items():
-                    try:
-                        # 清理群名中的人数信息
-                        clean_name = clean_group_name(chat_name)
-                        formatted_messages[clean_name] = []
-
-                        for msg in msg_list:
-                            try:
-                                # 检查msg是否是对象
-                                if hasattr(msg, 'type'):
-                                    formatted_messages[clean_name].append({
-                                        'type': getattr(msg, 'type', 'unknown'),
-                                        'content': getattr(msg, 'content', str(msg)),
-                                        'sender': getattr(msg, 'sender', ''),
-                                        'id': getattr(msg, 'id', ''),
-                                        'mtype': getattr(msg, 'mtype', None),
-                                        'sender_remark': getattr(msg, 'sender_remark', None),
-                                        'file_path': getattr(msg, 'file_path', None)
-                                    })
-                                else:
-                                    # 如果msg是字符串或其他类型，转换为文本消息
-                                    formatted_messages[clean_name].append({
-                                        'type': 'text',
-                                        'content': str(msg),
-                                        'sender': '',
-                                        'id': '',
-                                        'mtype': None,
-                                        'sender_remark': None,
-                                        'file_path': None
-                                    })
-                            except Exception as e:
-                                logger.error(f"处理消息时出错: {str(e)}")
-                                continue
-                    except Exception as e:
-                        logger.error(f"处理聊天窗口消息失败: {str(e)}")
-                        continue
-
-        # 如果指定了who参数，只返回该聊天对象的消息
-        if who:
-            # 查找匹配的聊天对象（支持模糊匹配）
-            target_messages = {}
-            clean_who = clean_group_name(who)
-
-            for chat_name, msg_list in formatted_messages.items():
-                if clean_who == chat_name or who == chat_name:
-                    target_messages[chat_name] = msg_list
+            # 找到第一个有消息的聊天对象
+            for chat_name, msg_list in _message_cache.items():
+                if msg_list:  # 如果有消息
+                    messages = {chat_name: msg_list}
+                    logger.info(f"返回 {chat_name} 的 {len(msg_list)} 条消息")
+                    # 清空缓存（消息已被消费）
+                    _message_cache[chat_name] = []
                     break
 
-            # 如果没有找到匹配的聊天对象，返回空消息
-            if not target_messages:
-                target_messages = {who: []}
+        if not messages:
+            logger.info("缓存中没有新消息")
+            messages = {}
 
-            return jsonify({
-                'code': 0,
-                'message': '获取成功',
-                'data': {
-                    'messages': target_messages
-                }
-            })
-        else:
-            # 返回所有消息
-            return jsonify({
-                'code': 0,
-                'message': '获取成功',
-                'data': {
-                    'messages': formatted_messages
-                }
-            })
+        # 直接返回消息，不需要复杂的格式化
+        return jsonify({
+            'code': 0,
+            'message': '获取消息成功' if messages else '没有新消息',
+            'data': {'messages': messages}
+        })
+
     except Exception as e:
         logger.error(f"获取监听消息失败: {str(e)}", exc_info=True)
         return jsonify({
             'code': 3002,
-            'message': f'获取失败: {str(e)}',
+            'message': f'获取监听消息失败: {str(e)}',
             'data': None
         }), 500
+
 
 @api_bp.route('/message/listen/remove', methods=['POST'])
 @require_api_key
 def remove_listen_chat():
+    """移除监听对象 - 统一处理wxauto和wxautox"""
     wx_instance = wechat_manager.get_instance()
     if not wx_instance:
         return jsonify({
@@ -957,45 +882,62 @@ def remove_listen_chat():
         }), 400
 
     data = request.get_json()
-    who = data.get('who')
-
-    if not who:
+    if not data or 'nickname' not in data:
         return jsonify({
-            'code': 1002,
-            'message': '缺少必要参数',
+            'code': 1001,
+            'message': '缺少必要参数: nickname',
             'data': None
         }), 400
 
+    nickname = data['nickname']
+
     try:
-        # 检查当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
-        logger.debug(f"移除监听，当前使用的库: {lib_name}")
+        # 获取原始微信实例（绕过WeChatAdapter的复杂处理）
+        original_instance = wx_instance._instance if hasattr(wx_instance, '_instance') else wx_instance
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
 
-        # 调用RemoveListenChat方法，现在已经在适配器中添加了异常处理
-        result = wx_instance.RemoveListenChat(who)
+        logger.info(f"移除监听对象: {nickname}, 使用库: {lib_name}")
 
-        # 检查结果
-        if result is False:  # 明确返回False表示失败
-            logger.warning(f"移除监听失败: {who}")
-            return jsonify({
-                'code': 3001,
-                'message': f'移除监听失败: 未找到监听对象 {who}',
-                'data': None
-            }), 404
+        # 统一调用RemoveListenChat方法
+        if hasattr(original_instance, 'RemoveListenChat'):
+            result = original_instance.RemoveListenChat(nickname)
+            logger.info(f"RemoveListenChat调用结果: {result}")
+        else:
+            logger.warning(f"{lib_name}库不支持RemoveListenChat方法")
 
-        # 成功移除
+        # 从全局缓存中移除
+        if nickname in _message_cache:
+            del _message_cache[nickname]
+            logger.info(f"已从缓存中移除监听对象: {nickname}")
+
         return jsonify({
             'code': 0,
             'message': '移除监听成功',
-            'data': {'who': who}
+            'data': {
+                'nickname': nickname,
+                'library': lib_name
+            }
         })
+
     except Exception as e:
-        logger.error(f"移除监听失败: {str(e)}", exc_info=True)
+        logger.error(f"移除监听失败: {str(e)}")
         return jsonify({
-            'code': 3001,
-            'message': f'移除失败: {str(e)}',
+            'code': 3003,
+            'message': f'移除监听失败: {str(e)}',
             'data': None
         }), 500
+
+
+
+    except Exception as e:
+        logger.error(f"获取监听消息失败: {str(e)}", exc_info=True)
+        return jsonify({
+            'code': 3002,
+            'message': f'获取失败: {str(e)}',
+            'data': None
+        }), 500
+
+
 
 @api_bp.route('/chat-window/message/send', methods=['POST'])
 @require_api_key
@@ -1907,3 +1849,25 @@ def get_api_settings():
                 'api_key': 'test-key-2'
             }
         }), 200  # 返回200但提供默认值
+
+
+# Chat类监听相关API - 与message监听API保持一致
+@api_bp.route('/chat/listen/add', methods=['POST'])
+@require_api_key
+def chat_listen_add():
+    """Chat类添加监听对象 - 与/api/message/listen/add功能相同"""
+    return add_listen_chat()
+
+
+@api_bp.route('/chat/listen/get', methods=['GET'])
+@require_api_key
+def chat_listen_get():
+    """Chat类获取监听消息 - 与/api/message/listen/get功能相同"""
+    return get_listen_messages()
+
+
+@api_bp.route('/chat/listen/remove', methods=['POST'])
+@require_api_key
+def chat_listen_remove():
+    """Chat类移除监听对象 - 与/api/message/listen/remove功能相同"""
+    return remove_listen_chat()

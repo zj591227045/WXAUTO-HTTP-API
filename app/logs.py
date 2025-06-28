@@ -73,7 +73,17 @@ class DailyRotatingFileHandler(logging.Handler):
             with self._lock:
                 if self.current_handler:
                     self.current_handler.emit(record)
+        except (ValueError, OSError, AttributeError, RuntimeError, IOError, BrokenPipeError):
+            # 忽略I/O错误、属性错误、运行时错误、IO错误和管道错误
+            try:
+                # 尝试重新创建处理器
+                self.current_handler = None
+                self._ensure_handler()
+            except Exception:
+                # 如果重新创建也失败，使用默认错误处理
+                self.handleError(record)
         except Exception:
+            # 对于其他异常，使用默认错误处理
             self.handleError(record)
 
     def flush(self):
@@ -82,9 +92,24 @@ class DailyRotatingFileHandler(logging.Handler):
             with self._lock:
                 if self.current_handler:
                     self.current_handler.flush()
-        except (ValueError, OSError, AttributeError):
+        except (ValueError, OSError, AttributeError, RuntimeError, IOError, BrokenPipeError):
             # 忽略文件已关闭或其他I/O错误
-            pass
+            try:
+                # 尝试重新创建处理器
+                self.current_handler = None
+                self._ensure_handler()
+            except Exception:
+                # 如果重新创建也失败，就完全忽略
+                pass
+        except Exception:
+            # 忽略其他所有异常
+            try:
+                # 尝试重新创建处理器
+                self.current_handler = None
+                self._ensure_handler()
+            except Exception:
+                # 如果重新创建也失败，就完全忽略
+                pass
 
     def setFormatter(self, formatter):
         """设置格式化器，线程安全"""
@@ -193,26 +218,64 @@ class SafeStreamHandler(logging.StreamHandler):
         """安全地发送日志记录"""
         try:
             with self._lock:
-                super().emit(record)
-        except (ValueError, OSError, AttributeError, RuntimeError):
-            # 忽略I/O错误、属性错误或运行时错误
-            pass
+                # 检查流是否仍然有效
+                if self.stream and hasattr(self.stream, 'closed') and self.stream.closed:
+                    # 如果流已关闭，尝试重新设置为 sys.stdout
+                    import sys
+                    self.stream = sys.stdout
+
+                # 检查流是否可写
+                if self.stream and hasattr(self.stream, 'write'):
+                    super().emit(record)
+        except (ValueError, OSError, AttributeError, RuntimeError, IOError, BrokenPipeError):
+            # 忽略I/O错误、属性错误、运行时错误、IO错误和管道错误
+            try:
+                # 尝试重新设置流
+                import sys
+                self.stream = sys.stdout
+            except Exception:
+                # 如果重新设置也失败，就完全忽略
+                pass
         except Exception:
             # 忽略其他所有异常
-            pass
+            try:
+                # 尝试重新设置流
+                import sys
+                self.stream = sys.stdout
+            except Exception:
+                # 如果重新设置也失败，就完全忽略
+                pass
 
     def flush(self):
         """安全地刷新流"""
         try:
             with self._lock:
+                # 检查流是否仍然有效
+                if self.stream and hasattr(self.stream, 'closed') and self.stream.closed:
+                    # 如果流已关闭，尝试重新设置为 sys.stdout
+                    import sys
+                    self.stream = sys.stdout
+
                 if self.stream and hasattr(self.stream, 'flush'):
                     self.stream.flush()
-        except (ValueError, OSError, AttributeError, RuntimeError):
-            # 忽略I/O错误、属性错误或运行时错误
-            pass
+        except (ValueError, OSError, AttributeError, RuntimeError, IOError, BrokenPipeError):
+            # 忽略I/O错误、属性错误、运行时错误、IO错误和管道错误
+            try:
+                # 尝试重新设置流
+                import sys
+                self.stream = sys.stdout
+            except Exception:
+                # 如果重新设置也失败，就完全忽略
+                pass
         except Exception:
             # 忽略其他所有异常
-            pass
+            try:
+                # 尝试重新设置流
+                import sys
+                self.stream = sys.stdout
+            except Exception:
+                # 如果重新设置也失败，就完全忽略
+                pass
 
 # 创建一个自定义的日志记录器，用于添加当前使用的库信息
 class WeChatLibAdapter(logging.LoggerAdapter):

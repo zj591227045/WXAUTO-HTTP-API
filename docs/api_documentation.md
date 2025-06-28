@@ -721,6 +721,64 @@ curl -X GET "http://10.255.0.90:5000/api/chat-window/info?who=测试群" \
 }
 ```
 
+#### 移除监听对象 (兼容接口)
+```http
+POST /api/message/listen/remove
+```
+
+<div class="api-test-container">
+<div class="api-spec">
+
+**请求体：**
+```json
+{
+    "nickname": "测试群"
+}
+```
+
+**响应示例：**
+```json
+{
+    "code": 0,
+    "message": "移除监听成功",
+    "data": {
+        "nickname": "测试群",
+        "library": "wxauto"
+    }
+}
+```
+
+</div>
+<div class="api-test">
+
+**API测试工具**
+
+<form id="messageListenRemoveForm">
+<div class="form-group">
+    <label>聊天对象昵称:</label>
+    <input type="text" id="messageListenRemoveNickname" value="测试群" placeholder="请输入聊天对象昵称">
+</div>
+<button type="button" onclick="testMessageListenRemove()">移除监听对象</button>
+</form>
+
+<div class="curl-preview">
+<strong>CURL预览:</strong>
+<pre id="messageListenRemoveCurl">curl -X POST http://localhost:5000/api/message/listen/remove \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nickname": "测试群"
+  }'</pre>
+</div>
+
+<div class="response-container">
+<strong>响应结果:</strong>
+<pre id="messageListenRemoveResponse">点击"移除监听对象"按钮查看响应</pre>
+</div>
+
+</div>
+</div>
+
 ### 6. 群组相关接口
 
 #### 获取群列表
@@ -1213,6 +1271,174 @@ GET /api/chat/get-dialog?who=测试群
 GET /api/chat/get-top-message?who=测试群
 ```
 
+#### 添加监听对象
+```http
+POST /api/chat/listen/add
+```
+
+<div class="api-test-container">
+<div class="api-spec">
+
+**请求体：**
+```json
+{
+    "nickname": "测试群"
+}
+```
+
+**响应示例：**
+```json
+{
+    "code": 0,
+    "message": "添加监听成功",
+    "data": {
+        "nickname": "测试群",
+        "library": "wxauto"
+    }
+}
+```
+
+</div>
+<div class="api-test">
+
+**API测试工具**
+
+<form id="chatListenAddForm">
+<div class="form-group">
+    <label>聊天对象昵称:</label>
+    <input type="text" id="chatListenAddNickname" value="测试群" placeholder="请输入聊天对象昵称">
+</div>
+<button type="button" onclick="testChatListenAdd()">添加监听对象</button>
+</form>
+
+<div class="curl-preview">
+<strong>CURL预览:</strong>
+<pre id="chatListenAddCurl">curl -X POST http://localhost:5000/api/chat/listen/add \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nickname": "测试群"
+  }'</pre>
+</div>
+
+<div class="response-container">
+<strong>响应结果:</strong>
+<pre id="chatListenAddResponse">点击"添加监听对象"按钮查看响应</pre>
+</div>
+
+</div>
+</div>
+
+#### 获取监听消息
+```http
+GET /api/chat/listen/get
+```
+
+<div class="api-test-container">
+<div class="api-spec">
+
+**响应示例：**
+```json
+{
+    "code": 0,
+    "message": "获取消息成功",
+    "data": {
+        "messages": {
+            "测试群": [
+                {
+                    "type": "text",
+                    "content": "测试消息",
+                    "sender": "发送者",
+                    "id": "msg123",
+                    "time": "2025-06-27 23:17"
+                }
+            ]
+        }
+    }
+}
+```
+
+</div>
+<div class="api-test">
+
+**API测试工具**
+
+<form id="chatListenGetForm">
+<button type="button" onclick="testChatListenGet()">获取监听消息</button>
+</form>
+
+<div class="curl-preview">
+<strong>CURL预览:</strong>
+<pre id="chatListenGetCurl">curl -X GET http://localhost:5000/api/chat/listen/get \
+  -H "X-API-Key: test-key-2"</pre>
+</div>
+
+<div class="response-container">
+<strong>响应结果:</strong>
+<pre id="chatListenGetResponse">点击"获取监听消息"按钮查看响应</pre>
+</div>
+
+</div>
+</div>
+
+#### 移除监听对象
+```http
+POST /api/chat/listen/remove
+```
+
+<div class="api-test-container">
+<div class="api-spec">
+
+**请求体：**
+```json
+{
+    "nickname": "测试群"
+}
+```
+
+**响应示例：**
+```json
+{
+    "code": 0,
+    "message": "移除监听成功",
+    "data": {
+        "nickname": "测试群",
+        "library": "wxauto"
+    }
+}
+```
+
+</div>
+<div class="api-test">
+
+**API测试工具**
+
+<form id="chatListenRemoveForm">
+<div class="form-group">
+    <label>聊天对象昵称:</label>
+    <input type="text" id="chatListenRemoveNickname" value="测试群" placeholder="请输入聊天对象昵称">
+</div>
+<button type="button" onclick="testChatListenRemove()">移除监听对象</button>
+</form>
+
+<div class="curl-preview">
+<strong>CURL预览:</strong>
+<pre id="chatListenRemoveCurl">curl -X POST http://localhost:5000/api/chat/listen/remove \
+  -H "X-API-Key: test-key-2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nickname": "测试群"
+  }'</pre>
+</div>
+
+<div class="response-container">
+<strong>响应结果:</strong>
+<pre id="chatListenRemoveResponse">点击"移除监听对象"按钮查看响应</pre>
+</div>
+
+</div>
+</div>
+
 ### 群组管理 (`/api/group/`)
 
 #### 添加群成员 (Plus版)
@@ -1646,3 +1872,236 @@ POST /api/auxiliary/new-friend/reject
 - 新增消息操作功能
 - 新增辅助类功能
 - 完善错误处理和文档
+
+<script>
+// 从配置文件读取服务器地址和API密钥
+let serverConfig = {
+    baseUrl: 'http://localhost:5000',
+    apiKey: 'test-key-2'
+};
+
+// 尝试从配置文件加载配置
+fetch('/api/config/get')
+    .then(response => response.json())
+    .then(data => {
+        if (data.code === 0) {
+            serverConfig.baseUrl = `http://${data.data.host}:${data.data.port}`;
+            serverConfig.apiKey = data.data.api_key;
+            updateAllCurlPreviews();
+        }
+    })
+    .catch(error => {
+        console.log('使用默认配置');
+    });
+
+// 更新所有CURL预览
+function updateAllCurlPreviews() {
+    // 更新Chat监听相关的CURL预览
+    updateCurlPreview('chatListenAddCurl', 'POST', '/api/chat/listen/add', {
+        nickname: document.getElementById('chatListenAddNickname')?.value || '测试群'
+    });
+
+    updateCurlPreview('chatListenGetCurl', 'GET', '/api/chat/listen/get');
+
+    updateCurlPreview('chatListenRemoveCurl', 'POST', '/api/chat/listen/remove', {
+        nickname: document.getElementById('chatListenRemoveNickname')?.value || '测试群'
+    });
+
+    // 更新Message监听相关的CURL预览
+    updateCurlPreview('messageListenRemoveCurl', 'POST', '/api/message/listen/remove', {
+        nickname: document.getElementById('messageListenRemoveNickname')?.value || '测试群'
+    });
+}
+
+// 更新CURL预览
+function updateCurlPreview(elementId, method, endpoint, data = null) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    let curl = `curl -X ${method} ${serverConfig.baseUrl}${endpoint} \\\n  -H "X-API-Key: ${serverConfig.apiKey}"`;
+
+    if (data) {
+        curl += ` \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(data, null, 2)}'`;
+    }
+
+    element.textContent = curl;
+}
+
+// 通用API调用函数
+async function callAPI(method, endpoint, data = null) {
+    const options = {
+        method: method,
+        headers: {
+            'X-API-Key': serverConfig.apiKey,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
+
+    try {
+        const response = await fetch(`${serverConfig.baseUrl}${endpoint}`, options);
+        return await response.json();
+    } catch (error) {
+        return {
+            code: -1,
+            message: `请求失败: ${error.message}`,
+            data: null
+        };
+    }
+}
+
+// Chat监听相关测试函数
+async function testChatListenAdd() {
+    const nickname = document.getElementById('chatListenAddNickname').value;
+    if (!nickname) {
+        alert('请输入聊天对象昵称');
+        return;
+    }
+
+    updateCurlPreview('chatListenAddCurl', 'POST', '/api/chat/listen/add', { nickname });
+
+    const result = await callAPI('POST', '/api/chat/listen/add', { nickname });
+    document.getElementById('chatListenAddResponse').textContent = JSON.stringify(result, null, 2);
+}
+
+async function testChatListenGet() {
+    const result = await callAPI('GET', '/api/chat/listen/get');
+    document.getElementById('chatListenGetResponse').textContent = JSON.stringify(result, null, 2);
+}
+
+async function testChatListenRemove() {
+    const nickname = document.getElementById('chatListenRemoveNickname').value;
+    if (!nickname) {
+        alert('请输入聊天对象昵称');
+        return;
+    }
+
+    updateCurlPreview('chatListenRemoveCurl', 'POST', '/api/chat/listen/remove', { nickname });
+
+    const result = await callAPI('POST', '/api/chat/listen/remove', { nickname });
+    document.getElementById('chatListenRemoveResponse').textContent = JSON.stringify(result, null, 2);
+}
+
+// Message监听相关测试函数
+async function testMessageListenRemove() {
+    const nickname = document.getElementById('messageListenRemoveNickname').value;
+    if (!nickname) {
+        alert('请输入聊天对象昵称');
+        return;
+    }
+
+    updateCurlPreview('messageListenRemoveCurl', 'POST', '/api/message/listen/remove', { nickname });
+
+    const result = await callAPI('POST', '/api/message/listen/remove', { nickname });
+    document.getElementById('messageListenRemoveResponse').textContent = JSON.stringify(result, null, 2);
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    updateAllCurlPreviews();
+
+    // 监听输入框变化，实时更新CURL预览
+    const inputs = ['chatListenAddNickname', 'chatListenRemoveNickname', 'messageListenRemoveNickname'];
+    inputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('input', updateAllCurlPreviews);
+        }
+    });
+});
+</script>
+
+<style>
+.api-test-container {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.api-spec {
+    flex: 1;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.api-test {
+    flex: 1;
+    padding: 20px;
+    background-color: #fff;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-group textarea {
+    height: 80px;
+    resize: vertical;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.curl-preview {
+    margin: 15px 0;
+}
+
+.curl-preview pre {
+    background-color: #f1f1f1;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    overflow-x: auto;
+}
+
+.response-container {
+    margin-top: 15px;
+}
+
+.response-container pre {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .api-test-container {
+        flex-direction: column;
+    }
+}
+</style>

@@ -50,7 +50,7 @@
     <div class="api-endpoint-container">
         <div class="api-endpoint-header">
             <span class="method-badge method-post">POST</span>
-            <code>/api/chat/listen/add</code>
+            <code>/api/message/listen/add</code>
             <span class="version-badge version-basic">基础版</span>
             - 添加消息监听
         </div>
@@ -58,7 +58,7 @@
             <!-- 左侧文档说明 -->
             <div class="api-doc-section">
                 <h5>接口说明</h5>
-                <p>将指定的聊天对象添加到监听列表中，用于后续获取该对象的消息。</p>
+                <p>添加指定联系人或群组到消息监听列表。</p>
 
                 <h6>请求参数</h6>
                 <table class="table table-sm">
@@ -72,28 +72,33 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>who</td>
+                            <td>nickname</td>
                             <td>string</td>
                             <td>是</td>
-                            <td>要添加监听的聊天对象名称</td>
+                            <td>要监听的联系人或群组名称</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <h6>响应格式</h6>
+                <h6>请求示例</h6>
+                <pre><code>{
+    "nickname": "测试test"
+}</code></pre>
+
+                <h6>响应示例</h6>
                 <pre><code>{
     "code": 0,
     "message": "添加监听成功",
     "data": {
-        "who": "文件传输助手",
-        "status": "listening"
+        "who": "测试test",
+        "library": "wxautox"
     }
 }</code></pre>
             </div>
 
             <!-- 右侧测试工具 -->
             <div class="api-test-section">
-                <div id="chat-listen-add-tester" data-api-config="chat-listen-add"></div>
+                <div id="message-listen-add-tester" data-api-config="message-listen-add"></div>
             </div>
         </div>
     </div>
@@ -102,7 +107,7 @@
     <div class="api-endpoint-container">
         <div class="api-endpoint-header">
             <span class="method-badge method-get">GET</span>
-            <code>/api/chat/listen/get</code>
+            <code>/api/message/listen/get</code>
             <span class="version-badge version-basic">基础版</span>
             - 获取监听消息
         </div>
@@ -110,7 +115,7 @@
             <!-- 左侧文档说明 -->
             <div class="api-doc-section">
                 <h5>接口说明</h5>
-                <p>获取监听列表中指定聊天对象的消息。需要先调用添加监听接口。</p>
+                <p>获取监听列表中的新消息。</p>
 
                 <h6>请求参数</h6>
                 <table class="table table-sm">
@@ -126,50 +131,54 @@
                         <tr>
                             <td>who</td>
                             <td>string</td>
-                            <td>是</td>
-                            <td>聊天对象名称</td>
-                        </tr>
-                        <tr>
-                            <td>limit</td>
-                            <td>number</td>
                             <td>否</td>
-                            <td>消息数量限制，默认10条</td>
+                            <td>指定获取某个联系人的消息</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <h6>响应格式</h6>
+                <h6>响应示例</h6>
                 <pre><code>{
     "code": 0,
-    "message": "获取监听消息成功",
+    "message": "获取成功",
     "data": {
-        "who": "文件传输助手",
-        "messages": [...],
-        "count": 5
+        "messages": {
+            "测试test": [
+                {
+                    "content": "测试消息内容",
+                    "file_path": null,
+                    "id": "4215991482423340",
+                    "mtype": null,
+                    "sender": "测试test",
+                    "sender_remark": "测试test",
+                    "type": "text"
+                }
+            ]
+        }
     }
 }</code></pre>
             </div>
 
             <!-- 右侧测试工具 -->
             <div class="api-test-section">
-                <div id="chat-listen-get-tester" data-api-config="chat-listen-get"></div>
+                <div id="message-listen-get-tester" data-api-config="message-listen-get"></div>
             </div>
         </div>
     </div>
 
-    <!-- 移除消息监听 API -->
+    <!-- 移除监听对象 API -->
     <div class="api-endpoint-container">
         <div class="api-endpoint-header">
             <span class="method-badge method-post">POST</span>
             <code>/api/chat/listen/remove</code>
             <span class="version-badge version-basic">基础版</span>
-            - 移除消息监听
+            - 移除监听对象
         </div>
         <div class="api-endpoint-content">
             <!-- 左侧文档说明 -->
             <div class="api-doc-section">
                 <h5>接口说明</h5>
-                <p>从监听列表中移除指定的聊天对象。</p>
+                <p>从监听列表中移除指定的联系人或群组。</p>
 
                 <h6>请求参数</h6>
                 <table class="table table-sm">
@@ -183,21 +192,26 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>who</td>
+                            <td>nickname</td>
                             <td>string</td>
                             <td>是</td>
-                            <td>要移除监听的聊天对象名称</td>
+                            <td>要移除的联系人或群组名称</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <h6>响应格式</h6>
+                <h6>请求示例</h6>
+                <pre><code>{
+    "nickname": "测试test"
+}</code></pre>
+
+                <h6>响应示例</h6>
                 <pre><code>{
     "code": 0,
     "message": "移除监听成功",
     "data": {
-        "who": "文件传输助手",
-        "status": "removed"
+        "nickname": "测试test",
+        "library": "wxauto"
     }
 }</code></pre>
             </div>
