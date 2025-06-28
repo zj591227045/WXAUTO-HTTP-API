@@ -481,11 +481,15 @@ class WeChatAdapter:
         if self._instance is None:
             raise AttributeError(f"微信实例未初始化，无法调用 {name} 方法")
 
-        # 明确排除已删除的方法，直接代理到原始实例
-        excluded_methods = ['AddListenChat', 'GetNextNewMessage', 'GetListenMessage', 'RemoveListenChat']
+        # 明确排除已删除的方法，但GetNextNewMessage需要特殊处理
+        excluded_methods = ['AddListenChat', 'GetListenMessage', 'RemoveListenChat']
         if name in excluded_methods:
             logger.debug(f"直接代理{name}到原始实例（跳过适配器处理）")
             return getattr(self._instance, name)
+
+        # GetNextNewMessage需要特殊处理参数兼容性
+        if name == 'GetNextNewMessage':
+            return self.GetNextNewMessage
 
         # 检查是否需要特殊处理的方法
         handler = getattr(self, f"_handle_{name}", None)
@@ -572,8 +576,8 @@ class WeChatAdapter:
                 logger.error(f"{self._lib_name}既没有SendFiles也没有SendFile方法")
                 raise AttributeError(f"{self._lib_name}不支持文件发送功能")
 
-    # 删除复杂的GetNextNewMessage处理逻辑 - 统一使用直接调用
-    def _handle_GetNextNewMessage_DELETED(self, *args, **kwargs):
+    def _handle_GetNextNewMessage(self, *args, **kwargs):
+        """处理GetNextNewMessage方法的参数兼容性和独立实现"""
         """处理GetNextNewMessage方法的差异"""
         if not self._instance:
             raise AttributeError("微信实例未初始化")
@@ -1431,6 +1435,157 @@ class WeChatAdapter:
             logger.error(f"获取群聊列表失败: {str(e)}")
             # 重新抛出异常，让上层处理
             raise
+
+    def GetNextNewMessage(self, *args, **kwargs):
+        """
+        获取下一条新消息 - 独立实现，无缓存机制
+
+        支持wxauto和wxautox两种库的不同参数格式：
+        - wxauto: savepic, savefile, savevoice (不支持savevideo, parseurl)
+        - wxautox: filter_mute
+
+        Returns:
+            wxauto: list - 消息列表
+            wxautox: dict - {'chat_name': str, 'chat_type': str, 'msg': list}
+        """
+        if not self._instance:
+            raise AttributeError("微信实例未初始化")
+
+        logger.debug(f"GetNextNewMessage调用，库: {self._lib_name}, 参数: args={args}, kwargs={kwargs}")
+
+        try:
+            if self._lib_name == "wxautox":
+                # wxautox只支持filter_mute参数
+                adjusted_kwargs = {}
+                if 'filter_mute' in kwargs:
+                    adjusted_kwargs['filter_mute'] = kwargs['filter_mute']
+                else:
+                    adjusted_kwargs['filter_mute'] = False  # 默认值
+
+                logger.debug(f"wxautox调用参数: {adjusted_kwargs}")
+                result = self._instance.GetNextNewMessage(**adjusted_kwargs)
+                logger.debug(f"wxautox返回结果类型: {type(result)}")
+                return result if result else {}
+
+            else:  # wxauto
+                # wxauto的GetNextNewMessage可能不支持任何参数，尝试无参数调用
+                logger.info("=== wxauto GetNextNewMessage 开始调用 ===")
+                logger.debug("wxauto调用参数: 无参数")
+                result = self._instance.GetNextNewMessage()
+                logger.info(f"=== wxauto返回结果类型: {type(result)} ===")
+                logger.info(f"=== wxauto返回结果内容: {result} ===")
+
+                # 处理wxauto返回的消息对象，转换为可序列化的格式
+                if result:
+                    logger.debug(f"wxauto原始返回结果: {result}")
+                    logger.debug(f"wxauto返回结果类型: {type(result)}")
+
+                    # 检查result的结构
+                    if isinstance(result, (list, tuple)):
+                        logger.debug(f"result是列表/元组，长度: {len(result)}")
+                        for i, item in enumerate(result):
+                            logger.debug(f"  item[{i}]: type={type(item)}, value={item}")
+                    elif isinstance(result, dict):
+                        logger.debug(f"result是字典，键: {list(result.keys())}")
+                        for key, value in result.items():
+                            logger.debug(f"  {key}: type={type(value)}, value={value}")
+
+                    serializable_result = []
+
+                    # 如果result是字典格式（可能是wxautox格式或wxauto的特殊返回）
+                    if isinstance(result, dict):
+                        logger.debug("处理字典格式的result")
+                        logger.debug(f"字典键: {list(result.keys())}")
+
+                        # 检查是否是wxautox格式 {chat_name: [messages]}
+                        if all(isinstance(v, list) for v in result.values()):
+                            logger.debug("检测到wxautox格式，直接返回")
+                            return result
+                        else:
+                            # 可能是wxauto的特殊格式，需要进一步处理
+                            logger.debug("检测到wxauto字典格式，转换为列表")
+                            # 如果字典包含消息相关的键，尝试提取消息
+                            if 'msg' in result:
+                                # 假设msg键包含消息列表
+                                messages = result.get('msg', [])
+                                if isinstance(messages, list):
+                                    # 转换消息对象为可序列化格式
+                                    serializable_messages = []
+                                    for msg in messages:
+                                        try:
+                                            msg_dict = {
+                                                'type': getattr(msg, 'type', 'unknown'),
+                                                'content': getattr(msg, 'content', str(msg)),
+                                                'sender': getattr(msg, 'sender', ''),
+                                                'time': getattr(msg, 'time', ''),
+                                                'id': getattr(msg, 'id', ''),
+                                                'mtype': getattr(msg, 'mtype', None),
+                                                'sender_remark': getattr(msg, 'sender_remark', None),
+                                                'file_path': getattr(msg, 'file_path', None)
+                                            }
+                                            serializable_messages.append(msg_dict)
+                                        except Exception as e:
+                                            logger.error(f"转换字典中的消息对象失败: {str(e)}")
+                                    return serializable_messages
+                            # 否则直接返回字典让API层处理
+                            return result
+
+                    # 如果result是列表格式
+                    elif isinstance(result, (list, tuple)):
+                        logger.debug("处理列表格式的result")
+                        for i, msg in enumerate(result):
+                            try:
+                                logger.debug(f"处理消息 {i}: type={type(msg)}, value={msg}")
+
+                                # 将消息对象转换为字典
+                                msg_dict = {
+                                    'type': getattr(msg, 'type', 'unknown'),
+                                    'content': getattr(msg, 'content', str(msg)),
+                                    'sender': getattr(msg, 'sender', ''),
+                                    'time': getattr(msg, 'time', ''),
+                                    'id': getattr(msg, 'id', ''),
+                                    'mtype': getattr(msg, 'mtype', None),
+                                    'sender_remark': getattr(msg, 'sender_remark', None),
+                                    'file_path': getattr(msg, 'file_path', None)
+                                }
+                                serializable_result.append(msg_dict)
+                                logger.debug(f"转换消息: {msg_dict}")
+                            except Exception as e:
+                                logger.error(f"转换wxauto消息对象失败: {str(e)}")
+                                # 添加错误消息
+                                serializable_result.append({
+                                    'type': 'error',
+                                    'content': f'消息转换错误: {str(e)}',
+                                    'sender': '',
+                                    'time': '',
+                                    'id': '',
+                                    'mtype': None,
+                                    'sender_remark': None,
+                                    'file_path': None
+                                })
+
+                    else:
+                        # 其他类型，直接转换为字符串
+                        logger.debug(f"未知格式的result: {type(result)}")
+                        serializable_result = [{"type": "text", "content": str(result)}]
+
+                    logger.debug(f"wxauto转换后结果: {serializable_result}")
+                    return serializable_result
+                else:
+                    return []
+
+        except Exception as e:
+            error_str = str(e)
+            logger.error(f"GetNextNewMessage调用失败: {error_str}")
+
+            # 如果是"没有新消息"相关的错误，返回空结果
+            if "没有新消息" in error_str or "no new message" in error_str.lower():
+                logger.debug("没有新消息")
+                return {} if self._lib_name == "wxautox" else []
+
+            # 其他错误也返回空结果，避免中断程序
+            logger.warning(f"GetNextNewMessage其他错误，返回空结果: {error_str}")
+            return {} if self._lib_name == "wxautox" else []
 
 
 # 导入配置

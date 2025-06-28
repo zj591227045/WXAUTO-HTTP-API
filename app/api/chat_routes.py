@@ -655,12 +655,8 @@ def get_next_new():
                 'filter_mute': False  # 默认不过滤免打扰消息
             }
         else:
-            # wxauto不支持savevideo和parseurl参数
-            params = {
-                'savepic': savepic,
-                'savefile': savefile,
-                'savevoice': savevoice
-            }
+            # wxauto的GetNextNewMessage可能不支持任何参数，使用空参数
+            params = {}
 
         # 调用GetNextNewMessage方法
         try:
@@ -746,9 +742,102 @@ def get_next_new():
                             'file_path': None
                         })
         else:
-            # wxauto库的处理方式（如果有的话）
-            if isinstance(messages, dict):
+            # wxauto库的处理方式
+            if isinstance(messages, list):
+                # wxauto返回消息对象列表，需要转换为可序列化的格式
+                formatted_messages = {"新消息": []}
+
+                for msg in messages:
+                    try:
+                        # 检查msg是否已经是字典格式（适配器已转换）
+                        if isinstance(msg, dict):
+                            # 已经是字典格式，直接使用
+                            msg_data = msg
+                        elif hasattr(msg, 'type'):
+                            # 原始消息对象，需要转换
+                            msg_data = {
+                                'type': getattr(msg, 'type', 'unknown'),
+                                'content': getattr(msg, 'content', str(msg)),
+                                'sender': getattr(msg, 'sender', ''),
+                                'time': getattr(msg, 'time', ''),
+                                'id': getattr(msg, 'id', ''),
+                                'mtype': getattr(msg, 'mtype', None),
+                                'sender_remark': getattr(msg, 'sender_remark', None),
+                                'file_path': getattr(msg, 'file_path', None)
+                            }
+                        else:
+                            # 其他类型，转换为文本消息
+                            msg_data = {
+                                'type': 'text',
+                                'content': str(msg),
+                                'sender': '',
+                                'time': '',
+                                'id': '',
+                                'mtype': None,
+                                'sender_remark': None,
+                                'file_path': None
+                            }
+
+                        formatted_messages["新消息"].append(msg_data)
+                    except Exception as e:
+                        logger.error(f"处理wxauto消息时出错: {str(e)}")
+                        # 添加错误消息
+                        formatted_messages["新消息"].append({
+                            'type': 'error',
+                            'content': f'消息处理错误: {str(e)}',
+                            'sender': '',
+                            'time': '',
+                            'id': '',
+                            'mtype': None,
+                            'sender_remark': None,
+                            'file_path': None
+                        })
+            elif isinstance(messages, dict):
+                # 处理字典格式（可能是wxautox格式或wxauto的特殊返回）
+                formatted_messages = {}
+
+                # 检查是否是wxautox格式 {chat_name: str, chat_type: str, msg: [messages]}
+                if 'msg' in messages and isinstance(messages['msg'], list):
+                    # 这是wxautox格式
+                    chat_name = messages.get('chat_name', '未知聊天')
+                    formatted_messages[chat_name] = []
+
+                    for msg in messages['msg']:
+                        try:
+                            # 处理消息对象
+                            if hasattr(msg, 'type'):
+                                msg_data = {
+                                    'type': getattr(msg, 'type', 'unknown'),
+                                    'content': getattr(msg, 'content', str(msg)),
+                                    'sender': getattr(msg, 'sender', ''),
+                                    'time': getattr(msg, 'time', ''),
+                                    'id': getattr(msg, 'id', ''),
+                                    'mtype': getattr(msg, 'mtype', None),
+                                    'sender_remark': getattr(msg, 'sender_remark', None),
+                                    'file_path': getattr(msg, 'file_path', None)
+                                }
+                            else:
+                                msg_data = {
+                                    'type': 'text',
+                                    'content': str(msg),
+                                    'sender': '',
+                                    'time': '',
+                                    'id': '',
+                                    'mtype': None,
+                                    'sender_remark': None,
+                                    'file_path': None
+                                }
+                            formatted_messages[chat_name].append(msg_data)
+                        except Exception as e:
+                            logger.error(f"处理wxautox消息时出错: {str(e)}")
+                else:
+                    # 可能是其他字典格式，直接使用
+                    formatted_messages = messages
+                # 如果已经是字典格式，直接使用
                 formatted_messages = messages
+            else:
+                # 其他情况，转换为字符串
+                formatted_messages = {"消息": [{"type": "text", "content": str(messages)}]}
 
         return jsonify({
             'code': 0,

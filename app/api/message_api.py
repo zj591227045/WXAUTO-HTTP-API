@@ -8,7 +8,7 @@ import time
 import logging
 from flask import Blueprint, request, jsonify
 from app.auth import require_api_key
-from app.wechat_adapter import WeChatAdapter
+from app.wechat import wechat_manager
 import config_manager
 
 # 配置日志
@@ -31,59 +31,200 @@ if os.path.exists(wxauto_patch_path):
 @require_api_key
 def get_next_new_message():
     """获取下一条新消息"""
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+
     try:
         # 获取参数
         savepic = request.args.get('savepic', 'false').lower() == 'true'
         savefile = request.args.get('savefile', 'false').lower() == 'true'
         savevoice = request.args.get('savevoice', 'false').lower() == 'true'
         parseurl = request.args.get('parseurl', 'false').lower() == 'true'
-        
+        filter_mute = request.args.get('filter_mute', 'false').lower() == 'true'
+
         # 确保临时目录存在
         config_manager.ensure_dirs()
-        
-        # 获取微信适配器
-        adapter = WeChatAdapter()
-        
+
+        # 获取当前使用的库
+        lib_name = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
+
+        # 根据不同的库构建不同的参数
+        if lib_name == 'wxautox':
+            # wxautox的GetNextNewMessage只支持filter_mute参数
+            params = {
+                'filter_mute': filter_mute
+            }
+        else:
+            # wxauto的GetNextNewMessage可能不支持任何参数，使用空参数
+            params = {}
+
         # 获取下一条新消息
-        messages = adapter.GetNextNewMessage(
-            savepic=savepic,
-            savefile=savefile,
-            savevoice=savevoice,
-            parseurl=parseurl
-        )
+        messages = wx_instance.GetNextNewMessage(**params)
         
         # 转换消息格式
         result = {}
         if messages:
-            for chat_name, msg_list in messages.items():
-                result[chat_name] = []
-                for msg in msg_list:
-                    # 检查文件路径是否存在
-                    file_path = None
-                    if hasattr(msg, 'content') and msg.content and isinstance(msg.content, str):
-                        if os.path.exists(msg.content):
-                            file_path = msg.content
-                    
-                    # 构建消息对象
-                    msg_obj = {
-                        'id': getattr(msg, 'id', None),
-                        'type': getattr(msg, 'type', None),
-                        'sender': getattr(msg, 'sender', None),
-                        'sender_remark': getattr(msg, 'sender_remark', None) if hasattr(msg, 'sender_remark') else None,
-                        'content': getattr(msg, 'content', None),
-                        'file_path': file_path,
-                        'mtype': None  # 消息类型，如图片、文件等
-                    }
-                    
-                    # 判断消息类型
-                    if file_path and file_path.endswith(('.jpg', '.jpeg', '.png', '.gif')):
-                        msg_obj['mtype'] = 'image'
-                    elif file_path and file_path.endswith(('.mp3', '.wav', '.amr')):
-                        msg_obj['mtype'] = 'voice'
-                    elif file_path:
-                        msg_obj['mtype'] = 'file'
-                    
-                    result[chat_name].append(msg_obj)
+            if isinstance(messages, list):
+                # wxauto返回列表格式
+                result["新消息"] = []
+                for msg in messages:
+                    try:
+                        # 检查msg是否已经是字典格式（适配器已转换）
+                        if isinstance(msg, dict):
+                            # 已经是字典格式，直接使用并补充缺失字段
+                            msg_obj = {
+                                'id': msg.get('id', None),
+                                'type': msg.get('type', None),
+                                'sender': msg.get('sender', None),
+                                'sender_remark': msg.get('sender_remark', None),
+                                'content': msg.get('content', str(msg)),
+                                'time': msg.get('time', None),
+                                'file_path': msg.get('file_path', None),
+                                'mtype': msg.get('mtype', None)
+                            }
+                        else:
+                            # 原始消息对象，需要转换
+                            # 检查文件路径是否存在
+                            file_path = None
+                            if hasattr(msg, 'content') and msg.content and isinstance(msg.content, str):
+                                if os.path.exists(msg.content):
+                                    file_path = msg.content
+
+                            # 构建消息对象
+                            msg_obj = {
+                                'id': getattr(msg, 'id', None),
+                                'type': getattr(msg, 'type', None),
+                                'sender': getattr(msg, 'sender', None),
+                                'sender_remark': getattr(msg, 'sender_remark', None) if hasattr(msg, 'sender_remark') else None,
+                                'content': getattr(msg, 'content', str(msg)),
+                                'time': getattr(msg, 'time', None),
+                                'file_path': file_path,
+                                'mtype': None  # 消息类型，如图片、文件等
+                            }
+
+                        # 判断消息类型
+                        if file_path and file_path.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                            msg_obj['mtype'] = 'image'
+                        elif file_path and file_path.endswith(('.mp3', '.wav', '.amr')):
+                            msg_obj['mtype'] = 'voice'
+                        elif file_path:
+                            msg_obj['mtype'] = 'file'
+
+                        result["新消息"].append(msg_obj)
+                    except Exception as e:
+                        logger.error(f"处理消息时出错: {str(e)}")
+                        # 添加错误消息
+                        result["新消息"].append({
+                            'type': 'error',
+                            'content': f'消息处理错误: {str(e)}',
+                            'sender': '',
+                            'time': '',
+                            'id': '',
+                            'mtype': None,
+                            'sender_remark': None,
+                            'file_path': None
+                        })
+            elif isinstance(messages, dict):
+                # 处理字典格式
+                # 检查是否是wxautox格式 {chat_name: str, chat_type: str, msg: [messages]}
+                if 'msg' in messages and isinstance(messages['msg'], list):
+                    # 这是wxautox格式
+                    chat_name = messages.get('chat_name', '未知聊天')
+                    result[chat_name] = []
+                    for msg in messages['msg']:
+                        try:
+                            # 检查文件路径是否存在
+                            file_path = None
+                            if hasattr(msg, 'content') and msg.content and isinstance(msg.content, str):
+                                if os.path.exists(msg.content):
+                                    file_path = msg.content
+
+                            # 构建消息对象
+                            msg_obj = {
+                                'id': getattr(msg, 'id', None),
+                                'type': getattr(msg, 'type', None),
+                                'sender': getattr(msg, 'sender', None),
+                                'sender_remark': getattr(msg, 'sender_remark', None) if hasattr(msg, 'sender_remark') else None,
+                                'content': getattr(msg, 'content', str(msg)),
+                                'time': getattr(msg, 'time', None),
+                                'file_path': file_path,
+                                'mtype': None  # 消息类型，如图片、文件等
+                            }
+
+                            # 判断消息类型
+                            if file_path and file_path.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                                msg_obj['mtype'] = 'image'
+                            elif file_path and file_path.endswith(('.mp3', '.wav', '.amr')):
+                                msg_obj['mtype'] = 'voice'
+                            elif file_path:
+                                msg_obj['mtype'] = 'file'
+
+                            result[chat_name].append(msg_obj)
+                        except Exception as e:
+                            logger.error(f"处理消息时出错: {str(e)}")
+                            # 添加错误消息
+                            result[chat_name].append({
+                                'type': 'error',
+                                'content': f'消息处理错误: {str(e)}',
+                                'sender': '',
+                                'time': '',
+                                'id': '',
+                                'mtype': None,
+                                'sender_remark': None,
+                                'file_path': None
+                            })
+                else:
+                    # 可能是其他字典格式，假设是 {chat_name: [messages]} 格式
+                    for chat_name, msg_list in messages.items():
+                        if isinstance(msg_list, list):
+                            result[chat_name] = []
+                            for msg in msg_list:
+                                try:
+                                    # 检查文件路径是否存在
+                                    file_path = None
+                                    if hasattr(msg, 'content') and msg.content and isinstance(msg.content, str):
+                                        if os.path.exists(msg.content):
+                                            file_path = msg.content
+
+                                    # 构建消息对象
+                                    msg_obj = {
+                                        'id': getattr(msg, 'id', None),
+                                        'type': getattr(msg, 'type', None),
+                                        'sender': getattr(msg, 'sender', None),
+                                        'sender_remark': getattr(msg, 'sender_remark', None) if hasattr(msg, 'sender_remark') else None,
+                                        'content': getattr(msg, 'content', str(msg)),
+                                        'time': getattr(msg, 'time', None),
+                                        'file_path': file_path,
+                                        'mtype': None  # 消息类型，如图片、文件等
+                                    }
+
+                                    # 判断消息类型
+                                    if file_path and file_path.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                                        msg_obj['mtype'] = 'image'
+                                    elif file_path and file_path.endswith(('.mp3', '.wav', '.amr')):
+                                        msg_obj['mtype'] = 'voice'
+                                    elif file_path:
+                                        msg_obj['mtype'] = 'file'
+
+                                    result[chat_name].append(msg_obj)
+                                except Exception as e:
+                                    logger.error(f"处理其他字典格式消息时出错: {str(e)}")
+                                    # 添加错误消息
+                                    result[chat_name].append({
+                                        'type': 'error',
+                                        'content': f'消息处理错误: {str(e)}',
+                                        'sender': '',
+                                        'time': '',
+                                        'id': '',
+                                        'mtype': None,
+                                        'sender_remark': None,
+                                        'file_path': None
+                                    })
         
         return jsonify({
             'code': 0,
