@@ -793,9 +793,9 @@ class WxAutoHttpUI:
 
                 if result.returncode == 0 and "wxautox_available" in result.stdout:
                     self.wxautox_status.config(text="可用", style="Green.TLabel")
-                    # 更新激活状态显示
+                    # 使用正确的方式更新激活状态显示
                     if hasattr(self, 'wxautox_activation_status'):
-                        self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
+                        self._update_wxautox_activation_status()
                     return True
                 else:
                     self.wxautox_status.config(text="不可用", style="Red.TLabel")

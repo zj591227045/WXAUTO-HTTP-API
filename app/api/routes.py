@@ -37,8 +37,7 @@ def before_request():
                     logger.debug(f"请求体: {json_data}")
         except Exception as e:
             logger.debug(f"无法解析请求体: {str(e)}")
-        # 安全地刷新日志处理器
-        _safe_flush_handlers(logger.logger.handlers)
+        # 统一日志管理器会自动处理日志刷新
 
 @api_bp.after_request
 def after_request(response):
@@ -46,8 +45,7 @@ def after_request(response):
         duration = time.time() - g.start_time
         # 修改日志格式，确保API计数器能够正确识别 - 确保状态码周围有空格
         logger.info(f"请求处理完成: {request.method} {request.path} - 状态码: {response.status_code} - 耗时: {duration:.2f}秒")
-        # 安全地刷新日志处理器
-        _safe_flush_handlers(logger.logger.handlers)
+        # 统一日志管理器会自动处理日志刷新
     return response
 
 @api_bp.errorhandler(Exception)

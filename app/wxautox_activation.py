@@ -186,43 +186,103 @@ def check_wxautox_activation_status():
     """
     检查wxautox激活状态
 
-    真正的激活状态应该基于库是否能够成功导入和使用，而不是配置文件
+    使用正确的方式检测激活状态：from wxautox.utils.useful import check_license
+    为了避免阻塞，使用subprocess方式调用
 
     Returns:
         bool: 是否已激活
     """
     try:
-        # 直接检测wxautox是否真的可用
-        from app.wechat_lib_detector import detector
-
-        available, details = detector.detect_wxautox()
-        if available:
-            logger.info(f"wxautox激活状态检测：已激活 - {details}")
-
-            # 更新配置文件状态以保持一致
-            try:
-                config = load_activation_config()
-                if not config.get("activation_status", False):
-                    config["activation_status"] = True
-                    config["last_activation_time"] = str(datetime.now())
-                    save_activation_config(config)
-                    logger.info("已更新配置文件中的激活状态")
-            except Exception as config_e:
-                logger.warning(f"更新配置文件激活状态失败: {str(config_e)}")
-
-            return True
-        else:
-            logger.info(f"wxautox激活状态检测：未激活 - {details}")
-
-            # 更新配置文件状态
-            try:
-                config = load_activation_config()
-                config["activation_status"] = False
-                save_activation_config(config)
-            except Exception as config_e:
-                logger.warning(f"更新配置文件激活状态失败: {str(config_e)}")
-
+        # 首先检查wxautox库是否可以导入
+        try:
+            import wxautox
+        except ImportError:
+            logger.info("wxautox库未安装，激活状态：未激活")
             return False
+
+        # 使用subprocess方式检测激活状态，避免阻塞
+        try:
+            import subprocess
+            import sys
+
+            # 创建检测脚本
+            check_script = """
+try:
+    from wxautox.utils.useful import check_license
+    result = check_license()
+    print(f"check_license_result:{result}")
+except ImportError as e:
+    print(f"import_error:{str(e)}")
+except Exception as e:
+    print(f"other_error:{str(e)}")
+"""
+
+            logger.info("正在使用subprocess方式检测wxautox激活状态...")
+            result = subprocess.run(
+                [sys.executable, "-c", check_script],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='ignore',
+                timeout=10  # 10秒超时
+            )
+
+            output = result.stdout.strip()
+            logger.info(f"wxautox激活状态检测输出: {output}")
+
+            if result.returncode == 0:
+                if "check_license_result:True" in output:
+                    logger.info("wxautox激活状态检测：已激活")
+
+                    # 更新配置文件状态以保持一致
+                    try:
+                        config = load_activation_config()
+                        if not config.get("activation_status", False):
+                            config["activation_status"] = True
+                            config["last_activation_time"] = str(datetime.now())
+                            save_activation_config(config)
+                            logger.info("已更新配置文件中的激活状态")
+                    except Exception as config_e:
+                        logger.warning(f"更新配置文件激活状态失败: {str(config_e)}")
+
+                    return True
+                elif "check_license_result:False" in output:
+                    logger.info("wxautox激活状态检测：未激活")
+
+                    # 更新配置文件状态
+                    try:
+                        config = load_activation_config()
+                        config["activation_status"] = False
+                        save_activation_config(config)
+                    except Exception as config_e:
+                        logger.warning(f"更新配置文件激活状态失败: {str(config_e)}")
+
+                    return False
+                elif "import_error:" in output:
+                    logger.warning(f"无法导入check_license函数: {output}")
+                    return False
+                else:
+                    logger.warning(f"wxautox激活状态检测结果未知: {output}")
+                    return False
+            else:
+                logger.warning(f"wxautox激活状态检测失败，返回码: {result.returncode}")
+                return False
+
+        except subprocess.TimeoutExpired:
+            logger.warning("wxautox激活状态检测超时")
+            return False
+        except Exception as subprocess_e:
+            logger.warning(f"使用subprocess检测激活状态时出错: {str(subprocess_e)}")
+            # 回退到旧的检测方式
+            from app.wechat_lib_detector import detector
+            available, details = detector.detect_wxautox()
+            if available:
+                logger.info(f"wxautox激活状态检测（回退方式）：可能已激活 - {details}")
+                return True
+            else:
+                logger.info(f"wxautox激活状态检测（回退方式）：未激活 - {details}")
+                return False
+
     except Exception as e:
         logger.warning(f"检测wxautox激活状态时出错: {str(e)}")
         return False
