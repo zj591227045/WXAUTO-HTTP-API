@@ -205,6 +205,48 @@ class MemoryLogHandler(logging.Handler):
 
         return False
 
+# 禁用Python logging模块的I/O错误输出，避免显示"--- Logging error ---"信息
+def disable_logging_io_error_output():
+    """只禁用I/O相关的日志错误输出，保留其他错误处理"""
+    import logging
+    import sys
+
+    # 保存原始的handleError方法
+    original_handle_error = logging.Handler.handleError
+
+    def selective_handle_error(self, record):
+        """选择性处理日志错误，只抑制I/O相关错误"""
+        try:
+            # 调用原始的handleError方法
+            original_handle_error(self, record)
+        except Exception as e:
+            # 检查是否是I/O相关的错误
+            error_msg = str(e).lower()
+            if any(keyword in error_msg for keyword in [
+                'i/o operation on closed file',
+                'bad file descriptor',
+                'broken pipe',
+                'connection reset',
+                'errno 9',  # Bad file descriptor
+                'errno 32'  # Broken pipe
+            ]):
+                # 对于I/O错误，静默处理
+                pass
+            else:
+                # 对于其他错误，仍然输出到stderr（但不是stdout）
+                try:
+                    sys.stderr.write(f"Logging error in handler {self.__class__.__name__}: {str(e)}\n")
+                    sys.stderr.flush()
+                except:
+                    # 如果连stderr都有问题，就完全忽略
+                    pass
+
+    # 替换原始的handleError方法
+    logging.Handler.handleError = selective_handle_error
+
+# 在模块加载时就禁用I/O日志错误输出
+disable_logging_io_error_output()
+
 # 创建一个安全的流处理器，避免I/O错误
 class SafeStreamHandler(logging.StreamHandler):
     """安全的流处理器，避免I/O操作错误"""
@@ -219,63 +261,62 @@ class SafeStreamHandler(logging.StreamHandler):
         try:
             with self._lock:
                 # 检查流是否仍然有效
-                if self.stream and hasattr(self.stream, 'closed') and self.stream.closed:
-                    # 如果流已关闭，尝试重新设置为 sys.stdout
+                if not self.stream or (hasattr(self.stream, 'closed') and self.stream.closed):
+                    # 如果流已关闭或不存在，尝试重新设置为 sys.stdout
                     import sys
                     self.stream = sys.stdout
 
-                # 检查流是否可写
+                # 再次检查流是否可写
                 if self.stream and hasattr(self.stream, 'write'):
-                    super().emit(record)
+                    try:
+                        # 检查流是否真的可以写入
+                        if hasattr(self.stream, 'closed') and self.stream.closed:
+                            import sys
+                            self.stream = sys.stdout
+
+                        # 尝试写入日志
+                        super().emit(record)
+                    except (ValueError, OSError, AttributeError, RuntimeError, IOError, BrokenPipeError):
+                        # 如果写入失败，静默忽略，避免产生更多错误日志
+                        pass
         except (ValueError, OSError, AttributeError, RuntimeError, IOError, BrokenPipeError):
             # 忽略I/O错误、属性错误、运行时错误、IO错误和管道错误
-            try:
-                # 尝试重新设置流
-                import sys
-                self.stream = sys.stdout
-            except Exception:
-                # 如果重新设置也失败，就完全忽略
-                pass
+            # 不再尝试重新设置流，避免递归错误
+            pass
         except Exception:
-            # 忽略其他所有异常
-            try:
-                # 尝试重新设置流
-                import sys
-                self.stream = sys.stdout
-            except Exception:
-                # 如果重新设置也失败，就完全忽略
-                pass
+            # 忽略其他所有异常，避免产生更多错误日志
+            pass
 
     def flush(self):
         """安全地刷新流"""
         try:
             with self._lock:
                 # 检查流是否仍然有效
-                if self.stream and hasattr(self.stream, 'closed') and self.stream.closed:
-                    # 如果流已关闭，尝试重新设置为 sys.stdout
+                if not self.stream or (hasattr(self.stream, 'closed') and self.stream.closed):
+                    # 如果流已关闭或不存在，尝试重新设置为 sys.stdout
                     import sys
                     self.stream = sys.stdout
 
+                # 再次检查流是否可以刷新
                 if self.stream and hasattr(self.stream, 'flush'):
-                    self.stream.flush()
+                    try:
+                        # 检查流是否真的可以刷新
+                        if hasattr(self.stream, 'closed') and self.stream.closed:
+                            import sys
+                            self.stream = sys.stdout
+
+                        # 尝试刷新流
+                        self.stream.flush()
+                    except (ValueError, OSError, AttributeError, RuntimeError, IOError, BrokenPipeError):
+                        # 如果刷新失败，静默忽略，避免产生更多错误日志
+                        pass
         except (ValueError, OSError, AttributeError, RuntimeError, IOError, BrokenPipeError):
             # 忽略I/O错误、属性错误、运行时错误、IO错误和管道错误
-            try:
-                # 尝试重新设置流
-                import sys
-                self.stream = sys.stdout
-            except Exception:
-                # 如果重新设置也失败，就完全忽略
-                pass
+            # 不再尝试重新设置流，避免递归错误
+            pass
         except Exception:
-            # 忽略其他所有异常
-            try:
-                # 尝试重新设置流
-                import sys
-                self.stream = sys.stdout
-            except Exception:
-                # 如果重新设置也失败，就完全忽略
-                pass
+            # 忽略其他所有异常，避免产生更多错误日志
+            pass
 
 # 创建一个自定义的日志记录器，用于添加当前使用的库信息
 class WeChatLibAdapter(logging.LoggerAdapter):

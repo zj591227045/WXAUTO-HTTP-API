@@ -856,6 +856,14 @@ def add_listen_chat():
             # 调用AddListenChat
             result = original_instance.AddListenChat(nickname=nickname, callback=message_callback)
 
+            # 调试信息：检查AddListenChat的返回值类型
+            logger.debug(f"wxautox AddListenChat返回值类型: {type(result)}, 值: {result}")
+
+            # 检查listen字典中的对象类型
+            if hasattr(original_instance, 'listen') and nickname in original_instance.listen:
+                chat_obj = original_instance.listen[nickname]
+                logger.debug(f"wxautox listen[{nickname}]的类型: {type(chat_obj)}, 值: {chat_obj}")
+
             # 调用StartListening（按照文档要求）
             if hasattr(original_instance, 'StartListening'):
                 original_instance.StartListening()
@@ -889,6 +897,14 @@ def add_listen_chat():
                     logger.error(f"wxauto回调函数处理消息时出错: {str(e)}")
 
             result = original_instance.AddListenChat(nickname, message_callback)
+
+            # 调试信息：检查AddListenChat的返回值类型
+            logger.debug(f"AddListenChat返回值类型: {type(result)}, 值: {result}")
+
+            # 检查listen字典中的对象类型
+            if hasattr(original_instance, 'listen') and nickname in original_instance.listen:
+                chat_obj = original_instance.listen[nickname]
+                logger.debug(f"listen[{nickname}]的类型: {type(chat_obj)}, 值: {chat_obj}")
 
         logger.info(f"成功添加监听对象: {nickname}")
 
@@ -1077,6 +1093,55 @@ def chat_window_send_message():
             }), 404
 
         chat_wnd = listen[who]
+
+        # 调试信息：检查chat_wnd的类型
+        logger.debug(f"chat_wnd类型: {type(chat_wnd)}, 值: {chat_wnd}")
+
+        # 检查chat_wnd是否是tuple，如果是则尝试获取正确的对象
+        if isinstance(chat_wnd, tuple):
+            logger.error(f"检测到chat_wnd是tuple类型: {chat_wnd}")
+            # 如果是tuple，可能需要取第一个元素或进行其他处理
+            if len(chat_wnd) > 0:
+                chat_wnd = chat_wnd[0]
+                logger.info(f"使用tuple的第一个元素: {type(chat_wnd)}")
+            else:
+                return jsonify({
+                    'code': 3001,
+                    'message': f'聊天窗口对象类型错误: {type(listen[who])}',
+                    'data': None
+                }), 500
+
+        # 进一步检查chat_wnd是否有SendMsg方法
+        if not hasattr(chat_wnd, 'SendMsg'):
+            logger.error(f"chat_wnd对象没有SendMsg方法: {type(chat_wnd)}")
+            # 尝试重新获取聊天窗口
+            try:
+                # 先移除旧的监听对象
+                wx_instance.RemoveListenChat(who)
+                logger.info(f"已移除无效的监听对象: {who}")
+
+                # 重新添加监听对象
+                wx_instance.AddListenChat(who)
+                logger.info(f"已重新添加监听对象: {who}")
+
+                # 重新获取聊天窗口对象
+                listen = wx_instance.listen
+                if listen and who in listen:
+                    chat_wnd = listen[who]
+                    logger.info(f"重新获取的chat_wnd类型: {type(chat_wnd)}")
+                else:
+                    return jsonify({
+                        'code': 3001,
+                        'message': f'重新添加监听对象后仍无法获取聊天窗口: {who}',
+                        'data': None
+                    }), 500
+            except Exception as e:
+                logger.error(f"重新添加监听对象失败: {str(e)}")
+                return jsonify({
+                    'code': 3001,
+                    'message': f'聊天窗口对象无效，重新添加失败: {str(e)}',
+                    'data': None
+                }), 500
 
         # 根据不同的库使用不同的处理方法
         if lib_name == 'wxautox':

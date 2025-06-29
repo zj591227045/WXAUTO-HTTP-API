@@ -85,6 +85,22 @@ def load_more_messages():
 
         chat_wnd = listen[who]
 
+        # 调试信息：检查chat_wnd的类型
+        logger.debug(f"LoadMoreMessage - chat_wnd类型: {type(chat_wnd)}, 值: {chat_wnd}")
+
+        # 检查chat_wnd是否是tuple，如果是则尝试获取正确的对象
+        if isinstance(chat_wnd, tuple):
+            logger.error(f"LoadMoreMessage - 检测到chat_wnd是tuple类型: {chat_wnd}")
+            if len(chat_wnd) > 0:
+                chat_wnd = chat_wnd[0]
+                logger.info(f"LoadMoreMessage - 使用tuple的第一个元素: {type(chat_wnd)}")
+            else:
+                return jsonify({
+                    'code': 3001,
+                    'message': f'聊天窗口对象类型错误: {type(listen[who])}',
+                    'data': None
+                }), 500
+
         # 加载更多消息
         lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
         if lib_name == 'wxautox':

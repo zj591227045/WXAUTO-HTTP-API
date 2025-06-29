@@ -133,6 +133,11 @@ class APILogHandler(logging.Handler):
             # 只保留日志级别和消息内容
             formatted_msg = f"{record.levelname} - {message}"
             self.log_queue.put(formatted_msg)
+
+            # 添加调试信息，确认APILogHandler正在工作
+            # 临时调试：检查队列大小
+            # print(f"DEBUG: APILogHandler.emit - 队列大小: {self.log_queue.qsize()}, 消息: {formatted_msg[:50]}...")
+
         except Exception as e:
             # print(f"APILogHandler.emit出错: {str(e)}")  # 注释掉，避免stdout问题
             # 尝试添加错误信息到日志队列
@@ -682,8 +687,15 @@ class WxAutoHttpUI:
             if isinstance(logger, WeChatLibAdapter):
                 # 获取原始logger
                 original_logger = logger.logger
-                # 添加处理器到原始logger
-                original_logger.addHandler(self.log_handler)
+
+                # 检查是否已经有APILogHandler，避免重复添加
+                existing_api_handlers = [h for h in original_logger.handlers if isinstance(h, APILogHandler)]
+                if not existing_api_handlers:
+                    # 添加处理器到原始logger
+                    original_logger.addHandler(self.log_handler)
+                    self.add_log("已添加API日志处理器到原始logger")
+                else:
+                    self.add_log("API日志处理器已存在，跳过添加")
 
                 # 添加动态日志文件处理器，将日志保存到文件
                 try:
@@ -708,8 +720,14 @@ class WxAutoHttpUI:
                 except Exception as e:
                     self.add_log(f"设置日志文件失败: {str(e)}")
             else:
-                # 直接添加处理器到logger
-                logger.addHandler(self.log_handler)
+                # 检查是否已经有APILogHandler，避免重复添加
+                existing_api_handlers = [h for h in logger.handlers if isinstance(h, APILogHandler)]
+                if not existing_api_handlers:
+                    # 直接添加处理器到logger
+                    logger.addHandler(self.log_handler)
+                    self.add_log("已添加API日志处理器到logger")
+                else:
+                    self.add_log("API日志处理器已存在，跳过添加")
 
                 # 添加文件处理器，将日志保存到文件
                 try:
@@ -756,6 +774,37 @@ class WxAutoHttpUI:
 
         # 启动日志更新线程
         self.root.after(100, self.update_log)
+
+        # 测试日志处理器是否正常工作
+        self.test_log_handler()
+
+    def test_log_handler(self):
+        """测试日志处理器是否正常工作"""
+        try:
+            # 发送一条测试日志
+            logger.info("测试日志处理器 - 这是一条测试消息")
+
+            # 检查队列中是否有消息
+            import time
+            time.sleep(0.1)  # 等待一下让日志处理完成
+
+            if not LOG_QUEUE.empty():
+                self.add_log("✓ 日志处理器测试成功 - 队列中有消息")
+            else:
+                self.add_log("✗ 日志处理器测试失败 - 队列中没有消息")
+
+                # 检查logger的处理器
+                from app.logs import WeChatLibAdapter
+                if isinstance(logger, WeChatLibAdapter):
+                    handlers = logger.logger.handlers
+                else:
+                    handlers = logger.handlers
+
+                api_handlers = [h for h in handlers if isinstance(h, APILogHandler)]
+                self.add_log(f"当前logger有 {len(handlers)} 个处理器，其中 {len(api_handlers)} 个是APILogHandler")
+
+        except Exception as e:
+            self.add_log(f"测试日志处理器时出错: {str(e)}")
 
     def update_log(self):
         """更新日志显示"""
