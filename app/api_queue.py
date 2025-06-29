@@ -8,7 +8,7 @@ import threading
 import time
 import traceback
 from functools import wraps
-from app.logs import logger
+from app.unified_logger import logger
 
 # 全局请求队列
 request_queue = queue.Queue()

@@ -16,20 +16,14 @@ from typing import Optional, Union, List, Dict, Any
 
 # 配置日志
 try:
-    from app.logs import logger, WeChatLibAdapter
+    from app.unified_logger import logger
 except ImportError:
-    # 如果无法导入app.logs，则创建一个默认的logger
+    # 如果无法导入统一日志管理器，则创建一个默认的logger
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     logger = logging.getLogger("wechat_adapter")
-
-    # 创建一个空的适配器类，避免导入错误
-    class WeChatLibAdapter:
-        @staticmethod
-        def set_lib_name(lib_name):
-            pass
 
 class WeChatAdapter:
     """微信自动化库适配器，支持wxauto和wxautox"""
@@ -109,8 +103,8 @@ class WeChatAdapter:
                 try:
                     import wxautox
                     self._lib_name = "wxautox"
-                    # 更新日志适配器中的库名称
-                    WeChatLibAdapter.set_lib_name_static("wxautox")
+                    # 更新日志管理器中的库名称
+                    logger.set_lib_name("wxautox")
                     logger.info("成功导入wxautox库（打包环境直接导入）")
                     return True
                 except ImportError as e:
@@ -128,8 +122,8 @@ class WeChatAdapter:
                     # 实际导入库
                     import wxautox
                     self._lib_name = "wxautox"
-                    # 更新日志适配器中的库名称
-                    WeChatLibAdapter.set_lib_name_static("wxautox")
+                    # 更新日志管理器中的库名称
+                    logger.set_lib_name("wxautox")
                     logger.info(f"成功导入wxautox库: {details}")
                     return True
                 else:
@@ -149,8 +143,8 @@ class WeChatAdapter:
                 try:
                     import wxauto
                     self._lib_name = "wxauto"
-                    # 更新日志适配器中的库名称
-                    WeChatLibAdapter.set_lib_name_static("wxauto")
+                    # 更新日志管理器中的库名称
+                    logger.set_lib_name("wxauto")
                     logger.info("成功导入wxauto库（打包环境直接导入）")
                     return True
                 except ImportError as e:
@@ -168,8 +162,8 @@ class WeChatAdapter:
                     # 实际导入库
                     import wxauto
                     self._lib_name = "wxauto"
-                    # 更新日志适配器中的库名称
-                    WeChatLibAdapter.set_lib_name_static("wxauto")
+                    # 更新日志管理器中的库名称
+                    logger.set_lib_name("wxauto")
                     logger.info(f"成功导入wxauto库: {details}")
                     return True
                 else:

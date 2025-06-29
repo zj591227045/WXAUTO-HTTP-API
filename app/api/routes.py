@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, g, Response, send_file
 from app.auth import require_api_key
-from app.logs import logger
+from app.unified_logger import logger
 from app.wechat import wechat_manager
 from app.system_monitor import get_system_resources
 from app.api_queue import queue_task, get_queue_stats
@@ -19,26 +19,14 @@ _message_cache = {}
 # 记录程序启动时间
 start_time = time.time()
 
-def _safe_flush_handlers(handlers):
-    """安全地刷新日志处理器，避免I/O错误"""
-    for handler in handlers:
-        try:
-            if hasattr(handler, 'flush') and callable(handler.flush):
-                handler.flush()
-        except (ValueError, OSError, AttributeError, RuntimeError):
-            # 忽略已关闭的文件句柄、属性错误或运行时错误
-            pass
-        except Exception:
-            # 忽略其他所有异常，确保不影响请求处理
-            pass
+# 移除旧的日志处理器刷新函数，统一日志管理器会自动处理
 
 @api_bp.before_request
 def before_request():
     g.start_time = time.time()
     # 记录请求信息，但不记录详细的请求头和请求体
     logger.info(f"收到请求: {request.method} {request.path}")
-    # 安全地刷新日志处理器
-    _safe_flush_handlers(logger.logger.handlers)
+    # 移除旧的日志处理器刷新代码，统一日志管理器会自动处理
 
     # 只在开发环境下记录请求体，且不记录请求头
     if Config.DEBUG and request.method in ['POST', 'PUT', 'PATCH']:

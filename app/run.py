@@ -7,7 +7,7 @@ import signal
 import logging
 import argparse
 from app import create_app
-from app.logs import logger
+from app.unified_logger import logger
 from app.config import Config
 from app.api_queue import start_queue_processors, stop_queue_processors
 
@@ -111,6 +111,9 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 try:
+    # 设置Flask服务的库名称
+    logger.set_lib_name("Flask")
+
     # 记录启动环境信息
     logger.info(f"Python版本: {sys.version}")
     logger.info(f"当前工作目录: {os.getcwd()}")

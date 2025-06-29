@@ -1,7 +1,7 @@
 import threading
 import time
 import pythoncom
-from app.logs import logger
+from app.unified_logger import logger
 from app.config import Config
 from app.wechat_adapter import wechat_adapter
 
@@ -27,7 +27,10 @@ class WeChatManager:
                 if Config.WECHAT_AUTO_RECONNECT:
                     self._start_monitor()
                 self._retry_count = 0
-                logger.info(f"微信初始化成功，使用库: {self._adapter.get_lib_name()}")
+                # 更新日志管理器的库名称
+                lib_name = self._adapter.get_lib_name()
+                logger.set_lib_name(lib_name)
+                logger.info(f"微信初始化成功，使用库: {lib_name}")
             return success
 
     def get_instance(self):

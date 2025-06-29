@@ -5,7 +5,7 @@
 
 from flask import Blueprint, jsonify, request, g
 from app.auth import require_api_key
-from app.logs import logger
+from app.unified_logger import logger
 import importlib
 import os
 import time

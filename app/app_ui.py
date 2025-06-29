@@ -40,14 +40,13 @@ if current_dir not in sys.path:
 # 导入项目模块
 try:
     from app.config import Config
-    from app.logs import logger
+    from app.unified_logger import unified_logger, logger
 except ImportError:
     # print("无法导入项目模块，请确保在正确的目录中运行")  # 注释掉，避免stdout问题
     sys.exit(1)
 
 # 全局变量
 API_PROCESS = None
-LOG_QUEUE = queue.Queue()
 CONFIG_MODIFIED = False
 
 
@@ -87,88 +86,7 @@ class ApiCounter:
 API_COUNTER = ApiCounter()
 
 
-class APILogHandler(logging.Handler):
-    """API日志处理器，用于捕获API日志并发送到UI"""
-
-    def __init__(self, log_queue):
-        super().__init__()
-        self.log_queue = log_queue
-
-    def emit(self, record):
-        """发送日志记录到队列"""
-        try:
-            # 只包含日志级别和消息，不包含时间戳（时间戳会在UI中添加）
-            # 检查消息中是否已经包含时间戳格式的内容，如果有则移除
-            message = record.getMessage()
-
-            # 移除消息开头可能存在的时间戳格式 (yyyy-mm-dd HH:MM:SS)
-            message = self._remove_timestamp(message)
-
-            # 检查是否包含乱码，如果包含乱码，尝试修复
-            if '�' in message:
-                # 记录原始消息内容，用于调试
-                # print(f"APILogHandler检测到可能的乱码，原始消息: {repr(message)}")  # 注释掉，避免stdout问题
-
-                # 尝试使用不同的编码解码
-                try:
-                    # 如果message是字符串，先转换为bytes
-                    if isinstance(message, str):
-                        # 假设message是latin1编码的字符串
-                        message_bytes = message.encode('latin1')
-
-                        # 尝试使用不同的编码解码
-                        for encoding in ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5']:
-                            try:
-                                decoded = message_bytes.decode(encoding)
-                                if '�' not in decoded:
-                                    message = decoded
-                                    # print(f"APILogHandler成功使用 {encoding} 编码修复乱码")  # 注释掉，避免stdout问题
-                                    break
-                            except UnicodeDecodeError:
-                                continue
-                except Exception as e:
-                    # print(f"APILogHandler修复乱码失败: {str(e)}")  # 注释掉，避免stdout问题
-                    pass
-
-            # 只保留日志级别和消息内容
-            formatted_msg = f"{record.levelname} - {message}"
-            self.log_queue.put(formatted_msg)
-
-            # 添加调试信息，确认APILogHandler正在工作
-            # 临时调试：检查队列大小
-            # print(f"DEBUG: APILogHandler.emit - 队列大小: {self.log_queue.qsize()}, 消息: {formatted_msg[:50]}...")
-
-        except Exception as e:
-            # print(f"APILogHandler.emit出错: {str(e)}")  # 注释掉，避免stdout问题
-            # 尝试添加错误信息到日志队列
-            try:
-                self.log_queue.put(f"ERROR - 日志处理出错: {str(e)}")
-            except:
-                pass
-
-    def _remove_timestamp(self, message):
-        """移除消息中可能存在的时间戳格式"""
-        # 尝试移除常见的时间戳格式
-        import re
-
-        # 移除类似 "2025-05-08 11:50:17,850" 这样的时间戳
-        message = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(,\d{3})? - ', '', message)
-
-        # 移除类似 "[2025-05-08 11:50:17]" 这样的时间戳
-        message = re.sub(r'^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] ', '', message)
-
-        # 移除类似 "2025-05-08 12:04:46" 这样的时间戳（Flask日志格式）
-        message = re.sub(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} - ', '', message)
-
-        # 移除类似 "127.0.0.1 - - [08/May/2025 12:04:46]" 这样的Werkzeug日志格式
-        if ' - - [' in message and '] "' in message:
-            parts = message.split('] "', 1)
-            if len(parts) > 1:
-                ip_part = parts[0].split(' - - [')[0]
-                request_part = parts[1]
-                message = f"{ip_part} - {request_part}"
-
-        return message
+# 移除旧的APILogHandler类，使用新的统一日志管理器
 
 
 class WxAutoHttpUI:
@@ -249,6 +167,10 @@ class WxAutoHttpUI:
         self.api_running = False
         self.current_lib = "wxauto"  # 默认使用wxauto
         self.current_port = 5000  # 默认端口号
+
+        # 初始化UI日志队列
+        import queue
+        self._ui_log_queue = queue.Queue()
 
         # 启动状态更新定时器
         self.update_status()
@@ -678,137 +600,37 @@ class WxAutoHttpUI:
         # 确保日志目录存在
         config_manager.ensure_dirs()
 
-        # 添加队列处理器到logger
-        self.log_handler = APILogHandler(LOG_QUEUE)
+        # 添加UI处理器到统一日志管理器
+        unified_logger.add_ui_handler(self._handle_log_message)
 
-        # 检查logger类型，如果是WeChatLibAdapter，需要获取原始logger
+        # 获取当前库名称
         try:
-            from app.logs import WeChatLibAdapter
-            if isinstance(logger, WeChatLibAdapter):
-                # 获取原始logger
-                original_logger = logger.logger
-
-                # 检查是否已经有APILogHandler，避免重复添加
-                existing_api_handlers = [h for h in original_logger.handlers if isinstance(h, APILogHandler)]
-                if not existing_api_handlers:
-                    # 添加处理器到原始logger
-                    original_logger.addHandler(self.log_handler)
-                    self.add_log("已添加API日志处理器到原始logger")
-                else:
-                    self.add_log("API日志处理器已存在，跳过添加")
-
-                # 添加动态日志文件处理器，将日志保存到文件
-                try:
-                    # 导入动态日志文件处理器
-                    from app.logs import DailyRotatingFileHandler
-
-                    # 创建动态文件处理器 - 支持跨天自动切换
-                    file_handler = DailyRotatingFileHandler(
-                        log_dir=str(config_manager.LOGS_DIR),
-                        filename_prefix="api",
-                        max_bytes=20*1024*1024,
-                        backup_count=5
-                    )
-                    # 使用与UI相同的时间戳格式
-                    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
-                                                                '%Y-%m-%d %H:%M:%S'))
-                    original_logger.addHandler(file_handler)
-
-                    # 获取当前日志文件路径用于显示
-                    current_log_file = file_handler._get_current_log_file()
-                    self.add_log(f"日志将保存到: {current_log_file}")
-                except Exception as e:
-                    self.add_log(f"设置日志文件失败: {str(e)}")
-            else:
-                # 检查是否已经有APILogHandler，避免重复添加
-                existing_api_handlers = [h for h in logger.handlers if isinstance(h, APILogHandler)]
-                if not existing_api_handlers:
-                    # 直接添加处理器到logger
-                    logger.addHandler(self.log_handler)
-                    self.add_log("已添加API日志处理器到logger")
-                else:
-                    self.add_log("API日志处理器已存在，跳过添加")
-
-                # 添加文件处理器，将日志保存到文件
-                try:
-                    # 生成日志文件名
-                    timestamp = datetime.now().strftime("%Y%m%d")
-                    log_file = config_manager.LOGS_DIR / f"api_{timestamp}.log"
-
-                    # 创建文件处理器 - 文件中使用完整时间戳格式
-                    file_handler = logging.FileHandler(log_file, encoding='utf-8')
-                    # 使用与UI相同的时间戳格式
-                    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
-                                                                '%Y-%m-%d %H:%M:%S'))
-                    logger.addHandler(file_handler)
-
-                    self.add_log(f"日志将保存到: {log_file}")
-                except Exception as e:
-                    self.add_log(f"设置日志文件失败: {str(e)}")
-        except ImportError:
-            # 如果无法导入WeChatLibAdapter，直接使用logger
-            logger.addHandler(self.log_handler)
-
-            # 添加动态日志文件处理器，将日志保存到文件
-            try:
-                # 导入动态日志文件处理器
-                from app.logs import DailyRotatingFileHandler
-
-                # 创建动态文件处理器 - 支持跨天自动切换
-                file_handler = DailyRotatingFileHandler(
-                    log_dir=str(config_manager.LOGS_DIR),
-                    filename_prefix="api",
-                    max_bytes=20*1024*1024,
-                    backup_count=5
-                )
-                # 使用与UI相同的时间戳格式
-                file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s',
-                                                            '%Y-%m-%d %H:%M:%S'))
-                logger.addHandler(file_handler)
-
-                # 获取当前日志文件路径用于显示
-                current_log_file = file_handler._get_current_log_file()
-                self.add_log(f"日志将保存到: {current_log_file}")
-            except Exception as e:
-                self.add_log(f"设置日志文件失败: {str(e)}")
+            config = config_manager.load_app_config()
+            current_lib = config.get('wechat_lib', 'wxauto')
+            logger.set_lib_name(current_lib)
+        except Exception as e:
+            logger.set_lib_name('wxauto')  # 默认使用wxauto
 
         # 启动日志更新线程
         self.root.after(100, self.update_log)
 
-        # 测试日志处理器是否正常工作
-        self.test_log_handler()
+        # 记录日志系统初始化完成
+        self.add_log("统一日志系统已初始化")
 
-    def test_log_handler(self):
-        """测试日志处理器是否正常工作"""
+    def _handle_log_message(self, formatted_log):
+        """处理来自统一日志管理器的日志消息"""
         try:
-            # 发送一条测试日志
-            logger.info("测试日志处理器 - 这是一条测试消息")
+            # 将格式化的日志消息添加到UI显示队列
+            # 注意：这里不需要再次格式化，因为unified_logger已经格式化了
+            self._ui_log_queue.put(formatted_log)
+        except Exception:
+            pass  # 忽略UI处理错误
 
-            # 检查队列中是否有消息
-            import time
-            time.sleep(0.1)  # 等待一下让日志处理完成
-
-            if not LOG_QUEUE.empty():
-                self.add_log("✓ 日志处理器测试成功 - 队列中有消息")
-            else:
-                self.add_log("✗ 日志处理器测试失败 - 队列中没有消息")
-
-                # 检查logger的处理器
-                from app.logs import WeChatLibAdapter
-                if isinstance(logger, WeChatLibAdapter):
-                    handlers = logger.logger.handlers
-                else:
-                    handlers = logger.handlers
-
-                api_handlers = [h for h in handlers if isinstance(h, APILogHandler)]
-                self.add_log(f"当前logger有 {len(handlers)} 个处理器，其中 {len(api_handlers)} 个是APILogHandler")
-
-        except Exception as e:
-            self.add_log(f"测试日志处理器时出错: {str(e)}")
+    # 移除旧的test_log_handler方法，使用新的统一日志管理器
 
     def update_log(self):
         """更新日志显示"""
-        if not LOG_QUEUE.empty():
+        if not self._ui_log_queue.empty():
             # 获取当前滚动位置
             current_position = self.log_text.yview()
             # 判断用户是否已经滚动到底部
@@ -817,70 +639,25 @@ class WxAutoHttpUI:
             self.log_text.config(state=tk.NORMAL)
 
             has_new_visible_logs = False
-            while not LOG_QUEUE.empty():
+            while not self._ui_log_queue.empty():
                 try:
-                    # 获取消息并处理可能的编码问题
-                    msg = LOG_QUEUE.get()
-
-                    # 检查是否包含乱码，如果包含乱码，尝试修复
-                    if '�' in msg:
-                        # 记录原始消息内容，用于调试
-                        # print(f"检测到可能的乱码，原始消息: {repr(msg)}")  # 注释掉，避免stdout问题
-
-                        # 尝试使用不同的编码解码
-                        try:
-                            # 如果msg是字符串，先转换为bytes
-                            if isinstance(msg, str):
-                                # 假设msg是UTF-8编码的字符串
-                                msg_bytes = msg.encode('latin1')
-                            else:
-                                msg_bytes = msg
-
-                            # 尝试使用不同的编码解码
-                            for encoding in ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5']:
-                                try:
-                                    decoded = msg_bytes.decode(encoding)
-                                    if '�' not in decoded:
-                                        msg = decoded
-                                        # print(f"成功使用 {encoding} 编码修复乱码")  # 注释掉，避免stdout问题
-                                        break
-                                except UnicodeDecodeError:
-                                    continue
-                        except Exception as e:
-                            # print(f"修复乱码失败: {str(e)}")  # 注释掉，避免stdout问题
-                            pass
+                    # 获取已格式化的日志消息
+                    formatted_log = self._ui_log_queue.get()
 
                     # 更新API调用计数
                     global API_COUNTER
-                    old_success = API_COUNTER.success_count
-                    old_error = API_COUNTER.error_count
+                    API_COUNTER.count_request(formatted_log)
 
-                    API_COUNTER.count_request(msg)
-
-                    # 更新UI显示 - 每次都更新，确保显示最新的计数
+                    # 更新UI显示
                     self.request_count.config(text=str(API_COUNTER.success_count))
                     self.error_count.config(text=str(API_COUNTER.error_count))
 
                     # 应用过滤器
-                    if not self.should_filter_log(msg):
-                        # 添加统一格式的时间戳，但不再添加库信息（因为日志中已经包含）
-                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-                        # 检查消息中是否已经包含库信息标记 [wxauto] 或 [wxautox]
-                        if "[wxauto]" in msg or "[wxautox]" in msg:
-                            # 已经包含库信息，只添加时间戳
-                            formatted_msg = f"[{timestamp}] {msg}"
-                        else:
-                            # 不包含库信息，添加时间戳和库信息
-                            lib_name = getattr(self, 'current_lib', 'wxauto')  # 默认使用wxauto
-                            formatted_msg = f"[{timestamp}] [{lib_name}] {msg}"
-
-                        self.log_text.insert(tk.END, formatted_msg + "\n")
+                    if not self.should_filter_log(formatted_log):
+                        self.log_text.insert(tk.END, formatted_log + "\n")
                         has_new_visible_logs = True
                 except Exception as e:
                     # 捕获处理消息时的任何异常
-                    # print(f"处理日志消息时出错: {str(e)}")  # 注释掉，避免stdout问题
-                    # 尝试添加错误信息到日志
                     try:
                         self.log_text.insert(tk.END, f"[错误] 处理日志消息时出错: {str(e)}\n")
                         has_new_visible_logs = True
@@ -1574,41 +1351,37 @@ class WxAutoHttpUI:
                                 request_part = parts[1]
                                 line_content = f"{ip_part} - {request_part}"
 
-                        # 将处理后的内容添加到日志队列，而不是直接添加到UI
-                        # 这样可以确保所有日志都经过相同的处理流程
-                        LOG_QUEUE.put(line_content)
+                        # 使用统一日志管理器记录进程输出
+                        self.add_log(line_content)
                     except UnicodeDecodeError as e:
                         # 如果遇到解码错误，记录错误信息
-                        # print(f"读取进程输出时遇到编码错误: {str(e)}")  # 注释掉，避免stdout问题
-                        LOG_QUEUE.put(f"读取进程输出时遇到编码错误: {str(e)}")
+                        self.add_log(f"读取进程输出时遇到编码错误: {str(e)}")
                     except Exception as e:
                         # 捕获其他可能的异常
-                        # print(f"处理进程输出时出错: {str(e)}")  # 注释掉，避免stdout问题
-                        LOG_QUEUE.put(f"处理进程输出时出错: {str(e)}")
+                        self.add_log(f"处理进程输出时出错: {str(e)}")
 
                 # 检查进程是否还在运行
                 if API_PROCESS:
                     if isinstance(API_PROCESS, subprocess.Popen):
                         # 如果是subprocess.Popen对象，使用poll()方法
                         if API_PROCESS.poll() is not None:
-                            LOG_QUEUE.put(f"API服务已退出，返回码: {API_PROCESS.returncode}")
+                            self.add_log(f"API服务已退出，返回码: {API_PROCESS.returncode}")
                             self.root.after(0, self.update_status_stopped)
                             break
                     else:
                         # 如果是psutil.Process对象，检查是否存在
                         try:
                             if not psutil.pid_exists(API_PROCESS.pid):
-                                LOG_QUEUE.put(f"API服务已退出")
+                                self.add_log(f"API服务已退出")
                                 self.root.after(0, self.update_status_stopped)
                                 break
                         except (psutil.NoSuchProcess, psutil.AccessDenied):
-                            LOG_QUEUE.put(f"API服务已退出")
+                            self.add_log(f"API服务已退出")
                             self.root.after(0, self.update_status_stopped)
                             break
         except Exception as e:
             # 捕获读取进程输出时的异常
-            # print(f"读取进程输出时出错: {str(e)}")  # 注释掉，避免stdout问题
-            LOG_QUEUE.put(f"读取进程输出时出错: {str(e)}")
+            self.add_log(f"读取进程输出时出错: {str(e)}")
             # 如果发生异常，尝试更新状态
             self.root.after(0, self.update_status_stopped)
 
@@ -1788,17 +1561,11 @@ class WxAutoHttpUI:
 
     def add_log(self, message):
         """添加日志到日志区域"""
-        # 使用完整的时间戳格式，精确到秒
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # 获取当前库名称
+        lib_name = getattr(self, 'current_lib', 'wxauto')
 
-        # 检查消息中是否已经包含库信息标记 [wxauto] 或 [wxautox]
-        if "[wxauto]" in message or "[wxautox]" in message:
-            # 已经包含库信息，只添加时间戳
-            log_message = f"[{timestamp}] {message}"
-        else:
-            # 不包含库信息，添加时间戳和库信息
-            lib_name = getattr(self, 'current_lib', 'wxauto')  # 默认使用wxauto
-            log_message = f"[{timestamp}] [{lib_name}] {message}"
+        # 使用统一日志管理器记录日志
+        unified_logger.info(lib_name, message)
 
         # 检查日志中是否包含窗口名称信息
         if "初始化成功，获取到已登录窗口：" in message:
@@ -1808,43 +1575,10 @@ class WxAutoHttpUI:
                 if window_name and hasattr(self, 'wechat_window_name'):
                     # 更新窗口名称标签
                     self.wechat_window_name.config(text=window_name, foreground="orange")
-                    # print(f"从日志中提取到窗口名称: {window_name}")  # 注释掉，避免stdout问题
-            except Exception as e:
-                # print(f"从日志中提取窗口名称失败: {str(e)}")  # 注释掉，避免stdout问题
+            except Exception:
                 pass
 
-        # 应用过滤器，如果应该过滤掉，则不显示
-        if self.should_filter_log(log_message):
-            return
-
-        # 获取当前滚动位置
-        current_position = self.log_text.yview()
-
-        # 判断用户是否已经滚动到底部
-        # 如果第二个值接近1.0，表示用户正在查看最新内容
-        at_bottom = current_position[1] > 0.99 or self.auto_scroll_var.get()
-
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.insert(tk.END, log_message + "\n")
-
-        # 限制日志显示数量为最新的200条
-        log_content = self.log_text.get(1.0, tk.END)
-        log_lines = log_content.split('\n')
-        if len(log_lines) > 201:  # 加1是因为split后最后一个元素是空字符串
-            # 计算需要删除的行数
-            lines_to_delete = len(log_lines) - 201
-            # 删除多余的行
-            self.log_text.delete(1.0, f"{lines_to_delete + 1}.0")
-
-        # 只有当用户当前在查看最新内容或启用了自动滚动时，才自动滚动到底部
-        if at_bottom:
-            self.log_text.see(tk.END)
-
-        self.log_text.config(state=tk.DISABLED)
-
-        # 添加一个状态指示，显示有新日志
-        if not at_bottom and hasattr(self, 'new_log_indicator'):
-            self.new_log_indicator.config(text="↓ 有新日志", foreground="red")
+        # 移除遗留的状态指示代码，因为现在使用统一日志管理器
 
     def check_status(self):
         """定时检查状态"""
@@ -2218,7 +1952,7 @@ if __name__ == "__main__":
     try:
         # 导入项目模块
         from app.config import Config
-        from app.logs import logger
+        from app.unified_logger import logger
 
         # 启动UI
         main()

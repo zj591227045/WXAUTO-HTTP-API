@@ -8,8 +8,11 @@ import sys
 import logging
 import traceback
 
-# 配置日志
-logger = logging.getLogger(__name__)
+# 导入统一日志管理器
+from app.unified_logger import logger
+
+# 设置API服务的库名称
+logger.set_lib_name("Flask")
 
 def check_mutex():
     """检查互斥锁，确保同一时间只有一个API服务实例在运行"""
