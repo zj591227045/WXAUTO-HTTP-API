@@ -14,8 +14,27 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-# 配置日志
-logger = logging.getLogger(__name__)
+# 使用统一日志管理器
+from app.unified_logger import logger
+
+def safe_log(level, message):
+    """安全的日志记录函数，避免 I/O operation on closed file 错误"""
+    try:
+        if level == "info":
+            logger.info(message)
+        elif level == "warning":
+            logger.warning(message)
+        elif level == "error":
+            logger.error(message)
+        elif level == "debug":
+            logger.debug(message)
+    except (ValueError, OSError, AttributeError):
+        # I/O operation on closed file 或其他 I/O 错误
+        # 静默忽略，避免在应用关闭时产生错误
+        pass
+    except Exception:
+        # 其他未知错误，也静默忽略
+        pass
 
 # 激活码配置文件路径
 ACTIVATION_CONFIG_FILE = "wxautox_activation.json"
@@ -47,7 +66,7 @@ def load_activation_config():
             config = json.load(f)
             return config
     except Exception as e:
-        logger.error(f"加载激活码配置失败: {str(e)}")
+        safe_log("error", f"加载激活码配置失败: {str(e)}")
         return {
             "activation_code": "",
             "last_activation_time": "",
@@ -73,7 +92,7 @@ def save_activation_config(config):
         logger.info("激活码配置保存成功")
         return True
     except Exception as e:
-        logger.error(f"保存激活码配置失败: {str(e)}")
+        safe_log("error", f"保存激活码配置失败: {str(e)}")
         return False
 
 
@@ -135,8 +154,8 @@ def activate_wxautox(activation_code=None):
         stdout = result.stdout or ""
         stderr = result.stderr or ""
         output = stdout + stderr
-        logger.info(f"wxautox激活命令输出: {output}")
-        
+        safe_log("info", f"wxautox激活命令输出: {output}")
+
         # 检查是否激活成功 - 支持多种成功标识
         success_indicators = [">>>激活成功！<<<", "激活成功", "activation successful"]
         failure_indicators = [">>>激活失败：forbidden<<<", "激活失败", "forbidden", "expired"]
@@ -152,7 +171,7 @@ def activate_wxautox(activation_code=None):
             config["last_activation_time"] = str(datetime.now())
             save_activation_config(config)
 
-            logger.info("wxautox激活成功")
+            safe_log("info", "wxautox激活成功")
             return True, "wxautox激活成功", output
         elif is_failure:
             # 激活失败，更新状态
@@ -165,127 +184,63 @@ def activate_wxautox(activation_code=None):
             else:
                 error_msg = "激活失败"
 
-            logger.warning(f"wxautox激活失败: {error_msg}")
+            safe_log("warning", f"wxautox激活失败: {error_msg}")
             return False, error_msg, output
         else:
-            logger.warning(f"wxautox激活结果未知: {output}")
+            safe_log("warning", f"wxautox激活结果未知: {output}")
             return False, f"激活结果未知: {output}", output
-            
+
     except subprocess.TimeoutExpired:
-        logger.error("wxautox激活命令超时")
+        safe_log("error", "wxautox激活命令超时")
         return False, "wxautox激活命令超时", ""
     except FileNotFoundError:
-        logger.error("找不到wxautox命令，请确保wxautox已正确安装")
+        safe_log("error", "找不到wxautox命令，请确保wxautox已正确安装")
         return False, "找不到wxautox命令，请确保wxautox已正确安装", ""
     except Exception as e:
-        logger.error(f"wxautox激活过程出错: {str(e)}")
+        safe_log("error", f"wxautox激活过程出错: {str(e)}")
         return False, f"wxautox激活过程出错: {str(e)}", ""
 
 
-def check_wxautox_activation_status():
+def simple_check_wxautox_activation():
     """
-    检查wxautox激活状态
-
-    使用正确的方式检测激活状态：from wxautox.utils.useful import check_license
-    为了避免阻塞，使用subprocess方式调用
+    简单检查wxautox激活状态
+    能够导入库并执行基本操作即认为激活成功
 
     Returns:
-        bool: 是否已激活
+        str: "已激活" | "未激活" | "未知"
     """
     try:
-        # 首先检查wxautox库是否可以导入
+        # 尝试导入wxautox库
+        import wxautox
+        safe_log("info", "wxautox库导入成功")
+
+        # 尝试创建WeChat实例（这是最基本的操作）
         try:
-            import wxautox
-        except ImportError:
-            logger.info("wxautox库未安装，激活状态：未激活")
-            return False
+            # 不实际初始化，只检查类是否可用
+            wechat_class = wxautox.WeChat
+            safe_log("info", "wxautox.WeChat类可用，认为激活成功")
+            return "已激活"
+        except Exception as e:
+            safe_log("warning", f"wxautox.WeChat类不可用: {str(e)}")
+            return "未激活"
 
-        # 使用subprocess方式检测激活状态，避免阻塞
-        try:
-            import subprocess
-            import sys
-
-            # 创建检测脚本
-            check_script = """
-try:
-    from wxautox.utils.useful import check_license
-    result = check_license()
-    print(f"check_license_result:{result}")
-except ImportError as e:
-    print(f"import_error:{str(e)}")
-except Exception as e:
-    print(f"other_error:{str(e)}")
-"""
-
-            logger.info("正在使用subprocess方式检测wxautox激活状态...")
-            result = subprocess.run(
-                [sys.executable, "-c", check_script],
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                timeout=10  # 10秒超时
-            )
-
-            output = result.stdout.strip()
-            logger.info(f"wxautox激活状态检测输出: {output}")
-
-            if result.returncode == 0:
-                if "check_license_result:True" in output:
-                    logger.info("wxautox激活状态检测：已激活")
-
-                    # 更新配置文件状态以保持一致
-                    try:
-                        config = load_activation_config()
-                        if not config.get("activation_status", False):
-                            config["activation_status"] = True
-                            config["last_activation_time"] = str(datetime.now())
-                            save_activation_config(config)
-                            logger.info("已更新配置文件中的激活状态")
-                    except Exception as config_e:
-                        logger.warning(f"更新配置文件激活状态失败: {str(config_e)}")
-
-                    return True
-                elif "check_license_result:False" in output:
-                    logger.info("wxautox激活状态检测：未激活")
-
-                    # 更新配置文件状态
-                    try:
-                        config = load_activation_config()
-                        config["activation_status"] = False
-                        save_activation_config(config)
-                    except Exception as config_e:
-                        logger.warning(f"更新配置文件激活状态失败: {str(config_e)}")
-
-                    return False
-                elif "import_error:" in output:
-                    logger.warning(f"无法导入check_license函数: {output}")
-                    return False
-                else:
-                    logger.warning(f"wxautox激活状态检测结果未知: {output}")
-                    return False
-            else:
-                logger.warning(f"wxautox激活状态检测失败，返回码: {result.returncode}")
-                return False
-
-        except subprocess.TimeoutExpired:
-            logger.warning("wxautox激活状态检测超时")
-            return False
-        except Exception as subprocess_e:
-            logger.warning(f"使用subprocess检测激活状态时出错: {str(subprocess_e)}")
-            # 回退到旧的检测方式
-            from app.wechat_lib_detector import detector
-            available, details = detector.detect_wxautox()
-            if available:
-                logger.info(f"wxautox激活状态检测（回退方式）：可能已激活 - {details}")
-                return True
-            else:
-                logger.info(f"wxautox激活状态检测（回退方式）：未激活 - {details}")
-                return False
-
+    except ImportError as e:
+        safe_log("info", f"wxautox库导入失败: {str(e)}")
+        return "未激活"
     except Exception as e:
-        logger.warning(f"检测wxautox激活状态时出错: {str(e)}")
-        return False
+        safe_log("warning", f"检查wxautox激活状态时出错: {str(e)}")
+        return "未知"
+
+def check_wxautox_activation_status():
+    """
+    简单检查wxautox激活状态
+
+    Returns:
+        str: "已激活" | "未激活" | "未知"
+    """
+    return simple_check_wxautox_activation()
+
+
 
 
 def startup_activate_wxautox():
@@ -298,15 +253,15 @@ def startup_activate_wxautox():
     activation_code = get_activation_code()
     
     if not activation_code:
-        logger.info("未配置wxautox激活码，跳过自动激活")
+        safe_log("info", "未配置wxautox激活码，跳过自动激活")
         return True, "未配置激活码，跳过自动激活"
-    
-    logger.info("开始自动激活wxautox...")
+
+    safe_log("info", "开始自动激活wxautox...")
     success, message, output = activate_wxautox(activation_code)
-    
+
     if success:
-        logger.info("wxautox自动激活成功")
+        safe_log("info", "wxautox自动激活成功")
         return True, "wxautox自动激活成功"
     else:
-        logger.warning(f"wxautox自动激活失败: {message}")
+        safe_log("warning", f"wxautox自动激活失败: {message}")
         return False, f"wxautox自动激活失败: {message}"

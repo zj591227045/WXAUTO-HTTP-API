@@ -94,6 +94,17 @@ def cleanup():
     """退出时清理资源"""
     logger.info("正在停止队列处理器...")
     stop_queue_processors()
+
+    # 关闭统一日志管理器
+    try:
+        from app.unified_logger import unified_logger
+        logger.info("正在关闭统一日志管理器...")
+        unified_logger.shutdown()
+        logger.info("统一日志管理器已关闭")
+    except Exception as e:
+        # 使用 print 而不是 logger，因为 logger 可能已经关闭
+        print(f"关闭统一日志管理器时出错: {str(e)}")
+
     logger.info("资源清理完成")
 
 # 注册退出处理函数

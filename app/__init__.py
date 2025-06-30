@@ -163,5 +163,111 @@ def create_app():
         from flask import render_template
         return render_template('api_docs_modular.html')
 
+    # 添加日志查看路由
+    @app.route('/logs')
+    def view_logs():
+        """日志查看页面"""
+        from flask import render_template
+        return render_template('logs.html')
+
+    # 添加日志API路由
+    @app.route('/api/logs/current')
+    def get_current_logs():
+        """获取当前日志内容"""
+        from flask import jsonify
+        import os
+        from datetime import datetime
+
+        try:
+            # 构建当前日期的日志文件路径
+            current_date = datetime.now().strftime('%Y%m%d')
+            log_file_path = os.path.join('data', 'api', 'logs', f'api_{current_date}.log')
+
+            if not os.path.exists(log_file_path):
+                return jsonify({
+                    'code': 404,
+                    'message': '日志文件不存在',
+                    'data': {'logs': [], 'file_path': log_file_path}
+                })
+
+            # 读取日志文件内容
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+
+            # 只返回最后1000行日志，避免内存问题
+            recent_lines = lines[-1000:] if len(lines) > 1000 else lines
+
+            return jsonify({
+                'code': 0,
+                'message': '获取日志成功',
+                'data': {
+                    'logs': [line.rstrip() for line in recent_lines],
+                    'total_lines': len(lines),
+                    'returned_lines': len(recent_lines),
+                    'file_path': log_file_path
+                }
+            })
+
+        except Exception as e:
+            return jsonify({
+                'code': 500,
+                'message': f'读取日志失败: {str(e)}',
+                'data': {'logs': [], 'error': str(e)}
+            }), 500
+
+    @app.route('/api/logs/tail')
+    def get_log_tail():
+        """获取日志文件的最新内容（类似tail命令）"""
+        from flask import jsonify, request
+        import os
+        from datetime import datetime
+
+        try:
+            # 获取参数
+            lines = request.args.get('lines', 100, type=int)
+            offset = request.args.get('offset', 0, type=int)
+
+            # 构建当前日期的日志文件路径
+            current_date = datetime.now().strftime('%Y%m%d')
+            log_file_path = os.path.join('data', 'api', 'logs', f'api_{current_date}.log')
+
+            if not os.path.exists(log_file_path):
+                return jsonify({
+                    'code': 404,
+                    'message': '日志文件不存在',
+                    'data': {'logs': [], 'file_path': log_file_path}
+                })
+
+            # 读取日志文件内容
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                all_lines = f.readlines()
+
+            # 计算要返回的行数范围
+            total_lines = len(all_lines)
+            start_index = max(0, total_lines - lines - offset)
+            end_index = total_lines - offset
+
+            selected_lines = all_lines[start_index:end_index]
+
+            return jsonify({
+                'code': 0,
+                'message': '获取日志成功',
+                'data': {
+                    'logs': [line.rstrip() for line in selected_lines],
+                    'total_lines': total_lines,
+                    'returned_lines': len(selected_lines),
+                    'start_index': start_index,
+                    'end_index': end_index,
+                    'file_path': log_file_path
+                }
+            })
+
+        except Exception as e:
+            return jsonify({
+                'code': 500,
+                'message': f'读取日志失败: {str(e)}',
+                'data': {'logs': [], 'error': str(e)}
+            }), 500
+
     logging.info("Flask应用创建完成")
     return app

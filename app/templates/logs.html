@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统日志查看 - WXAUTO HTTP API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .log-container {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            padding: 15px;
+            border-radius: 8px;
+            height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .log-line {
+            margin-bottom: 2px;
+            padding: 2px 0;
+        }
+        
+        .log-line:hover {
+            background-color: #2d2d30;
+        }
+        
+        /* 日志级别颜色 */
+        .log-info {
+            color: #4fc3f7;
+        }
+        
+        .log-warning {
+            color: #ffb74d;
+        }
+        
+        .log-error {
+            color: #f48fb1;
+        }
+        
+        .log-debug {
+            color: #81c784;
+        }
+        
+        /* 时间戳颜色 */
+        .log-timestamp {
+            color: #9e9e9e;
+        }
+        
+        /* 库名称颜色 */
+        .log-library {
+            color: #ce93d8;
+            font-weight: bold;
+        }
+        
+        .control-panel {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected {
+            background-color: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-disconnected {
+            background-color: #f44336;
+        }
+        
+        .status-loading {
+            background-color: #ff9800;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .log-stats {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .auto-scroll-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .scroll-to-bottom {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+            display: none;
+            z-index: 1000;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .scroll-to-bottom:hover {
+            background-color: #218838;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        
+        .btn-group .btn {
+            margin-right: 5px;
+        }
+        
+        .filter-input {
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-file-text"></i>
+                        系统日志查看
+                    </h1>
+                    <p class="mb-0 opacity-75">实时监控系统运行状态</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <a href="/api-docs" class="btn btn-light">
+                        <i class="bi bi-arrow-left"></i> 返回API文档
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="control-panel">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center">
+                        <span class="status-indicator status-loading" id="statusIndicator"></span>
+                        <span id="statusText">正在连接...</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="pauseBtn">
+                            <i class="bi bi-pause"></i> 暂停刷新
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm" id="resumeBtn" style="display: none;">
+                            <i class="bi bi-play"></i> 恢复刷新
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="clearBtn">
+                            <i class="bi bi-trash"></i> 清空显示
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm" id="refreshBtn">
+                            <i class="bi bi-arrow-clockwise"></i> 手动刷新
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm filter-input"
+                               id="filterInput" placeholder="过滤日志内容..." style="flex: 1;">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                                    id="levelFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                级别过滤
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="levelFilterBtn">
+                                <li>
+                                    <div class="form-check px-3 py-1">
+                                        <input class="form-check-input" type="checkbox" id="showError" checked>
+                                        <label class="form-check-label text-danger" for="showError">
+                                            ERROR
+                                        </label>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="form-check px-3 py-1">
+                                        <input class="form-check-input" type="checkbox" id="showWarning" checked>
+                                        <label class="form-check-label text-warning" for="showWarning">
+                                            WARNING
+                                        </label>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="form-check px-3 py-1">
+                                        <input class="form-check-input" type="checkbox" id="showInfo" checked>
+                                        <label class="form-check-label text-info" for="showInfo">
+                                            INFO
+                                        </label>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="form-check px-3 py-1">
+                                        <input class="form-check-input" type="checkbox" id="showDebug">
+                                        <label class="form-check-label text-success" for="showDebug">
+                                            DEBUG
+                                        </label>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item btn-sm" id="selectAllLevels">
+                                        <i class="bi bi-check-all"></i> 全选
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item btn-sm" id="clearAllLevels">
+                                        <i class="bi bi-x-circle"></i> 清空
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item btn-sm" id="resetDefaultLevels">
+                                        <i class="bi bi-arrow-clockwise"></i> 重置默认
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="log-stats" id="logStats">
+                总行数: 0 | 显示行数: 0 | 最后更新: --
+            </div>
+        </div>
+
+        <div class="log-container" id="logContainer">
+            <div class="text-center text-muted">
+                <i class="bi bi-hourglass-split"></i>
+                正在加载日志内容...
+            </div>
+        </div>
+    </div>
+
+    <!-- 自动滚动指示器 -->
+    <div class="auto-scroll-indicator" id="autoScrollIndicator">
+        <i class="bi bi-arrow-down"></i> 自动滚动已启用
+    </div>
+
+    <!-- 滚动到底部按钮 -->
+    <button class="scroll-to-bottom" id="scrollToBottomBtn" title="滚动到底部">
+        <i class="bi bi-arrow-down"></i>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class LogViewer {
+            constructor() {
+                this.logContainer = document.getElementById('logContainer');
+                this.statusIndicator = document.getElementById('statusIndicator');
+                this.statusText = document.getElementById('statusText');
+                this.logStats = document.getElementById('logStats');
+                this.filterInput = document.getElementById('filterInput');
+                this.autoScrollIndicator = document.getElementById('autoScrollIndicator');
+                this.scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
+                
+                this.isPaused = false;
+                this.autoScroll = true;
+                this.refreshInterval = null;
+                this.lastLogCount = 0;
+                this.filterText = '';
+                this.allLogs = [];
+
+                // 日志级别过滤设置 - 默认只显示ERROR、WARNING、INFO，不显示DEBUG
+                this.levelFilters = {
+                    ERROR: true,
+                    WARNING: true,
+                    INFO: true,
+                    DEBUG: false
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.startAutoRefresh();
+                this.loadInitialLogs();
+            }
+            
+            setupEventListeners() {
+                // 暂停/恢复按钮
+                document.getElementById('pauseBtn').addEventListener('click', () => this.pauseRefresh());
+                document.getElementById('resumeBtn').addEventListener('click', () => this.resumeRefresh());
+
+                // 清空按钮
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearLogs());
+
+                // 手动刷新按钮
+                document.getElementById('refreshBtn').addEventListener('click', () => this.refreshLogs());
+
+                // 过滤输入
+                this.filterInput.addEventListener('input', (e) => {
+                    this.filterText = e.target.value.toLowerCase();
+                    this.applyFilter();
+                });
+
+                // 滚动事件
+                this.logContainer.addEventListener('scroll', () => this.handleScroll());
+
+                // 滚动到底部按钮
+                this.scrollToBottomBtn.addEventListener('click', () => this.scrollToBottom());
+
+                // 日志级别过滤器事件
+                this.setupLevelFilterListeners();
+            }
+
+            setupLevelFilterListeners() {
+                // 级别复选框事件
+                ['showError', 'showWarning', 'showInfo', 'showDebug'].forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    const level = id.replace('show', '').toUpperCase();
+
+                    // 设置初始状态
+                    checkbox.checked = this.levelFilters[level];
+
+                    // 添加事件监听
+                    checkbox.addEventListener('change', (e) => {
+                        this.levelFilters[level] = e.target.checked;
+                        this.applyFilter();
+                        this.updateLevelFilterButton();
+                    });
+                });
+
+                // 全选按钮
+                document.getElementById('selectAllLevels').addEventListener('click', () => {
+                    Object.keys(this.levelFilters).forEach(level => {
+                        this.levelFilters[level] = true;
+                        document.getElementById(`show${level.charAt(0) + level.slice(1).toLowerCase()}`).checked = true;
+                    });
+                    this.applyFilter();
+                    this.updateLevelFilterButton();
+                });
+
+                // 清空按钮
+                document.getElementById('clearAllLevels').addEventListener('click', () => {
+                    Object.keys(this.levelFilters).forEach(level => {
+                        this.levelFilters[level] = false;
+                        document.getElementById(`show${level.charAt(0) + level.slice(1).toLowerCase()}`).checked = false;
+                    });
+                    this.applyFilter();
+                    this.updateLevelFilterButton();
+                });
+
+                // 重置默认按钮
+                document.getElementById('resetDefaultLevels').addEventListener('click', () => {
+                    this.levelFilters = {
+                        ERROR: true,
+                        WARNING: true,
+                        INFO: true,
+                        DEBUG: false
+                    };
+                    Object.keys(this.levelFilters).forEach(level => {
+                        const checkbox = document.getElementById(`show${level.charAt(0) + level.slice(1).toLowerCase()}`);
+                        checkbox.checked = this.levelFilters[level];
+                    });
+                    this.applyFilter();
+                    this.updateLevelFilterButton();
+                });
+
+                // 初始化按钮状态
+                this.updateLevelFilterButton();
+            }
+
+            updateLevelFilterButton() {
+                const activeCount = Object.values(this.levelFilters).filter(Boolean).length;
+                const totalCount = Object.keys(this.levelFilters).length;
+                const button = document.getElementById('levelFilterBtn');
+
+                if (activeCount === 0) {
+                    button.textContent = '级别过滤 (无)';
+                    button.className = 'btn btn-outline-danger btn-sm dropdown-toggle';
+                } else if (activeCount === totalCount) {
+                    button.textContent = '级别过滤 (全部)';
+                    button.className = 'btn btn-outline-success btn-sm dropdown-toggle';
+                } else {
+                    button.textContent = `级别过滤 (${activeCount}/${totalCount})`;
+                    button.className = 'btn btn-outline-primary btn-sm dropdown-toggle';
+                }
+            }
+            
+            async loadInitialLogs() {
+                try {
+                    this.setStatus('loading', '正在加载日志...');
+                    const response = await fetch('/api/logs/current');
+                    const data = await response.json();
+                    
+                    if (data.code === 0) {
+                        this.allLogs = data.data.logs;
+                        this.displayLogs();
+                        this.updateStats(data.data.total_lines, this.allLogs.length);
+                        this.setStatus('connected', '已连接 - 自动刷新中');
+                        this.scrollToBottom();
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } catch (error) {
+                    this.setStatus('disconnected', `连接失败: ${error.message}`);
+                    this.logContainer.innerHTML = `<div class="text-center text-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        加载日志失败: ${error.message}
+                    </div>`;
+                }
+            }
+            
+            async refreshLogs() {
+                if (this.isPaused) return;
+                
+                try {
+                    const response = await fetch('/api/logs/tail?lines=100');
+                    const data = await response.json();
+                    
+                    if (data.code === 0) {
+                        const newLogs = data.data.logs;
+                        
+                        // 检查是否有新日志
+                        if (newLogs.length > 0) {
+                            // 简单的去重逻辑：只添加新的日志行
+                            const lastDisplayedLog = this.allLogs[this.allLogs.length - 1];
+                            const newLogIndex = newLogs.findIndex(log => log === lastDisplayedLog);
+                            
+                            if (newLogIndex >= 0 && newLogIndex < newLogs.length - 1) {
+                                // 有新日志
+                                const actualNewLogs = newLogs.slice(newLogIndex + 1);
+                                this.allLogs.push(...actualNewLogs);
+                            } else if (newLogIndex === -1) {
+                                // 完全新的日志
+                                this.allLogs.push(...newLogs);
+                            }
+                            
+                            // 限制内存使用，只保留最新的2000行
+                            if (this.allLogs.length > 2000) {
+                                this.allLogs = this.allLogs.slice(-2000);
+                            }
+                            
+                            this.displayLogs();
+                            this.updateStats(data.data.total_lines, this.allLogs.length);
+                            
+                            if (this.autoScroll) {
+                                this.scrollToBottom();
+                            }
+                        }
+                        
+                        this.setStatus('connected', '已连接 - 自动刷新中');
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } catch (error) {
+                    this.setStatus('disconnected', `刷新失败: ${error.message}`);
+                }
+            }
+            
+            displayLogs() {
+                let filteredLogs = this.allLogs;
+
+                // 应用级别过滤
+                filteredLogs = filteredLogs.filter(log => {
+                    const level = this.extractLogLevel(log);
+                    return this.levelFilters[level] !== false;
+                });
+
+                // 应用文本过滤
+                if (this.filterText) {
+                    filteredLogs = filteredLogs.filter(log =>
+                        log.toLowerCase().includes(this.filterText)
+                    );
+                }
+
+                const html = filteredLogs.map(log => this.formatLogLine(log)).join('\n');
+                this.logContainer.innerHTML = html || '<div class="text-center text-muted">没有匹配的日志</div>';
+            }
+
+            extractLogLevel(log) {
+                // 从日志行中提取级别信息
+                const logPattern = /^\[([^\]]+)\]\s*\[([^\]]+)\]\s*\[([^\]]+)\]\s*(.*)$/;
+                const match = log.match(logPattern);
+
+                if (match) {
+                    const level = match[3].toUpperCase();
+                    // 标准化级别名称
+                    if (level.includes('ERROR')) return 'ERROR';
+                    if (level.includes('WARN')) return 'WARNING';
+                    if (level.includes('DEBUG')) return 'DEBUG';
+                    if (level.includes('INFO')) return 'INFO';
+                }
+
+                // 默认为INFO级别
+                return 'INFO';
+            }
+            
+            formatLogLine(log) {
+                // 解析日志行格式: [时间戳] [库名称] [级别] 内容
+                const logPattern = /^\[([^\]]+)\]\s*\[([^\]]+)\]\s*\[([^\]]+)\]\s*(.*)$/;
+                const match = log.match(logPattern);
+                
+                if (match) {
+                    const [, timestamp, library, level, content] = match;
+                    const levelClass = this.getLevelClass(level);
+                    
+                    return `<div class="log-line">
+                        <span class="log-timestamp">[${timestamp}]</span>
+                        <span class="log-library">[${library}]</span>
+                        <span class="${levelClass}">[${level}]</span>
+                        <span>${this.escapeHtml(content)}</span>
+                    </div>`;
+                } else {
+                    return `<div class="log-line">${this.escapeHtml(log)}</div>`;
+                }
+            }
+            
+            getLevelClass(level) {
+                const levelUpper = level.toUpperCase();
+                if (levelUpper.includes('ERROR')) return 'log-error';
+                if (levelUpper.includes('WARN')) return 'log-warning';
+                if (levelUpper.includes('DEBUG')) return 'log-debug';
+                return 'log-info';
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            applyFilter() {
+                this.displayLogs();
+            }
+            
+            setStatus(type, message) {
+                this.statusIndicator.className = `status-indicator status-${type}`;
+                this.statusText.textContent = message;
+            }
+            
+            updateStats(totalLines, cachedLines) {
+                const now = new Date().toLocaleTimeString();
+
+                // 计算过滤后的行数
+                let filteredLines = this.allLogs;
+
+                // 应用级别过滤
+                filteredLines = filteredLines.filter(log => {
+                    const level = this.extractLogLevel(log);
+                    return this.levelFilters[level] !== false;
+                });
+
+                // 应用文本过滤
+                if (this.filterText) {
+                    filteredLines = filteredLines.filter(log =>
+                        log.toLowerCase().includes(this.filterText)
+                    );
+                }
+
+                const displayedLines = filteredLines.length;
+
+                // 显示统计信息
+                let statsText = `总行数: ${totalLines} | 缓存行数: ${cachedLines} | 显示行数: ${displayedLines}`;
+
+                // 添加过滤状态信息
+                const activeFilters = Object.entries(this.levelFilters)
+                    .filter(([level, enabled]) => enabled)
+                    .map(([level]) => level);
+
+                if (activeFilters.length < Object.keys(this.levelFilters).length) {
+                    statsText += ` | 级别过滤: ${activeFilters.join(', ')}`;
+                }
+
+                if (this.filterText) {
+                    statsText += ` | 文本过滤: "${this.filterText}"`;
+                }
+
+                statsText += ` | 最后更新: ${now}`;
+
+                this.logStats.textContent = statsText;
+            }
+            
+            startAutoRefresh() {
+                this.refreshInterval = setInterval(() => this.refreshLogs(), 2000); // 每2秒刷新
+            }
+            
+            stopAutoRefresh() {
+                if (this.refreshInterval) {
+                    clearInterval(this.refreshInterval);
+                    this.refreshInterval = null;
+                }
+            }
+            
+            pauseRefresh() {
+                this.isPaused = true;
+                this.stopAutoRefresh();
+                this.setStatus('disconnected', '已暂停刷新');
+                document.getElementById('pauseBtn').style.display = 'none';
+                document.getElementById('resumeBtn').style.display = 'inline-block';
+            }
+            
+            resumeRefresh() {
+                this.isPaused = false;
+                this.startAutoRefresh();
+                this.setStatus('connected', '已连接 - 自动刷新中');
+                document.getElementById('pauseBtn').style.display = 'inline-block';
+                document.getElementById('resumeBtn').style.display = 'none';
+            }
+            
+            clearLogs() {
+                this.allLogs = [];
+                this.logContainer.innerHTML = '<div class="text-center text-muted">日志已清空</div>';
+                this.updateStats(0, 0);
+            }
+            
+            handleScroll() {
+                const container = this.logContainer;
+                const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 10;
+                
+                this.autoScroll = isAtBottom;
+                
+                // 显示/隐藏自动滚动指示器
+                if (this.autoScroll) {
+                    this.autoScrollIndicator.style.display = 'block';
+                    this.scrollToBottomBtn.style.display = 'none';
+                } else {
+                    this.autoScrollIndicator.style.display = 'none';
+                    this.scrollToBottomBtn.style.display = 'block';
+                }
+            }
+            
+            scrollToBottom() {
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+                this.autoScroll = true;
+                this.handleScroll();
+            }
+        }
+        
+        // 初始化日志查看器
+        document.addEventListener('DOMContentLoaded', () => {
+            new LogViewer();
+        });
+    </script>
+</body>
+</html>

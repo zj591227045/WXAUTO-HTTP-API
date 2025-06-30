@@ -3,16 +3,12 @@
 实现标准格式：[时间戳] [库名称] [日志级别] 日志内容 (重复 X 次，最后: 时间戳)
 """
 
-import logging
+import sys
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Callable
-from collections import defaultdict
-import queue
-import sys
-import os
 
 from app.config import Config
 
@@ -210,14 +206,31 @@ class UnifiedLogger:
     def _output_entry(self, entry: LogEntry):
         """输出日志条目"""
         formatted_log = self.formatter.format_entry(entry)
-        
+
         # 写入文件
         self.file_handler.write(formatted_log)
-        
-        # 控制台输出
+
+        # 控制台输出 - 添加安全检查
         if self.console_enabled:
-            print(formatted_log)
-        
+            try:
+                # 检查 stdout 是否可用且未关闭
+                if hasattr(sys.stdout, 'closed') and sys.stdout.closed:
+                    # stdout 已关闭，禁用控制台输出
+                    self.console_enabled = False
+                elif hasattr(sys.stdout, 'write'):
+                    # 尝试写入，如果失败则禁用控制台输出
+                    print(formatted_log)
+                else:
+                    # stdout 不可用，禁用控制台输出
+                    self.console_enabled = False
+            except (ValueError, OSError, AttributeError):
+                # I/O operation on closed file 或其他 I/O 错误
+                # 禁用控制台输出以避免后续错误
+                self.console_enabled = False
+            except Exception:
+                # 其他未知错误，也禁用控制台输出
+                self.console_enabled = False
+
         # UI处理器
         with self._lock:
             for handler in self.ui_handlers:

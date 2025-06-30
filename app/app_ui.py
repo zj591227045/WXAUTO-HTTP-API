@@ -9,16 +9,10 @@ import time
 import threading
 import subprocess
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox, filedialog
-import importlib
-import json
-import queue
+from tkinter import ttk, messagebox
 import signal
 import psutil
-import logging
 import requests
-from datetime import datetime
-from pathlib import Path
 
 # 导入配置管理模块
 try:
@@ -39,7 +33,6 @@ if current_dir not in sys.path:
 
 # 导入项目模块
 try:
-    from app.config import Config
     from app.unified_logger import unified_logger, logger
 except ImportError:
     # print("无法导入项目模块，请确保在正确的目录中运行")  # 注释掉，避免stdout问题
@@ -160,21 +153,18 @@ class WxAutoHttpUI:
         # 创建中间状态区域
         self.create_status_panel()
 
-        # 创建日志区域
-        self.create_log_panel()
-
         # 初始化状态
         self.api_running = False
         self.current_lib = "wxauto"  # 默认使用wxauto
         self.current_port = 5000  # 默认端口号
+        self._ui_closing = False  # 添加关闭标志
+        self._wxautox_activation_checked = False  # 激活状态是否已检查
 
-        # 初始化UI日志队列
-        import queue
-        self._ui_log_queue = queue.Queue()
+
 
         # 启动状态更新定时器
         self.update_status()
-        self.root.after(1000, self.check_status)
+        self._status_timer_id = self.root.after(1000, self.check_status)
 
         # 设置关闭窗口事件
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -245,6 +235,8 @@ class WxAutoHttpUI:
         self.install_wxauto_button.pack(side=tk.LEFT, padx=5)
         self.api_doc_button = ttk.Button(wxauto_frame, text="API说明", command=self.show_api_documentation)
         self.api_doc_button.pack(side=tk.LEFT, padx=5)
+        self.view_logs_button = ttk.Button(wxauto_frame, text="查看日志", command=self.show_logs_page)
+        self.view_logs_button.pack(side=tk.LEFT, padx=5)
 
         # wxautox插件状态
         wxautox_frame = ttk.Frame(row2)
@@ -269,7 +261,7 @@ class WxAutoHttpUI:
     def create_status_panel(self):
         """创建状态面板"""
         status_frame = ttk.LabelFrame(self.main_frame, text="服务状态", padding="10")
-        status_frame.pack(fill=tk.X, pady=5)
+        status_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
         # 服务状态信息
         info_frame = ttk.Frame(status_frame)
@@ -330,278 +322,20 @@ class WxAutoHttpUI:
         self.wechat_window_name = ttk.Label(row3, text="", foreground="orange", font=("TkDefaultFont", 10, "bold"))
         self.wechat_window_name.grid(row=0, column=7, padx=5, sticky=tk.W)
 
-    def create_log_panel(self):
-        """创建日志面板"""
-        log_frame = ttk.LabelFrame(self.main_frame, text="API日志", padding="10")
-        log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
-        # 日志显示区域 - 使用支持中文的字体
-        # 尝试使用系统中常见的中文字体
-        try:
-            # 尝试获取系统中可用的字体
-            available_fonts = []
-            if hasattr(tk.font, 'families'):
-                available_fonts = tk.font.families()
 
-            # 优先选择的中文字体列表
-            chinese_fonts = ['Microsoft YaHei', '微软雅黑', 'SimHei', '黑体', 'SimSun', '宋体', 'NSimSun', '新宋体',
-                             'FangSong', '仿宋', 'KaiTi', '楷体', 'Arial Unicode MS']
 
-            # 选择第一个可用的中文字体
-            selected_font = None
-            for font in chinese_fonts:
-                if font in available_fonts:
-                    selected_font = font
-                    break
 
-            # 如果找到了合适的字体，使用它
-            if selected_font:
-                self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=10, font=(selected_font, 10))
-                self.add_log(f"使用中文字体: {selected_font}")
-            else:
-                # 如果没有找到合适的字体，使用默认字体
-                self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=10)
-                self.add_log("未找到合适的中文字体，使用默认字体")
-        except Exception as e:
-            # 如果出错，使用默认字体
-            self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, height=10)
-            # print(f"设置字体时出错: {str(e)}")  # 注释掉，避免stdout问题
 
-        self.log_text.pack(fill=tk.BOTH, expand=True)
-        self.log_text.config(state=tk.DISABLED)
 
-        # 添加日志滚动事件处理
-        self.log_text.bind("<MouseWheel>", self.on_log_scroll)
 
-        # 底部按钮和状态栏
-        button_frame = ttk.Frame(log_frame)
-        button_frame.pack(fill=tk.X, pady=5)
 
-        # 左侧状态指示
-        status_frame = ttk.Frame(button_frame)
-        status_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        # 新日志指示器
-        self.new_log_indicator = ttk.Label(status_frame, text="", foreground="red")
-        self.new_log_indicator.pack(side=tk.LEFT, padx=5)
-
-        # 跳转到最新日志按钮
-        self.goto_latest_button = ttk.Button(status_frame, text="查看最新日志", command=self.scroll_to_latest)
-        self.goto_latest_button.pack(side=tk.LEFT, padx=5)
-
-        # 自动滚动选项
-        self.auto_scroll_var = tk.BooleanVar(value=True)
-        self.auto_scroll_check = ttk.Checkbutton(
-            status_frame,
-            text="自动滚动",
-            variable=self.auto_scroll_var,
-            command=self.toggle_auto_scroll
-        )
-        self.auto_scroll_check.pack(side=tk.LEFT, padx=5)
-
-        # 过滤器按钮
-        self.filter_button = ttk.Button(status_frame, text="日志过滤", command=self.show_filter_dialog)
-        self.filter_button.pack(side=tk.LEFT, padx=5)
-
-        # 过滤器设置
-        self.filter_settings = {
-            'hide_status_check': tk.BooleanVar(value=True),  # 默认隐藏状态检查日志
-            'hide_debug': tk.BooleanVar(value=True),  # 默认隐藏DEBUG级别日志
-            'custom_filter': tk.StringVar(value="")  # 自定义过滤关键词
-        }
-
-        # 加载过滤器设置
-        self.load_filter_settings()
-
-        # 右侧操作按钮
-        self.clear_log_button = ttk.Button(button_frame, text="清空日志", command=self.clear_log)
-        self.clear_log_button.pack(side=tk.RIGHT, padx=5)
-
-        self.save_log_button = ttk.Button(button_frame, text="保存日志", command=self.save_log)
-        self.save_log_button.pack(side=tk.RIGHT, padx=5)
-
-    def on_log_scroll(self, event=None):
-        """处理日志滚动事件"""
-        # 清除新日志指示
-        self.new_log_indicator.config(text="")
-
-        # 检查是否滚动到底部
-        current_position = self.log_text.yview()
-        if current_position[1] > 0.99:
-            # 如果用户手动滚动到底部，启用自动滚动
-            self.auto_scroll_var.set(True)
-        else:
-            # 如果用户向上滚动，禁用自动滚动
-            self.auto_scroll_var.set(False)
-
-    def toggle_auto_scroll(self):
-        """切换自动滚动状态"""
-        if self.auto_scroll_var.get():
-            # 如果启用了自动滚动，立即滚动到底部
-            self.scroll_to_latest()
-
-    def scroll_to_latest(self):
-        """滚动到最新日志"""
-        self.log_text.see(tk.END)
-        self.new_log_indicator.config(text="")
-        self.auto_scroll_var.set(True)
-
-    def load_filter_settings(self):
-        """从配置文件加载过滤器设置"""
-        try:
-            # 加载配置，确保使用默认值
-            config = config_manager.load_log_filter_config()
-
-            # 更新UI变量
-            self.filter_settings['hide_status_check'].set(config.get('hide_status_check', True))
-            self.filter_settings['hide_debug'].set(config.get('hide_debug', True))
-            self.filter_settings['custom_filter'].set(config.get('custom_filter', ""))
-
-            self.add_log("日志过滤器设置已加载")
-
-            # 刷新日志显示，应用过滤器
-            self.refresh_log_display()
-        except Exception as e:
-            self.add_log(f"加载日志过滤器设置失败: {str(e)}")
-
-    def save_filter_settings(self):
-        """保存过滤器设置到配置文件"""
-        try:
-            # 从UI变量获取当前设置
-            config = {
-                'hide_status_check': self.filter_settings['hide_status_check'].get(),
-                'hide_debug': self.filter_settings['hide_debug'].get(),
-                'custom_filter': self.filter_settings['custom_filter'].get()
-            }
-
-            # 保存配置
-            config_manager.save_log_filter_config(config)
-
-            self.add_log("日志过滤器设置已保存")
-        except Exception as e:
-            self.add_log(f"保存日志过滤器设置失败: {str(e)}")
-
-    def show_filter_dialog(self):
-        """显示日志过滤设置对话框"""
-        filter_dialog = tk.Toplevel(self.root)
-        filter_dialog.title("日志过滤设置")
-        filter_dialog.geometry("400x300")
-        filter_dialog.resizable(False, False)
-        filter_dialog.transient(self.root)  # 设置为主窗口的子窗口
-        filter_dialog.grab_set()  # 模态对话框
-        # 居中显示
-        self.center_window(filter_dialog)
-        # 创建设置框架
-        settings_frame = ttk.Frame(filter_dialog, padding=10)
-        settings_frame.pack(fill=tk.BOTH, expand=True)
-
-        # 添加过滤选项
-        ttk.Label(settings_frame, text="日志过滤设置", font=("TkDefaultFont", 12, "bold")).pack(pady=10)
-
-        # 隐藏状态检查日志
-        ttk.Checkbutton(
-            settings_frame,
-            text="隐藏微信状态检查日志 (GET /api/wechat/status)",
-            variable=self.filter_settings['hide_status_check']
-        ).pack(anchor=tk.W, pady=5)
-
-        # 隐藏DEBUG级别日志
-        ttk.Checkbutton(
-            settings_frame,
-            text="隐藏DEBUG级别日志",
-            variable=self.filter_settings['hide_debug']
-        ).pack(anchor=tk.W, pady=5)
-
-        # 自定义过滤
-        custom_frame = ttk.Frame(settings_frame)
-        custom_frame.pack(fill=tk.X, pady=5)
-
-        ttk.Label(custom_frame, text="自定义过滤关键词:").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(
-            custom_frame,
-            textvariable=self.filter_settings['custom_filter'],
-            width=30
-        ).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-
-        ttk.Label(settings_frame, text="多个关键词用逗号分隔，包含任一关键词的日志将被隐藏",
-                  font=("TkDefaultFont", 8)).pack(anchor=tk.W, pady=2)
-
-        # 说明文本
-        ttk.Separator(settings_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
-        ttk.Label(settings_frame, text="注意: 过滤器设置将自动保存，并在下次启动时自动加载",
-                  wraplength=380).pack(pady=5)
-
-        # 按钮区域
-        button_frame = ttk.Frame(settings_frame)
-        button_frame.pack(fill=tk.X, pady=10)
-
-        # 应用按钮
-        ttk.Button(
-            button_frame,
-            text="应用并保存",
-            command=lambda: [self.save_filter_settings(), filter_dialog.destroy(), self.refresh_log_display()]
-        ).pack(side=tk.RIGHT, padx=5)
-
-        # 取消按钮
-        ttk.Button(
-            button_frame,
-            text="取消",
-            command=filter_dialog.destroy
-        ).pack(side=tk.RIGHT, padx=5)
-
-    def refresh_log_display(self):
-        """根据过滤设置刷新日志显示"""
-        # 获取当前日志内容
-        self.log_text.config(state=tk.NORMAL)
-        current_log = self.log_text.get(1.0, tk.END)
-        self.log_text.delete(1.0, tk.END)
-
-        # 按行处理并应用过滤
-        for line in current_log.split('\n'):
-            if line and not self.should_filter_log(line):
-                self.log_text.insert(tk.END, line + '\n')
-
-        self.log_text.config(state=tk.DISABLED)
-
-    def should_filter_log(self, log_line):
-        """判断是否应该过滤掉某行日志"""
-        # 检查是否是微信状态检查日志
-        if self.filter_settings['hide_status_check'].get():
-            if "GET /api/wechat/status" in log_line:
-                return True
-
-        # 检查是否是DEBUG级别日志
-        if self.filter_settings['hide_debug'].get():
-            if " - DEBUG - " in log_line:
-                return True
-
-        # 过滤掉HTTP服务器处理请求的堆栈日志
-        if any(pattern in log_line for pattern in [
-            "BaseHTTPRequestHandler.handle",
-            "handle_one_request",
-            "self.run_wsgi",
-            "execute(self.server.app)",
-            "File \"C:\\Users\\jackson\\AppData\\Local\\miniconda3\\envs\\wxauto-api"
-        ]):
-            return True
-
-        # 检查自定义过滤关键词
-        custom_filters = self.filter_settings['custom_filter'].get().strip()
-        if custom_filters:
-            keywords = [k.strip() for k in custom_filters.split(',') if k.strip()]
-            for keyword in keywords:
-                if keyword in log_line:
-                    return True
-
-        return False
 
     def setup_logging(self):
         """设置日志处理"""
         # 确保日志目录存在
         config_manager.ensure_dirs()
-
-        # 添加UI处理器到统一日志管理器
-        unified_logger.add_ui_handler(self._handle_log_message)
 
         # 获取当前库名称
         try:
@@ -611,115 +345,10 @@ class WxAutoHttpUI:
         except Exception as e:
             logger.set_lib_name('wxauto')  # 默认使用wxauto
 
-        # 启动日志更新线程
-        self.root.after(100, self.update_log)
-
         # 记录日志系统初始化完成
         self.add_log("统一日志系统已初始化")
 
-    def _handle_log_message(self, formatted_log):
-        """处理来自统一日志管理器的日志消息"""
-        try:
-            # 将格式化的日志消息添加到UI显示队列
-            # 注意：这里不需要再次格式化，因为unified_logger已经格式化了
-            self._ui_log_queue.put(formatted_log)
-        except Exception:
-            pass  # 忽略UI处理错误
 
-    # 移除旧的test_log_handler方法，使用新的统一日志管理器
-
-    def update_log(self):
-        """更新日志显示"""
-        if not self._ui_log_queue.empty():
-            # 获取当前滚动位置
-            current_position = self.log_text.yview()
-            # 判断用户是否已经滚动到底部
-            at_bottom = current_position[1] > 0.99 or self.auto_scroll_var.get()
-
-            self.log_text.config(state=tk.NORMAL)
-
-            has_new_visible_logs = False
-            while not self._ui_log_queue.empty():
-                try:
-                    # 获取已格式化的日志消息
-                    formatted_log = self._ui_log_queue.get()
-
-                    # 更新API调用计数
-                    global API_COUNTER
-                    API_COUNTER.count_request(formatted_log)
-
-                    # 更新UI显示
-                    self.request_count.config(text=str(API_COUNTER.success_count))
-                    self.error_count.config(text=str(API_COUNTER.error_count))
-
-                    # 应用过滤器
-                    if not self.should_filter_log(formatted_log):
-                        self.log_text.insert(tk.END, formatted_log + "\n")
-                        has_new_visible_logs = True
-                except Exception as e:
-                    # 捕获处理消息时的任何异常
-                    try:
-                        self.log_text.insert(tk.END, f"[错误] 处理日志消息时出错: {str(e)}\n")
-                        has_new_visible_logs = True
-                    except:
-                        pass
-
-            # 限制日志显示数量为最新的200条
-            log_content = self.log_text.get(1.0, tk.END)
-            log_lines = log_content.split('\n')
-            if len(log_lines) > 201:  # 加1是因为split后最后一个元素是空字符串
-                # 计算需要删除的行数
-                lines_to_delete = len(log_lines) - 201
-                # 删除多余的行
-                self.log_text.delete(1.0, f"{lines_to_delete + 1}.0")
-
-            # 只有当用户当前在查看最新内容或启用了自动滚动时，才自动滚动到底部
-            if at_bottom and has_new_visible_logs:
-                self.log_text.see(tk.END)
-            elif has_new_visible_logs:
-                # 显示新日志指示
-                self.new_log_indicator.config(text="↓ 有新日志", foreground="red")
-
-            self.log_text.config(state=tk.DISABLED)
-
-        self.root.after(100, self.update_log)
-
-    def clear_log(self):
-        """清空日志"""
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.delete(1.0, tk.END)
-        self.log_text.config(state=tk.DISABLED)
-
-    def save_log(self):
-        """保存日志到文件"""
-        # 确保日志目录存在
-        config_manager.ensure_dirs()
-
-        # 生成默认文件名
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        default_filename = f"api_log_{timestamp}.txt"
-        default_path = config_manager.LOGS_DIR / default_filename
-
-        # 打开文件保存对话框
-        file_path = filedialog.asksaveasfilename(
-            initialdir=config_manager.LOGS_DIR,
-            initialfile=default_filename,
-            defaultextension=".txt",
-            filetypes=[("文本文件", "*.txt"), ("所有文件", "*.*")]
-        )
-
-        if not file_path:
-            return  # 用户取消了保存
-
-        try:
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(self.log_text.get(1.0, tk.END))
-
-            self.add_log(f"日志已保存到 {file_path}")
-            messagebox.showinfo("保存成功", f"日志已保存到:\n{file_path}")
-        except Exception as e:
-            self.add_log(f"保存日志失败: {str(e)}")
-            messagebox.showerror("保存失败", f"保存日志失败: {str(e)}")
 
     def check_wxauto_status(self):
         """检查wxauto库的安装状态"""
@@ -766,8 +395,9 @@ class WxAutoHttpUI:
                     spec = importlib.util.find_spec('wxautox')
                     if spec is not None:
                         self.wxautox_status.config(text="已打包", style="Green.TLabel")
-                        # 在打包环境中也要检测激活状态
-                        self._update_wxautox_activation_status()
+                        self.add_log("wxautox库在打包环境中可用，准备检测激活状态")
+                        # 在打包环境中，延迟检测激活状态
+                        self.root.after(1000, self._check_wxautox_activation_once)
                         return True
                     else:
                         self.wxautox_status.config(text="未打包", style="Red.TLabel")
@@ -776,8 +406,9 @@ class WxAutoHttpUI:
                         return False
                 except Exception:
                     self.wxautox_status.config(text="已打包", style="Green.TLabel")
-                    # 在打包环境中也要检测激活状态
-                    self._update_wxautox_activation_status()
+                    self.add_log("wxautox库在打包环境中假设可用，准备检测激活状态")
+                    # 在打包环境中，延迟检测激活状态
+                    self.root.after(1000, self._check_wxautox_activation_once)
                     return True  # 假设可用，避免阻止启动
             else:
                 # 在开发环境中，使用subprocess来检查wxautox，避免影响主进程
@@ -793,9 +424,9 @@ class WxAutoHttpUI:
 
                 if result.returncode == 0 and "wxautox_available" in result.stdout:
                     self.wxautox_status.config(text="可用", style="Green.TLabel")
-                    # 使用正确的方式更新激活状态显示
-                    if hasattr(self, 'wxautox_activation_status'):
-                        self._update_wxautox_activation_status()
+                    self.add_log("wxautox库检测为可用，准备检测激活状态")
+                    # 库可用后，延迟一点时间再检测激活状态，确保库完全加载
+                    self.root.after(1000, self._check_wxautox_activation_once)
                     return True
                 else:
                     self.wxautox_status.config(text="不可用", style="Red.TLabel")
@@ -823,26 +454,99 @@ class WxAutoHttpUI:
                 self.add_log(f"检查wxautox状态时出错: {str(e)}")
             return False
 
-    def _update_wxautox_activation_status(self):
-        """更新wxautox激活状态显示"""
+    def _check_wxautox_activation_once(self):
+        """简单检查wxautox激活状态"""
         if not hasattr(self, 'wxautox_activation_status'):
             return
 
+        # 检查是否正在关闭
+        if getattr(self, '_ui_closing', False):
+            return
+
+        # 如果已经检查过，不重复检查
+        if getattr(self, '_wxautox_activation_checked', False):
+            return
+
         try:
+            # 导入简单的激活状态检测模块
+            from app.wxautox_activation import check_wxautox_activation_status
+
+            # 简单检测激活状态
+            self.add_log("开始简单检测wxautox激活状态...")
+            activation_status = check_wxautox_activation_status()
+            self._wxautox_activation_checked = True  # 标记已检查
+
+            # 根据检测结果更新UI
+            if activation_status == "已激活":
+                self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
+                self.add_log("wxautox激活状态检测完成：已激活")
+            elif activation_status == "未激活":
+                self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
+                self.add_log("wxautox激活状态检测完成：未激活")
+            else:  # "未知"
+                self.wxautox_activation_status.config(text="未知", style="Orange.TLabel")
+                self.add_log("wxautox激活状态检测完成：未知")
+
+        except Exception as e:
+            # 使用安全的日志记录，避免在UI关闭时出错
+            try:
+                self.add_log(f"检测wxautox激活状态时出错: {str(e)}")
+            except:
+                pass  # 如果日志记录也失败，静默忽略
+
+            try:
+                self.wxautox_activation_status.config(text="检测失败", style="Red.TLabel")
+            except:
+                pass  # 如果UI更新失败，静默忽略
+
+    def _force_check_wxautox_activation(self):
+        """强制重新检查wxautox激活状态（用于激活成功后）"""
+        if not hasattr(self, 'wxautox_activation_status'):
+            return
+
+        # 检查是否正在关闭
+        if getattr(self, '_ui_closing', False):
+            return
+
+        try:
+            # 重置检查标志，强制重新检查
+            self._wxautox_activation_checked = False
+
             # 导入激活状态检测模块
             from app.wxautox_activation import check_wxautox_activation_status
 
-            # 检测激活状态
-            is_activated = check_wxautox_activation_status()
+            # 强制检查激活状态
+            self.add_log("强制重新检测wxautox激活状态...")
+            activation_status = check_wxautox_activation_status()
+            self._wxautox_activation_checked = True
 
-            if is_activated:
+            # 根据检测结果更新UI
+            if activation_status == "已激活":
                 self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
-            else:
+                self.add_log("wxautox激活状态更新：已激活")
+            elif activation_status == "未激活":
                 self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
+                self.add_log("wxautox激活状态更新：未激活")
+            else:  # "未知"
+                self.wxautox_activation_status.config(text="未知", style="Orange.TLabel")
+                self.add_log("wxautox激活状态更新：未知")
 
         except Exception as e:
-            self.add_log(f"检测wxautox激活状态时出错: {str(e)}")
-            self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
+            try:
+                self.add_log(f"强制检测wxautox激活状态时出错: {str(e)}")
+            except:
+                pass
+
+            try:
+                self.wxautox_activation_status.config(text="检测失败", style="Red.TLabel")
+            except:
+                pass
+
+    def _update_wxautox_activation_status(self):
+        """更新wxautox激活状态显示（保留兼容性）"""
+        # 如果还没有检查过，则进行一次检查
+        if not getattr(self, '_wxautox_activation_checked', False):
+            self._check_wxautox_activation_once()
 
     def check_wxauto_installation(self):
         """检查wxauto安装状态并提供安装选项"""
@@ -1003,7 +707,8 @@ class WxAutoHttpUI:
                         self.root.after(0, lambda: self.add_log(f"wxautox激活成功: {message}"))
                         self.root.after(0, lambda: messagebox.showinfo("激活成功", "wxautox激活成功！"))
                         self.root.after(0, lambda: activation_dialog.destroy())
-                        self.root.after(0, lambda: self.check_wxautox_status())
+                        # 激活成功后，重新检查状态（强制检查）
+                        self.root.after(0, lambda: self._force_check_wxautox_activation())
                     else:
                         self.root.after(0, lambda: self.add_log(f"wxautox激活失败: {message}"))
                         self.root.after(0, lambda: messagebox.showerror("激活失败", f"wxautox激活失败:\n{message}"))
@@ -1051,6 +756,27 @@ class WxAutoHttpUI:
             # 如果打开失败，显示错误信息并提供手动访问的URL
             messagebox.showinfo("API文档",
                 f"无法自动打开浏览器，请手动访问:\nhttp://localhost:5000/api-docs\n\n错误信息: {str(e)}")
+
+    def show_logs_page(self):
+        """打开日志查看页面"""
+        import webbrowser
+        try:
+            # 获取当前配置的端口号
+            config = config_manager.load_app_config()
+            port = config.get('port', 5000)
+
+            # 构建日志查看URL
+            logs_url = f"http://localhost:{port}/logs"
+
+            # 在默认浏览器中打开日志页面
+            webbrowser.open(logs_url)
+            self.add_log(f"已在浏览器中打开日志查看页面: {logs_url}")
+
+        except Exception as e:
+            self.add_log(f"打开日志页面失败: {str(e)}")
+            # 如果打开失败，显示错误信息并提供手动访问的URL
+            messagebox.showinfo("日志查看",
+                f"无法自动打开浏览器，请手动访问:\nhttp://localhost:5000/logs\n\n错误信息: {str(e)}")
 
     def center_window(self, window):
         """将窗口居中显示"""
@@ -1560,14 +1286,14 @@ class WxAutoHttpUI:
         return "test-key-2"  # 默认API密钥
 
     def add_log(self, message):
-        """添加日志到日志区域"""
+        """添加日志到文件"""
         # 获取当前库名称
         lib_name = getattr(self, 'current_lib', 'wxauto')
 
-        # 使用统一日志管理器记录日志
+        # 使用统一日志管理器记录日志到文件
         unified_logger.info(lib_name, message)
 
-        # 检查日志中是否包含窗口名称信息
+        # 检查日志中是否包含窗口名称信息，更新UI状态
         if "初始化成功，获取到已登录窗口：" in message:
             try:
                 # 提取窗口名称
@@ -1578,17 +1304,19 @@ class WxAutoHttpUI:
             except Exception:
                 pass
 
-        # 移除遗留的状态指示代码，因为现在使用统一日志管理器
-
     def check_status(self):
         """定时检查状态"""
+        # 检查是否正在关闭
+        if getattr(self, '_ui_closing', False):
+            return
+
         # 使用静态计数器来控制不同检查的频率
         if not hasattr(self, '_check_counter'):
             self._check_counter = 0
         self._check_counter += 1
 
-        # 每5秒检查一次插件状态，减少不必要的检查
-        if self._check_counter % 5 == 0:
+        # 每30秒检查一次插件状态，大幅减少检查频率
+        if self._check_counter % 30 == 0:
             self.check_wxauto_status()
             self.check_wxautox_status()
 
@@ -1649,8 +1377,9 @@ class WxAutoHttpUI:
         else:
             self.reload_button.config(style="TButton")
 
-        # 继续定时检查，使用1秒间隔
-        self.root.after(1000, self.check_status)
+        # 继续定时检查，使用1秒间隔（如果没有关闭）
+        if not getattr(self, '_ui_closing', False):
+            self._status_timer_id = self.root.after(1000, self.check_status)
 
     def check_wechat_connection(self):
         """检查微信连接状态"""
@@ -1928,6 +1657,23 @@ class WxAutoHttpUI:
 
     def on_close(self):
         """关闭窗口时的处理"""
+        # 设置关闭标志，停止定时器
+        self._ui_closing = True
+
+        # 取消定时器
+        if hasattr(self, '_status_timer_id'):
+            try:
+                self.root.after_cancel(self._status_timer_id)
+            except:
+                pass
+
+        # 关闭统一日志管理器
+        try:
+            from app.unified_logger import unified_logger
+            unified_logger.shutdown()
+        except:
+            pass
+
         if self.api_running:
             if messagebox.askyesno("确认", "API服务正在运行，是否关闭服务并退出？"):
                 self.stop_api_service()
@@ -1951,7 +1697,6 @@ if __name__ == "__main__":
 
     try:
         # 导入项目模块
-        from app.config import Config
         from app.unified_logger import logger
 
         # 启动UI

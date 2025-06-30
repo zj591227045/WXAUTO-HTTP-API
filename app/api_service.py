@@ -7,12 +7,39 @@ import os
 import sys
 import logging
 import traceback
+import atexit
+import signal
 
 # 导入统一日志管理器
 from app.unified_logger import logger
 
 # 设置API服务的库名称
 logger.set_lib_name("Flask")
+
+# 退出时清理资源
+def cleanup():
+    """退出时清理资源"""
+    try:
+        from app.unified_logger import unified_logger
+        logger.info("正在关闭统一日志管理器...")
+        unified_logger.shutdown()
+        print("统一日志管理器已关闭")  # 使用 print 因为 logger 可能已经关闭
+    except Exception as e:
+        print(f"关闭统一日志管理器时出错: {str(e)}")
+
+# 注册退出处理函数
+atexit.register(cleanup)
+
+# 注册信号处理
+def signal_handler(sig, frame):
+    """信号处理函数"""
+    logger.info(f"API服务接收到信号 {sig}，正在退出...")
+    cleanup()
+    sys.exit(0)
+
+# 注册SIGINT和SIGTERM信号处理
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 def check_mutex():
     """检查互斥锁，确保同一时间只有一个API服务实例在运行"""
