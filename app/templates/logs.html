@@ -7,118 +7,306 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* 主题变量 */
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --log-bg: #1e1e1e;
+            --log-text: #d4d4d4;
+            --log-hover: #2d2d30;
+            --panel-bg: white;
+            --border-color: #333;
+            --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        
+
+        /* 白色主题 */
+        body.light-theme {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --log-bg: #ffffff;
+            --log-text: #333333;
+            --log-hover: #f5f5f5;
+            --panel-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --header-bg: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+        }
+
+        /* 黑色主题 */
+        body.dark-theme {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --log-bg: #0d1117;
+            --log-text: #c9d1d9;
+            --log-hover: #21262d;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --header-bg: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
         .log-container {
-            background-color: #1e1e1e;
-            color: #d4d4d4;
+            background-color: var(--log-bg);
+            color: var(--log-text);
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.4;
-            padding: 15px;
-            border-radius: 8px;
-            height: 70vh;
+            font-size: 12px;
+            line-height: 1.2;
+            padding: 8px;
+            border-radius: 6px;
+            height: 75vh;
             overflow-y: auto;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
             white-space: pre-wrap;
             word-wrap: break-word;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
-        
+
         .log-line {
-            margin-bottom: 2px;
-            padding: 2px 0;
+            margin-bottom: 1px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            transition: background-color 0.2s ease;
         }
-        
+
         .log-line:hover {
-            background-color: #2d2d30;
+            background-color: var(--log-hover);
         }
-        
-        /* 日志级别颜色 */
-        .log-info {
-            color: #4fc3f7;
+
+        /* 日志级别颜色 - 黑色主题 */
+        body:not(.light-theme) .log-info {
+            color: #58a6ff;
+            font-weight: 600;
         }
-        
-        .log-warning {
-            color: #ffb74d;
+
+        body:not(.light-theme) .log-warning {
+            color: #f0883e;
+            font-weight: 600;
         }
-        
-        .log-error {
-            color: #f48fb1;
+
+        body:not(.light-theme) .log-error {
+            color: #f85149;
+            font-weight: 700;
         }
-        
-        .log-debug {
-            color: #81c784;
+
+        body:not(.light-theme) .log-debug {
+            color: #7ee787;
+            font-weight: 500;
         }
-        
+
+        /* 日志级别颜色 - 白色主题 */
+        body.light-theme .log-info {
+            color: #0969da;
+            font-weight: 600;
+        }
+
+        body.light-theme .log-warning {
+            color: #bf8700;
+            font-weight: 600;
+        }
+
+        body.light-theme .log-error {
+            color: #cf222e;
+            font-weight: 700;
+        }
+
+        body.light-theme .log-debug {
+            color: #1a7f37;
+            font-weight: 500;
+        }
+
         /* 时间戳颜色 */
-        .log-timestamp {
-            color: #9e9e9e;
+        body:not(.light-theme) .log-timestamp {
+            color: #8b949e;
+            font-weight: 500;
         }
-        
+
+        body.light-theme .log-timestamp {
+            color: #656d76;
+            font-weight: 500;
+        }
+
         /* 库名称颜色 */
+        body:not(.light-theme) .log-library {
+            color: #d2a8ff;
+            font-weight: 600;
+        }
+
+        body.light-theme .log-library {
+            color: #8250df;
+            font-weight: 600;
+        }
+
+        /* 日志内容样式优化 */
+        .log-content {
+            margin-left: 8px;
+            word-break: break-word;
+        }
+
+        /* 时间戳、库名称、级别的间距优化 */
+        .log-timestamp {
+            display: inline-block;
+            width: 70px;
+            margin-right: 4px;
+            font-size: 11px;
+        }
+
         .log-library {
-            color: #ce93d8;
-            font-weight: bold;
+            display: inline-block;
+            width: 80px;
+            margin-right: 4px;
+            font-size: 11px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
         }
-        
+
+        .log-info, .log-warning, .log-error, .log-debug {
+            display: inline-block;
+            width: 40px;
+            margin-right: 6px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        /* 滚动条样式 */
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: var(--log-bg);
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        /* 紧凑模式切换 */
+        .compact-mode .log-line {
+            margin-bottom: 0;
+            padding: 0 4px;
+        }
+
+        .compact-mode .log-container {
+            line-height: 1.1;
+            font-size: 11px;
+        }
+
+        .compact-mode .log-timestamp {
+            width: 60px;
+            font-size: 10px;
+        }
+
+        .compact-mode .log-library {
+            width: 70px;
+            font-size: 10px;
+        }
+
+        .compact-mode .log-info,
+        .compact-mode .log-warning,
+        .compact-mode .log-error,
+        .compact-mode .log-debug {
+            width: 35px;
+            font-size: 10px;
+        }
+
         .control-panel {
-            background-color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
-        
+
         .status-indicator {
             display: inline-block;
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            margin-right: 8px;
+            margin-right: 6px;
         }
-        
+
         .status-connected {
             background-color: #4caf50;
             animation: pulse 2s infinite;
         }
-        
+
         .status-disconnected {
             background-color: #f44336;
         }
-        
+
         .status-loading {
             background-color: #ff9800;
             animation: pulse 1s infinite;
         }
-        
+
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
-        
+
         .log-stats {
-            font-size: 12px;
-            color: #666;
-            margin-top: 10px;
+            font-size: 11px;
+            color: var(--text-color);
+            margin-top: 8px;
+            opacity: 0.8;
         }
-        
+
+        /* 主题切换按钮 */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .theme-toggle i {
+            margin-right: 6px;
+        }
+
         .auto-scroll-indicator {
             position: fixed;
             bottom: 20px;
             right: 20px;
             background-color: #007bff;
             color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 15px;
+            font-size: 11px;
             display: none;
             z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
-        
+
         .scroll-to-bottom {
             position: fixed;
             bottom: 70px;
@@ -127,36 +315,120 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 18px;
+            width: 45px;
+            height: 45px;
+            font-size: 16px;
             display: none;
             z-index: 1000;
             cursor: pointer;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
         }
-        
+
         .scroll-to-bottom:hover {
             background-color: #218838;
+            transform: translateY(-2px);
         }
-        
+
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--header-bg);
             color: white;
-            padding: 20px 0;
-            margin-bottom: 20px;
+            padding: 15px 0;
+            margin-bottom: 15px;
+            transition: background 0.3s ease;
         }
-        
+
         .btn-group .btn {
-            margin-right: 5px;
+            margin-right: 4px;
+            font-size: 13px;
+            padding: 6px 12px;
         }
-        
+
         .filter-input {
-            max-width: 300px;
+            max-width: 280px;
+            font-size: 13px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .theme-toggle {
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .log-container {
+                height: 65vh;
+                font-size: 11px;
+                padding: 6px;
+            }
+
+            .control-panel {
+                padding: 10px;
+            }
+
+            .btn-group .btn {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+
+            .header {
+                padding: 10px 0;
+            }
+
+            .auto-scroll-indicator {
+                bottom: 15px;
+                right: 15px;
+                font-size: 10px;
+                padding: 5px 8px;
+            }
+
+            .scroll-to-bottom {
+                bottom: 60px;
+                right: 15px;
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+        }
+
+        /* 按钮样式优化 */
+        .btn {
+            transition: all 0.2s ease;
+            border-radius: 4px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* 下拉菜单样式 */
+        .dropdown-menu {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .dropdown-item {
+            color: var(--text-color);
+            font-size: 13px;
+            padding: 6px 12px;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--log-hover);
+            color: var(--text-color);
         }
     </style>
 </head>
 <body>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" id="themeToggle" title="切换主题">
+        <i class="bi bi-moon-fill"></i>
+        <span id="themeText">深色</span>
+    </button>
+
     <div class="header">
         <div class="container">
             <div class="row align-items-center">
@@ -198,6 +470,9 @@
                         </button>
                         <button type="button" class="btn btn-outline-info btn-sm" id="refreshBtn">
                             <i class="bi bi-arrow-clockwise"></i> 手动刷新
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm" id="compactBtn">
+                            <i class="bi bi-arrows-collapse"></i> 紧凑模式
                         </button>
                     </div>
                 </div>
@@ -298,13 +573,15 @@
                 this.filterInput = document.getElementById('filterInput');
                 this.autoScrollIndicator = document.getElementById('autoScrollIndicator');
                 this.scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
-                
+                this.compactBtn = document.getElementById('compactBtn');
+
                 this.isPaused = false;
                 this.autoScroll = true;
                 this.refreshInterval = null;
                 this.lastLogCount = 0;
                 this.filterText = '';
                 this.allLogs = [];
+                this.isCompactMode = localStorage.getItem('log-compact-mode') === 'true';
 
                 // 日志级别过滤设置 - 默认只显示ERROR、WARNING、INFO，不显示DEBUG
                 this.levelFilters = {
@@ -319,6 +596,7 @@
             
             init() {
                 this.setupEventListeners();
+                this.initCompactMode();
                 this.startAutoRefresh();
                 this.loadInitialLogs();
             }
@@ -333,6 +611,9 @@
 
                 // 手动刷新按钮
                 document.getElementById('refreshBtn').addEventListener('click', () => this.refreshLogs());
+
+                // 紧凑模式按钮
+                this.compactBtn.addEventListener('click', () => this.toggleCompactMode());
 
                 // 过滤输入
                 this.filterInput.addEventListener('input', (e) => {
@@ -537,16 +818,25 @@
                 // 解析日志行格式: [时间戳] [库名称] [级别] 内容
                 const logPattern = /^\[([^\]]+)\]\s*\[([^\]]+)\]\s*\[([^\]]+)\]\s*(.*)$/;
                 const match = log.match(logPattern);
-                
+
                 if (match) {
                     const [, timestamp, library, level, content] = match;
                     const levelClass = this.getLevelClass(level);
-                    
+
+                    // 简化时间戳显示，只显示时分秒
+                    const timeOnly = timestamp.split(' ')[1] || timestamp;
+
+                    // 缩短库名称显示
+                    const shortLibrary = library.length > 8 ? library.substring(0, 8) + '…' : library;
+
+                    // 缩短级别显示
+                    const shortLevel = level.substring(0, 4);
+
                     return `<div class="log-line">
-                        <span class="log-timestamp">[${timestamp}]</span>
-                        <span class="log-library">[${library}]</span>
-                        <span class="${levelClass}">[${level}]</span>
-                        <span>${this.escapeHtml(content)}</span>
+                        <span class="log-timestamp">${timeOnly}</span>
+                        <span class="log-library">${shortLibrary}</span>
+                        <span class="${levelClass}">${shortLevel}</span>
+                        <span class="log-content">${this.escapeHtml(content)}</span>
                     </div>`;
                 } else {
                     return `<div class="log-line">${this.escapeHtml(log)}</div>`;
@@ -672,10 +962,70 @@
                 this.autoScroll = true;
                 this.handleScroll();
             }
+
+            initCompactMode() {
+                if (this.isCompactMode) {
+                    document.body.classList.add('compact-mode');
+                    this.compactBtn.innerHTML = '<i class="bi bi-arrows-expand"></i> 标准模式';
+                } else {
+                    this.compactBtn.innerHTML = '<i class="bi bi-arrows-collapse"></i> 紧凑模式';
+                }
+            }
+
+            toggleCompactMode() {
+                this.isCompactMode = !this.isCompactMode;
+                localStorage.setItem('log-compact-mode', this.isCompactMode.toString());
+
+                if (this.isCompactMode) {
+                    document.body.classList.add('compact-mode');
+                    this.compactBtn.innerHTML = '<i class="bi bi-arrows-expand"></i> 标准模式';
+                } else {
+                    document.body.classList.remove('compact-mode');
+                    this.compactBtn.innerHTML = '<i class="bi bi-arrows-collapse"></i> 紧凑模式';
+                }
+            }
         }
         
-        // 初始化日志查看器
+        // 主题管理器
+        class ThemeManager {
+            constructor() {
+                this.currentTheme = localStorage.getItem('log-viewer-theme') || 'dark';
+                this.themeToggle = document.getElementById('themeToggle');
+                this.themeText = document.getElementById('themeText');
+                this.themeIcon = this.themeToggle.querySelector('i');
+
+                this.init();
+            }
+
+            init() {
+                this.applyTheme(this.currentTheme);
+                this.themeToggle.addEventListener('click', () => this.toggleTheme());
+            }
+
+            applyTheme(theme) {
+                document.body.className = theme === 'light' ? 'light-theme' : 'dark-theme';
+
+                if (theme === 'light') {
+                    this.themeIcon.className = 'bi bi-sun-fill';
+                    this.themeText.textContent = '浅色';
+                } else {
+                    this.themeIcon.className = 'bi bi-moon-fill';
+                    this.themeText.textContent = '深色';
+                }
+
+                this.currentTheme = theme;
+                localStorage.setItem('log-viewer-theme', theme);
+            }
+
+            toggleTheme() {
+                const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+                this.applyTheme(newTheme);
+            }
+        }
+
+        // 初始化日志查看器和主题管理器
         document.addEventListener('DOMContentLoaded', () => {
+            new ThemeManager();
             new LogViewer();
         });
     </script>

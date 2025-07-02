@@ -1,28 +1,54 @@
 # Web框架和API相关
-flask>=2.3.1
+flask>=3.0.0
 flask-restful==0.3.9
-flask-limiter
+flask-limiter>=3.12
+flask-socketio>=5.5.1
 python-jose==3.3.0
 
 # 配置和环境
 python-dotenv==0.19.0
-pyyaml>=6.0.1
+pyyaml>=6.0.2
 
 # 网络请求
-requests==2.26.0
+requests>=2.26.0
+httpx>=0.28.1
+urllib3>=1.26.20
+certifi>=2025.6.15
+charset-normalizer>=2.0.12
+idna>=3.10
 
 # Windows系统相关
 pywin32==310
-psutil==5.9.8
-comtypes>=1.4.0
+pywin32-ctypes>=0.2.3
+psutil>=5.9.8
+comtypes>=1.4.11
 
 # 工具库
 pyperclip>=1.9.0
-tenacity>=9.1.0
-typing-extensions>=4.0.0
-uiautomation
-Pillow
+tenacity>=9.1.2
+typing-extensions>=4.14.0
+uiautomation>=2.0.28
+Pillow>=11.2.1
 
 # 微信自动化库（核心依赖）
-wxauto>=3.9.11.17
+wxauto>=39.1.8
 wxautox>=39.1.36
+
+# 打包工具
+pyinstaller>=6.14.1
+pyinstaller-hooks-contrib>=2025.5
+
+# 加密和安全
+cryptography>=45.0.4
+cffi
+
+# 其他依赖
+click>=8.2.1
+colorama>=0.4.6
+jinja2>=3.1.6
+markupsafe>=3.0.2
+werkzeug>=3.0.1
+itsdangerous>=2.2.0
+blinker>=1.9.0
+packaging>=25.0
+setuptools>=78.1.1

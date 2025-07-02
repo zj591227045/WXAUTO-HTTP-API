@@ -83,7 +83,7 @@ API_COUNTER = ApiCounter()
 
 
 class WxAutoHttpUI:
-    """wxauto_http_api 管理界面"""
+    """wxauto_http_api 客户端"""
 
     def __init__(self, root):
         # 确保使用UTF-8编码
@@ -96,23 +96,23 @@ class WxAutoHttpUI:
         os.environ['PYTHONIOENCODING'] = 'utf-8'
 
         self.root = root
-        self.root.title("wxauto_http_api 管理界面")
+        self.root.title("wxauto_http_api 客户端")
 
-        # 设置窗口大小
-        window_width = 900
-        window_height = 600
+        # 设置窗口为自适应大小，根据内容调整
+        # 先设置一个更紧凑的最小尺寸
+        self.root.minsize(500, 300)
 
-        # 获取屏幕尺寸
+        # 获取屏幕尺寸用于居中
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
 
-        # 计算居中位置
-        position_top = int(screen_height / 2 - window_height / 2)
-        position_right = int(screen_width / 2 - window_width / 2)
+        # 暂时设置一个初始位置，稍后会根据实际大小调整
+        initial_x = int(screen_width / 2 - 400)  # 假设初始宽度800
+        initial_y = int(screen_height / 2 - 200)  # 假设初始高度400
+        self.root.geometry(f"+{initial_x}+{initial_y}")
 
-        # 设置窗口大小和位置
-        self.root.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
-        self.root.minsize(800, 500)
+        # 禁止窗口大小调整（可选，如果希望固定大小）
+        # self.root.resizable(False, False)
 
         # 设置样式
         self.style = ttk.Style()
@@ -143,8 +143,8 @@ class WxAutoHttpUI:
                                  padding=8,
                                  font=("TkDefaultFont", 10, "bold"))
 
-        # 创建主框架
-        self.main_frame = ttk.Frame(self.root, padding="10")
+        # 创建主框架（减少padding以获得更紧凑的布局）
+        self.main_frame = ttk.Frame(self.root, padding="5")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
         # 创建顶部控制区域
@@ -152,6 +152,9 @@ class WxAutoHttpUI:
 
         # 创建中间状态区域
         self.create_status_panel()
+
+        # 创建底部按钮区域
+        self.create_bottom_panel()
 
         # 初始化状态
         self.api_running = False
@@ -172,6 +175,9 @@ class WxAutoHttpUI:
         # 初始化日志处理
         self.setup_logging()
 
+        # 调整窗口大小以适应内容
+        self.root.after(100, self.adjust_window_size)
+
         # 设置自动启动服务的倒计时
         self.countdown_seconds = 5
         self.add_log("===== 自动启动服务 =====")
@@ -181,16 +187,33 @@ class WxAutoHttpUI:
 
     def create_control_panel(self):
         """创建顶部控制面板"""
-        control_frame = ttk.LabelFrame(self.main_frame, text="控制面板", padding="10")
-        control_frame.pack(fill=tk.X, pady=5)
+        control_frame = ttk.LabelFrame(self.main_frame, text="控制面板", padding="5")
+        control_frame.pack(fill=tk.X, pady=3)
 
-        # 第一行：库选择和服务控制
+        # 第一行：服务控制按钮（移到最上方）
         row1 = ttk.Frame(control_frame)
-        row1.pack(fill=tk.X, pady=5)
+        row1.pack(fill=tk.X, pady=2)
+
+        # 服务控制区域
+        service_frame = ttk.Frame(row1)
+        service_frame.pack(side=tk.LEFT, padx=2)
+
+        self.start_button = ttk.Button(service_frame, text="启动服务", command=self.start_api_service)
+        self.start_button.pack(side=tk.LEFT, padx=3)
+        self.stop_button = ttk.Button(service_frame, text="停止服务", command=self.stop_api_service)
+        self.stop_button.pack(side=tk.LEFT, padx=3)
+        self.config_button = ttk.Button(service_frame, text="插件配置", command=self.show_config_dialog)
+        self.config_button.pack(side=tk.LEFT, padx=3)
+        self.reload_button = ttk.Button(service_frame, text="重新配置", command=self.reload_config)
+        self.reload_button.pack(side=tk.LEFT, padx=3)
+
+        # 第二行：库选择
+        row2 = ttk.Frame(control_frame)
+        row2.pack(fill=tk.X, pady=2)
 
         # 库选择区域
-        lib_frame = ttk.Frame(row1)
-        lib_frame.pack(side=tk.LEFT, padx=5)
+        lib_frame = ttk.Frame(row2)
+        lib_frame.pack(side=tk.LEFT, padx=2)
 
         ttk.Label(lib_frame, text="微信库选择:").pack(side=tk.LEFT, padx=5)
         self.lib_var = tk.StringVar(value="wxauto")
@@ -205,46 +228,37 @@ class WxAutoHttpUI:
         self.port_var = tk.StringVar(value="5000")
         self.apikey_var = tk.StringVar(value="test-key-2")
 
-        # 服务控制区域
-        service_frame = ttk.Frame(row1)
-        service_frame.pack(side=tk.RIGHT, padx=5)
-
-
-
-        self.start_button = ttk.Button(service_frame, text="启动服务", command=self.start_api_service)
-        self.start_button.pack(side=tk.LEFT, padx=5)
-        self.stop_button = ttk.Button(service_frame, text="停止服务", command=self.stop_api_service)
-        self.stop_button.pack(side=tk.LEFT, padx=5)
-        self.config_button = ttk.Button(service_frame, text="插件配置", command=self.show_config_dialog)
-        self.config_button.pack(side=tk.LEFT, padx=5)
-        self.reload_button = ttk.Button(service_frame, text="重载配置", command=self.reload_config)
-        self.reload_button.pack(side=tk.LEFT, padx=5)
-
-        # 第二行：插件管理
-        row2 = ttk.Frame(control_frame)
-        row2.pack(fill=tk.X, pady=5)
+        # 第三行：wxauto状态显示（移除API说明和查看日志按钮）
+        row3 = ttk.Frame(control_frame)
+        row3.pack(fill=tk.X, pady=5)
 
         # wxauto插件状态
-        wxauto_frame = ttk.Frame(row2)
-        wxauto_frame.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        wxauto_frame = ttk.Frame(row3)
+        wxauto_frame.pack(side=tk.LEFT, padx=5)  # 移除fill和expand，避免不必要的空白
 
         ttk.Label(wxauto_frame, text="wxauto状态:").pack(side=tk.LEFT, padx=5)
         self.wxauto_status = ttk.Label(wxauto_frame, text="检测中...", style="Bold.TLabel")
         self.wxauto_status.pack(side=tk.LEFT, padx=5)
+        # 添加版本号显示
+        self.wxauto_version = ttk.Label(wxauto_frame, text="", foreground="gray")
+        self.wxauto_version.pack(side=tk.LEFT, padx=2)
         self.install_wxauto_button = ttk.Button(wxauto_frame, text="检查状态", command=self.check_wxauto_installation)
         self.install_wxauto_button.pack(side=tk.LEFT, padx=5)
-        self.api_doc_button = ttk.Button(wxauto_frame, text="API说明", command=self.show_api_documentation)
-        self.api_doc_button.pack(side=tk.LEFT, padx=5)
-        self.view_logs_button = ttk.Button(wxauto_frame, text="查看日志", command=self.show_logs_page)
-        self.view_logs_button.pack(side=tk.LEFT, padx=5)
+
+        # 第四行：wxautox状态显示（单独一行）
+        row4 = ttk.Frame(control_frame)
+        row4.pack(fill=tk.X, pady=5)
 
         # wxautox插件状态
-        wxautox_frame = ttk.Frame(row2)
-        wxautox_frame.pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
+        wxautox_frame = ttk.Frame(row4)
+        wxautox_frame.pack(side=tk.LEFT, padx=5)  # 移除fill和expand，避免不必要的空白
 
         ttk.Label(wxautox_frame, text="wxautox状态:").pack(side=tk.LEFT, padx=5)
         self.wxautox_status = ttk.Label(wxautox_frame, text="检测中...", style="Bold.TLabel")
         self.wxautox_status.pack(side=tk.LEFT, padx=5)
+        # 添加版本号显示
+        self.wxautox_version = ttk.Label(wxautox_frame, text="", foreground="gray")
+        self.wxautox_version.pack(side=tk.LEFT, padx=2)
         # 使用ttk.Button与其他按钮保持一致的风格
         self.activate_wxautox_button = ttk.Button(
             wxautox_frame,
@@ -260,8 +274,8 @@ class WxAutoHttpUI:
 
     def create_status_panel(self):
         """创建状态面板"""
-        status_frame = ttk.LabelFrame(self.main_frame, text="服务状态", padding="10")
-        status_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        status_frame = ttk.LabelFrame(self.main_frame, text="服务状态", padding="5")
+        status_frame.pack(fill=tk.X, pady=3)  # 改为fill=tk.X，不再expand=True，移除空白
 
         # 服务状态信息
         info_frame = ttk.Frame(status_frame)
@@ -271,59 +285,130 @@ class WxAutoHttpUI:
         row1 = ttk.Frame(info_frame)
         row1.pack(fill=tk.X, pady=2)
 
-        ttk.Label(row1, text="API服务状态:").grid(row=0, column=0, padx=5, sticky=tk.W)
+        ttk.Label(row1, text="API服务状态:").grid(row=0, column=0, padx=(0,5), sticky=tk.W)
         self.api_status = ttk.Label(row1, text="未运行", style="Red.TLabel")
-        self.api_status.grid(row=0, column=1, padx=5, sticky=tk.W)
+        self.api_status.grid(row=0, column=1, padx=(0,15), sticky=tk.W)
 
-        ttk.Label(row1, text="监听地址:").grid(row=0, column=2, padx=5, sticky=tk.W)
+        ttk.Label(row1, text="监听地址:").grid(row=0, column=2, padx=(0,5), sticky=tk.W)
         self.api_address = ttk.Label(row1, text="--")
-        self.api_address.grid(row=0, column=3, padx=5, sticky=tk.W)
+        self.api_address.grid(row=0, column=3, padx=(0,15), sticky=tk.W)
 
-        ttk.Label(row1, text="当前库:").grid(row=0, column=4, padx=5, sticky=tk.W)
+        ttk.Label(row1, text="当前库:").grid(row=0, column=4, padx=(0,5), sticky=tk.W)
         self.current_lib_label = ttk.Label(row1, text="wxauto", style="Bold.TLabel")
-        self.current_lib_label.grid(row=0, column=5, padx=5, sticky=tk.W)
+        self.current_lib_label.grid(row=0, column=5, padx=(0,5), sticky=tk.W)
 
         # 第二行
         row2 = ttk.Frame(info_frame)
         row2.pack(fill=tk.X, pady=2)
 
-        ttk.Label(row2, text="CPU使用率:").grid(row=0, column=0, padx=5, sticky=tk.W)
+        ttk.Label(row2, text="CPU使用率:").grid(row=0, column=0, padx=(0,5), sticky=tk.W)
         self.cpu_usage = ttk.Label(row2, text="0%")
-        self.cpu_usage.grid(row=0, column=1, padx=5, sticky=tk.W)
+        self.cpu_usage.grid(row=0, column=1, padx=(0,15), sticky=tk.W)
 
-        ttk.Label(row2, text="内存使用:").grid(row=0, column=2, padx=5, sticky=tk.W)
+        ttk.Label(row2, text="内存使用:").grid(row=0, column=2, padx=(0,5), sticky=tk.W)
         self.memory_usage = ttk.Label(row2, text="0 MB")
-        self.memory_usage.grid(row=0, column=3, padx=5, sticky=tk.W)
+        self.memory_usage.grid(row=0, column=3, padx=(0,15), sticky=tk.W)
 
-        ttk.Label(row2, text="运行时间:").grid(row=0, column=4, padx=5, sticky=tk.W)
+        ttk.Label(row2, text="运行时间:").grid(row=0, column=4, padx=(0,5), sticky=tk.W)
         self.uptime = ttk.Label(row2, text="00:00:00")
-        self.uptime.grid(row=0, column=5, padx=5, sticky=tk.W)
+        self.uptime.grid(row=0, column=5, padx=(0,5), sticky=tk.W)
 
         # 第三行
         row3 = ttk.Frame(info_frame)
         row3.pack(fill=tk.X, pady=2)
 
-        ttk.Label(row3, text="API请求数:").grid(row=0, column=0, padx=5, sticky=tk.W)
+        ttk.Label(row3, text="API请求数:").grid(row=0, column=0, padx=(0,5), sticky=tk.W)
         self.request_count = ttk.Label(row3, text="0", font=("TkDefaultFont", 10, "bold"))
-        self.request_count.grid(row=0, column=1, padx=5, sticky=tk.W)
+        self.request_count.grid(row=0, column=1, padx=(0,15), sticky=tk.W)
 
-        ttk.Label(row3, text="错误数:").grid(row=0, column=2, padx=5, sticky=tk.W)
+        ttk.Label(row3, text="错误数:").grid(row=0, column=2, padx=(0,5), sticky=tk.W)
         self.error_count = ttk.Label(row3, text="0", font=("TkDefaultFont", 10, "bold"), foreground="red")
-        self.error_count.grid(row=0, column=3, padx=5, sticky=tk.W)
+        self.error_count.grid(row=0, column=3, padx=(0,15), sticky=tk.W)
 
-        ttk.Label(row3, text="微信连接:").grid(row=0, column=4, padx=5, sticky=tk.W)
+        ttk.Label(row3, text="微信连接:").grid(row=0, column=4, padx=(0,5), sticky=tk.W)
         self.wechat_status = ttk.Label(row3, text="未连接", style="Red.TLabel")
-        self.wechat_status.grid(row=0, column=5, padx=5, sticky=tk.W)
+        self.wechat_status.grid(row=0, column=5, padx=(0,15), sticky=tk.W)
 
         # 添加微信窗口名称说明标签
-        ttk.Label(row3, text="微信名称:").grid(row=0, column=6, padx=5, sticky=tk.W)
+        ttk.Label(row3, text="微信名称:").grid(row=0, column=6, padx=(0,5), sticky=tk.W)
 
         # 创建微信窗口名称标签（初始为空）
         self.wechat_window_name = ttk.Label(row3, text="", foreground="orange", font=("TkDefaultFont", 10, "bold"))
-        self.wechat_window_name.grid(row=0, column=7, padx=5, sticky=tk.W)
+        self.wechat_window_name.grid(row=0, column=7, padx=(0,5), sticky=tk.W)
+
+    def create_bottom_panel(self):
+        """创建底部按钮面板"""
+        bottom_frame = ttk.LabelFrame(self.main_frame, text="辅助功能", padding="2")  # 减少padding
+        bottom_frame.pack(fill=tk.X, pady=0)  # 移除垂直间距
+
+        # 底部按钮区域
+        button_frame = ttk.Frame(bottom_frame)
+        button_frame.pack(side=tk.LEFT, padx=2)
+
+        # API说明按钮（内嵌"必看"标识）
+        self.api_doc_button = ttk.Button(button_frame, text="API说明 [必看]",
+                                        command=self.show_api_documentation,
+                                        width=12)  # 设置合理宽度避免文字挤压
+        self.api_doc_button.pack(side=tk.LEFT, padx=3)
+
+        # 查看日志按钮（增加间距）
+        self.view_logs_button = ttk.Button(button_frame, text="查看日志", command=self.show_logs_page)
+        self.view_logs_button.pack(side=tk.LEFT, padx=15)  # 增加左边距，拉开距离
 
 
+    def adjust_window_size(self):
+        """调整窗口大小以适应内容"""
+        try:
+            # 更新所有组件以确保正确计算大小
+            self.root.update_idletasks()
 
+            # 获取主框架的实际需要大小
+            self.main_frame.update_idletasks()
+            required_width = self.main_frame.winfo_reqwidth() + 30  # 减少边距
+            required_height = self.main_frame.winfo_reqheight() + 50  # 减少边距
+
+            # 设置更紧凑的尺寸范围
+            min_width = 500  # 大幅减少最小宽度
+            max_width = 700  # 减少最大宽度，使界面更紧凑
+            min_height = 300
+            max_height = 500
+
+            # 限制窗口大小在合理范围内
+            final_width = max(min_width, min(required_width, max_width))
+            final_height = max(min_height, min(required_height, max_height))
+
+            # 获取屏幕尺寸重新计算居中位置
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+
+            # 计算居中位置
+            center_x = int(screen_width / 2 - final_width / 2)
+            center_y = int(screen_height / 2 - final_height / 2)
+
+            # 设置窗口大小和位置
+            self.root.geometry(f"{final_width}x{final_height}+{center_x}+{center_y}")
+
+            # 禁止用户调整窗口大小，保持紧凑
+            self.root.resizable(False, False)
+
+        except Exception as e:
+            # 如果自动调整失败，使用紧凑的默认尺寸
+            self.root.geometry("600x400+100+100")
+            self.root.resizable(False, False)
+    def get_package_version(self, package_name):
+        """获取pip包的版本号"""
+        try:
+            import subprocess
+            result = subprocess.run(['pip', 'show', package_name],
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    if line.startswith('Version:'):
+                        version = line.split(':', 1)[1].strip()
+                        return f"v{version}"
+            return ""
+        except Exception:
+            return ""
 
 
 
@@ -373,13 +458,18 @@ class WxAutoHttpUI:
                 # 在开发环境中，尝试导入pip安装的wxauto包
                 import wxauto
                 self.wxauto_status.config(text="已安装", style="Green.TLabel")
+                # 获取并显示版本号
+                version = self.get_package_version('wxauto')
+                self.wxauto_version.config(text=version)
                 return True
         except ImportError as e:
             self.wxauto_status.config(text="未安装", style="Red.TLabel")
+            self.wxauto_version.config(text="")
             self.add_log(f"无法导入wxauto库: {str(e)}")
             return False
         except Exception as e:
             self.wxauto_status.config(text="检查失败", style="Red.TLabel")
+            self.wxauto_version.config(text="")
             self.add_log(f"检查wxauto状态时出现未知错误: {str(e)}")
             return False
 
@@ -424,12 +514,15 @@ class WxAutoHttpUI:
 
                 if result.returncode == 0 and "wxautox_available" in result.stdout:
                     self.wxautox_status.config(text="可用", style="Green.TLabel")
-                    self.add_log("wxautox库检测为可用，准备检测激活状态")
-                    # 库可用后，延迟一点时间再检测激活状态，确保库完全加载
-                    self.root.after(1000, self._check_wxautox_activation_once)
+                    # 获取并显示版本号
+                    version = self.get_package_version('wxautox')
+                    self.wxautox_version.config(text=version)
+                    self.add_log("wxautox库检测为可用，将在微信初始化成功后检测激活状态")
+                    # 不立即检测激活状态，等待微信初始化成功后再检测
                     return True
                 else:
                     self.wxautox_status.config(text="不可用", style="Red.TLabel")
+                    self.wxautox_version.config(text="")
                     # 更新激活状态显示
                     if hasattr(self, 'wxautox_activation_status'):
                         self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
@@ -1422,6 +1515,9 @@ class WxAutoHttpUI:
                         # 窗口名称为空，设置为空字符串
                         self.root.after(0, lambda: self.wechat_window_name.config(text=""))
 
+                    # 微信初始化成功后，检测wxautox激活状态
+                    if self.current_lib == "wxautox" and not getattr(self, '_wxautox_activation_checked', False):
+                        self.root.after(2000, self._check_wxautox_activation_once)  # 延迟2秒检测
 
                     # 初始化成功，退出重试循环
                     # 不要立即检查微信连接状态，等待下一个定时检查周期

@@ -214,15 +214,21 @@ def simple_check_wxautox_activation():
         import wxautox
         safe_log("info", "wxautox库导入成功")
 
-        # 尝试创建WeChat实例（这是最基本的操作）
+        # 尝试创建WeChat实例并初始化（更准确的激活检测）
         try:
-            # 不实际初始化，只检查类是否可用
-            wechat_class = wxautox.WeChat
-            safe_log("info", "wxautox.WeChat类可用，认为激活成功")
+            # 尝试实际初始化微信实例
+            wechat = wxautox.WeChat()
+            safe_log("info", "wxautox.WeChat实例创建并初始化成功，认为激活成功")
             return "已激活"
         except Exception as e:
-            safe_log("warning", f"wxautox.WeChat类不可用: {str(e)}")
-            return "未激活"
+            error_msg = str(e)
+            # 如果是因为微信未运行等原因导致的错误，仍然认为激活成功
+            if any(keyword in error_msg.lower() for keyword in ["微信", "wechat", "not found", "无法找到"]):
+                safe_log("info", f"wxautox库可用但微信未运行: {error_msg}，仍认为激活成功")
+                return "已激活"
+            else:
+                safe_log("warning", f"wxautox初始化失败，可能未激活: {error_msg}")
+                return "未激活"
 
     except ImportError as e:
         safe_log("info", f"wxautox库导入失败: {str(e)}")

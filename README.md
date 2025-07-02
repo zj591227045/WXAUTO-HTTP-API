@@ -17,7 +17,7 @@
 
 <div align="center">
   <img src="docs/IMG/01.png" alt="wxauto_http_api界面预览" width="80%">
-  <p><i>wxauto_http_api 管理界面预览 - 提供直观的服务管理、配置和日志监控功能</i></p>
+  <p><i>wxauto_http_api 客户端预览 - 提供直观的服务管理、配置和日志监控功能</i></p>
 </div>
 
 ## ✨ 功能特点
@@ -79,8 +79,7 @@ pip install -r requirements.txt
 
 ```bash
 # 启动图形界面
-python main.py --service ui
-# 或者直接双击 start_ui.bat
+python main.py
 ```
 
 ## 🚀 使用说明
