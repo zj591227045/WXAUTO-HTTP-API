@@ -16,8 +16,18 @@
 基于wxauto的微信HTTP API接口，提供简单易用的HTTP API调用微信功能，同时支持可选的wxautox扩展功能。通过本项目，您可以轻松地将微信集成到您的应用程序中。
 
 <div align="center">
-  <img src="docs/IMG/01.png" alt="wxauto_http_api界面预览" width="80%">
-  <p><i>wxauto_http_api 客户端预览 - 提供直观的服务管理、配置和日志监控功能</i></p>
+  <img src="docs/IMG/01.png" alt="wxauto_http_api主界面" width="80%">
+  <p><i>wxauto_http_api 2.0.0 主界面 - 提供直观的服务管理、配置和日志监控功能</i></p>
+</div>
+
+<div align="center">
+  <img src="docs/IMG/02.png" alt="API文档界面" width="80%">
+  <p><i>内置API文档系统 - 完整的30+个API接口文档，支持在线测试</i></p>
+</div>
+
+<div align="center">
+  <img src="docs/IMG/03.png" alt="API测试工具" width="80%">
+  <p><i>集成API测试工具 - 支持所有API接口的在线测试和调试</i></p>
 </div>
 
 ## ✨ 功能特点
@@ -229,6 +239,11 @@ Content-Type: application/json
 - **测试工具**：内置API测试工具，支持在线测试所有接口
 - **代码示例**：提供Python、JavaScript等多种语言的调用示例
 
+<div align="center">
+  <img src="docs/IMG/02.png" alt="API文档展示" width="70%">
+  <p><i>📚 2.0.0版本内置的完整API文档系统，支持分类浏览和在线测试</i></p>
+</div>
+
 ## 🔄 库的选择
 
 本项目内置两种微信自动化库，均已升级到V2版本：
@@ -320,6 +335,11 @@ Content-Type: application/json
 - **交互式测试工具**：支持在线测试所有API接口
 - **代码示例**：提供多种编程语言的调用示例
 - **实时API状态**：显示API调用统计和状态信息
+
+<div align="center">
+  <img src="docs/IMG/03.png" alt="API测试工具展示" width="70%">
+  <p><i>🔧 集成的API测试工具，支持所有30+个API接口的在线测试和调试</i></p>
+</div>
 
 ### 📈 性能提升
 - **响应速度**：API响应时间平均提升30%
