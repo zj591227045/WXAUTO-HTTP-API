@@ -1512,10 +1512,44 @@ GET /api/group/get-recent-groups
 GET /api/group/get-recent?limit=10
 ```
 
+**参数说明**：
+- 此接口无需参数，获取所有最近聊天中的群聊
+
+**响应示例**：
+```json
+{
+    "code": 0,
+    "message": "获取最近群聊成功",
+    "data": {
+        "groups": [
+            ["群聊名称1", "未读消息数"],
+            ["群聊名称2", "未读消息数"]
+        ]
+    }
+}
+```
+
 #### 获取通讯录群聊列表 (Plus版)
 ```http
 GET /api/group/get-contact-groups?speed=1&interval=0.1
 ```
+
+**参数说明**：
+- `speed` (可选): 滚动速度，默认为1
+- `interval` (可选): 滚动时间间隔，默认为0.1秒
+
+**响应示例**：
+```json
+{
+    "code": 0,
+    "message": "获取通讯录群聊成功",
+    "data": {
+        "groups": ["群聊1", "群聊2", "群聊3"]
+    }
+}
+```
+
+**注意**：此接口获取的是通讯录中的群聊，不是最近聊天中的群聊。如果通讯录中没有群聊，将返回空列表。要获取最近聊天中的群聊，请使用 `get-recent-groups` 接口。
 
 ### 好友管理 (`/api/friend/`)
 

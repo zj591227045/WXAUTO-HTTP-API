@@ -132,6 +132,78 @@ def get_new_requests_alias():
     """获取新的好友申请列表 (Plus版) - 别名路由"""
     return get_new_friends()
 
+@friend_bp.route('/add-new', methods=['POST'])
+@require_api_key
+def add_new_friend_alias():
+    """添加新的好友 (Plus版) - 兼容性路由，支持search_text参数"""
+    wx_instance = wechat_manager.get_instance()
+    if not wx_instance:
+        return jsonify({
+            'code': 2001,
+            'message': '微信未初始化',
+            'data': None
+        }), 400
+
+    data = request.get_json()
+    # 兼容性处理：支持search_text参数，映射到keywords
+    keywords = data.get('keywords') or data.get('search_text')
+    addmsg = data.get('addmsg') or data.get('remark')  # 兼容remark参数
+    remark = data.get('remark')
+    tags = data.get('tags', [])
+    permission = data.get('permission', '朋友圈')
+    timeout = data.get('timeout', 5)
+
+    if not keywords:
+        return jsonify({
+            'code': 1002,
+            'message': '缺少必要参数：search_text 或 keywords',
+            'data': None
+        }), 400
+
+    try:
+        # 检查当前使用的库
+        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
+        if lib_name != 'wxautox':
+            return jsonify({
+                'code': 3001,
+                'message': '当前库版本不支持添加新好友功能',
+                'data': None
+            }), 400
+
+        # 构建参数
+        params = {
+            'keywords': keywords,
+            'timeout': timeout
+        }
+        if addmsg:
+            params['addmsg'] = addmsg
+        if remark:
+            params['remark'] = remark
+        if tags:
+            params['tags'] = tags
+        if permission:
+            params['permission'] = permission
+
+        # 调用AddNewFriend方法
+        result = wx_instance.AddNewFriend(**params)
+
+        return jsonify({
+            'code': 0,
+            'message': '添加好友请求已发送',
+            'data': {
+                'search_text': keywords,  # 返回兼容性字段名
+                'keywords': keywords,
+                'result': str(result) if result else None
+            }
+        })
+    except Exception as e:
+        logger.error(f"添加新好友失败: {str(e)}")
+        return jsonify({
+            'code': 3001,
+            'message': f'添加新好友失败: {str(e)}',
+            'data': None
+        }), 500
+
 @friend_bp.route('/add-new-friend', methods=['POST'])
 @require_api_key
 def add_new_friend():

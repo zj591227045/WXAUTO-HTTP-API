@@ -458,22 +458,6 @@ const API_TESTER_CONFIGS = {
         ]
     },
 
-    // 群组管理 - 获取群成员
-    'group-get-members': {
-        endpoint: '/api/group/get-members',
-        method: 'POST',
-        parameters: [
-            {
-                name: 'group_name',
-                label: '群组名称',
-                type: 'text',
-                required: true,
-                placeholder: '测试群',
-                description: '要获取成员列表的群组名称'
-            }
-        ]
-    },
-
     // 群组管理 - 获取最近群聊
     'group-get-recent': {
         endpoint: '/api/group/get-recent',
@@ -503,6 +487,32 @@ const API_TESTER_CONFIGS = {
                 required: true,
                 placeholder: '测试群',
                 description: '要获取联系人信息的群组名称'
+            }
+        ]
+    },
+
+    // 群组管理 - 获取通讯录群聊
+    'group-get-contact-groups': {
+        endpoint: '/api/group/get-contact-groups',
+        method: 'GET',
+        parameters: [
+            {
+                name: 'speed',
+                label: '滚动速度',
+                type: 'number',
+                required: false,
+                default: '1',
+                placeholder: '1',
+                description: '滚动速度，默认为1'
+            },
+            {
+                name: 'interval',
+                label: '滚动间隔',
+                type: 'number',
+                required: false,
+                default: '0.1',
+                placeholder: '0.1',
+                description: '滚动时间间隔，默认为0.1秒'
             }
         ]
     },

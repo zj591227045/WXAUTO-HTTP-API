@@ -108,14 +108,37 @@ def get_group_members():
         }), 400
 
     try:
-        # 检查当前使用的库
-        lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
-        if lib_name != 'wxautox':
+        # 检查当前使用的库 - 使用更可靠的检测方法
+        lib_name = None
+
+        # 方法1: 检查适配器的库名称
+        if hasattr(wechat_manager, '_adapter') and hasattr(wechat_manager._adapter, 'get_lib_name'):
+            try:
+                lib_name = wechat_manager._adapter.get_lib_name()
+            except:
+                pass
+
+        # 方法2: 检查实例的_lib_name属性
+        if not lib_name:
+            lib_name = getattr(wx_instance, '_lib_name', None)
+
+        # 方法3: 通过实例类型判断
+        if not lib_name:
+            instance_type = str(type(wx_instance))
+            if 'wxautox' in instance_type:
+                lib_name = 'wxautox'
+            elif 'wxauto' in instance_type:
+                lib_name = 'wxauto'
+
+        # 方法4: 检查是否有GetGroupMembers方法（最终检查）
+        if not hasattr(wx_instance, 'GetGroupMembers'):
             return jsonify({
                 'code': 3001,
-                'message': '当前库版本不支持获取群成员功能',
+                'message': '当前微信实例不支持获取群成员功能',
                 'data': None
             }), 400
+
+        logger.info(f"检测到的库名称: {lib_name}")
 
         # 使用正确的方法获取群成员
         try:
