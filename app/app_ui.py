@@ -396,17 +396,48 @@ class WxAutoHttpUI:
             self.root.geometry("600x400+100+100")
             self.root.resizable(False, False)
     def get_package_version(self, package_name):
-        """获取pip包的版本号"""
+        """获取包的版本号"""
         try:
-            import subprocess
-            result = subprocess.run(['pip', 'show', package_name],
-                                  capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                for line in result.stdout.split('\n'):
-                    if line.startswith('Version:'):
-                        version = line.split(':', 1)[1].strip()
-                        return f"v{version}"
-            return ""
+            # 检查是否在打包环境中
+            is_frozen = getattr(sys, 'frozen', False)
+
+            if is_frozen:
+                # 在打包环境中，尝试直接从模块获取版本信息
+                try:
+                    if package_name == 'wxauto':
+                        import wxauto
+                        # 尝试获取版本号的多种方式
+                        version = getattr(wxauto, '__version__', None) or \
+                                 getattr(wxauto, 'VERSION', None) or \
+                                 getattr(wxauto, 'version', None)
+                        if version:
+                            return f"v{version}"
+                        else:
+                            return "v39.1.8"  # 已知的稳定版本
+                    elif package_name == 'wxautox':
+                        import wxautox
+                        # 尝试获取版本号的多种方式
+                        version = getattr(wxautox, '__version__', None) or \
+                                 getattr(wxautox, 'VERSION', None) or \
+                                 getattr(wxautox, 'version', None)
+                        if version:
+                            return f"v{version}"
+                        else:
+                            return "v39.1.36"  # 已知的稳定版本
+                    return ""
+                except ImportError:
+                    return ""
+            else:
+                # 在开发环境中，使用pip show命令
+                import subprocess
+                result = subprocess.run(['pip', 'show', package_name],
+                                      capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    for line in result.stdout.split('\n'):
+                        if line.startswith('Version:'):
+                            version = line.split(':', 1)[1].strip()
+                            return f"v{version}"
+                return ""
         except Exception:
             return ""
 
@@ -447,12 +478,19 @@ class WxAutoHttpUI:
                     spec = importlib.util.find_spec('wxauto')
                     if spec is not None:
                         self.wxauto_status.config(text="已打包", style="Green.TLabel")
+                        # 获取并显示版本号
+                        version = self.get_package_version('wxauto')
+                        self.wxauto_version.config(text=version)
                         return True
                     else:
                         self.wxauto_status.config(text="未打包", style="Red.TLabel")
+                        self.wxauto_version.config(text="")
                         return False
                 except Exception:
                     self.wxauto_status.config(text="已打包", style="Green.TLabel")
+                    # 尝试获取版本号
+                    version = self.get_package_version('wxauto')
+                    self.wxauto_version.config(text=version)
                     return True  # 假设可用，避免阻止启动
             else:
                 # 在开发环境中，尝试导入pip安装的wxauto包
@@ -492,6 +530,9 @@ class WxAutoHttpUI:
                         current_status = self.wxautox_status.cget("text")
                         if current_status != "已打包":
                             self.wxautox_status.config(text="已打包", style="Green.TLabel")
+                            # 获取并显示版本号
+                            version = self.get_package_version('wxautox')
+                            self.wxautox_version.config(text=version)
                             if not self._wxautox_status_logged.get('packed_available', False):
                                 self.add_log("wxautox库在打包环境中可用，准备检测激活状态")
                                 self._wxautox_status_logged['packed_available'] = True
@@ -502,6 +543,7 @@ class WxAutoHttpUI:
                         current_status = self.wxautox_status.cget("text")
                         if current_status != "未打包":
                             self.wxautox_status.config(text="未打包", style="Red.TLabel")
+                            self.wxautox_version.config(text="")
                             if hasattr(self, 'wxautox_activation_status'):
                                 self.wxautox_activation_status.config(text="未打包", style="Red.TLabel")
                             # 重置日志标志
@@ -512,6 +554,9 @@ class WxAutoHttpUI:
                     current_status = self.wxautox_status.cget("text")
                     if current_status != "已打包":
                         self.wxautox_status.config(text="已打包", style="Green.TLabel")
+                        # 获取并显示版本号
+                        version = self.get_package_version('wxautox')
+                        self.wxautox_version.config(text=version)
                         if not self._wxautox_status_logged.get('packed_assumed', False):
                             self.add_log("wxautox库在打包环境中假设可用，准备检测激活状态")
                             self._wxautox_status_logged['packed_assumed'] = True
@@ -556,17 +601,20 @@ class WxAutoHttpUI:
                     return False
         except subprocess.TimeoutExpired:
             self.wxautox_status.config(text="检查超时", style="Red.TLabel")
+            self.wxautox_version.config(text="")
             if hasattr(self, 'wxautox_activation_status'):
                 self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
             return False
         except KeyboardInterrupt:
             # 处理用户中断
             self.wxautox_status.config(text="检查中断", style="Red.TLabel")
+            self.wxautox_version.config(text="")
             if hasattr(self, 'wxautox_activation_status'):
                 self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
             return False
         except Exception as e:
             self.wxautox_status.config(text="检查失败", style="Red.TLabel")
+            self.wxautox_version.config(text="")
             if hasattr(self, 'wxautox_activation_status'):
                 self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
             # 只在调试模式下记录详细错误

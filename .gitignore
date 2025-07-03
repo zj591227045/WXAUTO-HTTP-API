@@ -14,6 +14,7 @@ app.log
 data\
 data/
 wxautox_activation.json
+wxauto_qrcode
 
 # C extensions
 *.so
