@@ -618,6 +618,48 @@ const API_TESTER_CONFIGS = {
         ]
     },
 
+    // WeChat扩展 - 打开聊天窗口
+    'wechat-chat-with': {
+        endpoint: '/api/wechat/chat-with',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'who',
+                label: '联系人名称',
+                type: 'text',
+                required: true,
+                placeholder: '文件传输助手',
+                description: '要打开聊天窗口的联系人或群组名称'
+            },
+            {
+                name: 'exact',
+                label: '精确匹配',
+                type: 'select',
+                required: false,
+                default: 'false',
+                options: [
+                    { value: 'false', label: 'false' },
+                    { value: 'true', label: 'true' }
+                ],
+                description: '是否精确匹配联系人名称，默认false'
+            }
+        ]
+    },
+
+    // WeChat扩展 - 获取会话列表
+    'wechat-get-session': {
+        endpoint: '/api/wechat/get-session',
+        method: 'GET',
+        parameters: []
+    },
+
+    // WeChat扩展 - 获取子窗口
+    'wechat-get-sub-windows': {
+        endpoint: '/api/wechat/get-sub-windows',
+        method: 'GET',
+        parameters: []
+    },
+
     // 朋友圈 - 打开朋友圈
     'moments-open': {
         endpoint: '/api/moments/open',

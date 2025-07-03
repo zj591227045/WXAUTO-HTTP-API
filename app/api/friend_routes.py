@@ -132,6 +132,13 @@ def get_new_requests_alias():
     """获取新的好友申请列表 (Plus版) - 别名路由"""
     return get_new_friends()
 
+# 添加更多兼容性别名路由
+@friend_bp.route('/get-requests', methods=['GET'])
+@require_api_key
+def get_requests_alias():
+    """获取新的好友申请列表 (Plus版) - 兼容性别名路由"""
+    return get_new_friends()
+
 @friend_bp.route('/add-new', methods=['POST'])
 @require_api_key
 def add_new_friend_alias():
