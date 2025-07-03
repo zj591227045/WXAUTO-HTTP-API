@@ -1,9 +1,171 @@
 <div class="api-endpoints" id="auxiliary-apis">
-                <h3><i class="bi bi-puzzle"></i> 辅助功能</h3>
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i>
-                    辅助功能包括系统监控、会话管理等，将根据需要逐步添加。
+    <h3><i class="bi bi-puzzle"></i> 辅助功能</h3>
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>说明：</strong>辅助功能主要包括登录相关功能。标记为Plus版的功能需要wxautox库支持。
+    </div>
+
+    <!-- 自动登录 API -->
+    <div class="api-endpoint-container">
+        <div class="api-endpoint-header">
+            <span class="method-badge method-post">POST</span>
+            <code>/api/auxiliary/login/auto</code>
+            <span class="version-badge version-plus">Plus版</span>
+            - 自动登录微信
+        </div>
+        <div class="api-endpoint-content">
+            <!-- 左侧文档说明 -->
+            <div class="api-doc-section">
+                <h5>接口说明</h5>
+                <p>自动登录微信，仅对可自动登录的微信有效。需要wxautox库支持。</p>
+
+                <h6>请求参数</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>参数名</th>
+                            <th>类型</th>
+                            <th>必需</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>wxpath</td>
+                            <td>string</td>
+                            <td>否</td>
+                            <td>微信客户端路径，不提供时自动检测</td>
+                        </tr>
+                        <tr>
+                            <td>timeout</td>
+                            <td>number</td>
+                            <td>否</td>
+                            <td>登录超时时间（秒），默认10秒</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h6>请求示例</h6>
+                <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/auxiliary/login/auto \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wxpath": "D:/Program Files/Tencent/WeChat/WeChat.exe",
+    "timeout": 10
+  }'</pre>
                 </div>
+
+                <h6>响应格式</h6>
+                <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "自动登录执行完成",
+  "data": {
+    "wxpath": "D:/Program Files/Tencent/WeChat/WeChat.exe",
+    "timeout": 10,
+    "login_result": true,
+    "success": true
+  }
+}</pre>
+                </div>
+
+                <h6>注意事项</h6>
+                <ul style="font-size: 0.9em;">
+                    <li>仅对可自动登录的微信有效</li>
+                    <li>如果不提供微信路径，系统会自动检测常见安装位置</li>
+                    <li>需要wxautox库支持</li>
+                </ul>
             </div>
 
-            <!-- 错误码说明 -->
+            <!-- 右侧测试工具 -->
+            <div class="api-test-section">
+                <div id="auto-login-tester" data-api-config="auto-login"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 获取登录二维码 API -->
+    <div class="api-endpoint-container">
+        <div class="api-endpoint-header">
+            <span class="method-badge method-post">POST</span>
+            <code>/api/auxiliary/login/qrcode</code>
+            <span class="version-badge version-plus">Plus版</span>
+            - 获取登录二维码
+        </div>
+        <div class="api-endpoint-content">
+            <!-- 左侧文档说明 -->
+            <div class="api-doc-section">
+                <h5>接口说明</h5>
+                <p>获取登录二维码，返回base64编码的二维码图片，可直接在网页中显示。需要wxautox库支持。</p>
+
+                <h6>请求参数</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>参数名</th>
+                            <th>类型</th>
+                            <th>必需</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>wxpath</td>
+                            <td>string</td>
+                            <td>否</td>
+                            <td>微信客户端路径，不提供时自动检测</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h6>请求示例</h6>
+                <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/auxiliary/login/qrcode \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"wxpath": "D:/Program Files/Tencent/WeChat/WeChat.exe"}'</pre>
+                </div>
+
+                <h6>响应格式</h6>
+                <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "获取登录二维码成功",
+  "data": {
+    "wxpath": "D:/Program Files/Tencent/WeChat/WeChat.exe",
+    "qrcode_path": "/path/to/qrcode.png",
+    "qrcode_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+    "qrcode_data_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+    "mime_type": "image/png"
+  }
+}</pre>
+                </div>
+
+                <h6>响应字段说明</h6>
+                <ul style="font-size: 0.9em;">
+                    <li><code>qrcode_path</code> - 二维码图片文件路径</li>
+                    <li><code>qrcode_base64</code> - 二维码图片的base64编码</li>
+                    <li><code>qrcode_data_url</code> - 可直接在HTML中使用的data URL格式</li>
+                    <li><code>mime_type</code> - 图片MIME类型</li>
+                </ul>
+            </div>
+
+            <!-- 右侧测试工具 -->
+            <div class="api-test-section">
+                <div id="qrcode-login-tester" data-api-config="qrcode-login"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-warning mt-4">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>注意事项：</strong>
+        <ul class="mb-0 mt-2">
+            <li>登录相关功能需要wxautox库支持（Plus版）</li>
+            <li>自动登录功能仅对可自动登录的微信有效</li>
+            <li>如果不提供微信路径，系统会自动检测常见的安装位置</li>
+            <li>二维码图片会以base64格式返回，可直接在网页中显示</li>
+        </ul>
+    </div>
+</div>

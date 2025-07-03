@@ -807,6 +807,131 @@ const API_TESTER_CONFIGS = {
                 description: '要移除监听的联系人或群组名称'
             }
         ]
+    },
+
+    // 辅助功能 - 点击会话
+    'session-click': {
+        endpoint: '/api/auxiliary/session/click',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'session_name',
+                label: '会话名称',
+                type: 'text',
+                required: true,
+                placeholder: '文件传输助手',
+                description: '要点击的会话名称'
+            }
+        ]
+    },
+
+    // 辅助功能 - 接受好友申请
+    'accept-friend': {
+        endpoint: '/api/auxiliary/new-friend/accept',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'friend_name',
+                label: '申请人名称',
+                type: 'text',
+                required: true,
+                placeholder: '张三',
+                description: '要接受的好友申请人名称'
+            },
+            {
+                name: 'remark',
+                label: '好友备注',
+                type: 'text',
+                required: false,
+                placeholder: '同事',
+                description: '设置好友备注（可选）'
+            },
+            {
+                name: 'tags',
+                label: '好友标签',
+                type: 'text',
+                required: false,
+                placeholder: '工作,同事',
+                description: '设置好友标签，多个标签用逗号分隔（可选）',
+                transform: (value) => value ? value.split(',').map(tag => tag.trim()).filter(tag => tag) : undefined
+            }
+        ]
+    },
+
+    // 辅助功能 - 拒绝好友申请
+    'reject-friend': {
+        endpoint: '/api/auxiliary/new-friend/reject',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'friend_name',
+                label: '申请人名称',
+                type: 'text',
+                required: true,
+                placeholder: '张三',
+                description: '要拒绝的好友申请人名称'
+            }
+        ]
+    },
+
+    // 辅助功能 - 自动登录
+    'auto-login': {
+        endpoint: '/api/auxiliary/login/auto',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'wxpath',
+                label: '微信路径',
+                type: 'text',
+                required: false,
+                placeholder: 'D:/Program Files/Tencent/WeChat/WeChat.exe',
+                description: '微信客户端路径（可选，留空自动检测）'
+            },
+            {
+                name: 'timeout',
+                label: '超时时间（秒）',
+                type: 'number',
+                required: false,
+                placeholder: '10',
+                defaultValue: 10,
+                min: 1,
+                max: 60,
+                description: '登录超时时间，默认10秒'
+            }
+        ]
+    },
+
+    // 辅助功能 - 获取登录二维码
+    'qrcode-login': {
+        endpoint: '/api/auxiliary/login/qrcode',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'wxpath',
+                label: '微信路径',
+                type: 'text',
+                required: false,
+                placeholder: 'D:/Program Files/Tencent/WeChat/WeChat.exe',
+                description: '微信客户端路径（可选，留空自动检测）'
+            }
+        ],
+        customResponseHandler: (response, container) => {
+            // 特殊处理二维码显示
+            if (response.code === 0 && response.data && response.data.qrcode_data_url) {
+                const resultDiv = container.querySelector('.api-result');
+                if (resultDiv) {
+                    // 添加二维码预览
+                    const qrcodeHtml = `
+                        <div class="mt-3">
+                            <h6>二维码预览：</h6>
+                            <img src="${response.data.qrcode_data_url}" alt="登录二维码"
+                                 style="max-width: 300px; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                        </div>
+                    `;
+                    resultDiv.insertAdjacentHTML('beforeend', qrcodeHtml);
+                }
+            }
+        }
     }
 };
 

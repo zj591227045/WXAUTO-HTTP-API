@@ -1916,6 +1916,77 @@ POST /api/auxiliary/new-friend/reject
 }
 ```
 
+#### 自动登录 (Plus版)
+```http
+POST /api/auxiliary/login/auto
+```
+
+自动登录微信，仅可自动登录的微信有效。
+
+请求体：
+```json
+{
+    "wxpath": "D:/path/to/WeChat.exe",
+    "timeout": 10
+}
+```
+
+参数说明：
+- `wxpath`: 微信客户端路径（可选，不提供时自动检测）
+- `timeout`: 登录超时时间，单位秒（默认10秒）
+
+响应示例：
+```json
+{
+    "code": 0,
+    "message": "自动登录执行完成",
+    "data": {
+        "wxpath": "D:/path/to/WeChat.exe",
+        "timeout": 10,
+        "login_result": true,
+        "success": true
+    }
+}
+```
+
+#### 获取登录二维码 (Plus版)
+```http
+POST /api/auxiliary/login/qrcode
+```
+
+获取登录二维码，返回base64编码的二维码图片。
+
+请求体：
+```json
+{
+    "wxpath": "D:/path/to/WeChat.exe"
+}
+```
+
+参数说明：
+- `wxpath`: 微信客户端路径（可选，不提供时自动检测）
+
+响应示例：
+```json
+{
+    "code": 0,
+    "message": "获取登录二维码成功",
+    "data": {
+        "wxpath": "D:/path/to/WeChat.exe",
+        "qrcode_path": "/path/to/qrcode.png",
+        "qrcode_base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+        "qrcode_data_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+        "mime_type": "image/png"
+    }
+}
+```
+
+返回数据说明：
+- `qrcode_path`: 二维码图片文件路径
+- `qrcode_base64`: 二维码图片的base64编码
+- `qrcode_data_url`: 可直接在HTML中使用的data URL格式
+- `mime_type`: 图片MIME类型
+
 ## 版本兼容性说明
 
 ### 基础版本 (wxauto)

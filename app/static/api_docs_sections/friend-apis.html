@@ -136,4 +136,146 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 接受好友申请 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/auxiliary/new-friend/accept</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 接受好友申请
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>接受新好友申请，可以设置备注和标签。需要wxautox库支持。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>friend_name</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>申请人名称</td>
+                                    </tr>
+                                    <tr>
+                                        <td>remark</td>
+                                        <td>string</td>
+                                        <td>否</td>
+                                        <td>好友备注名称</td>
+                                    </tr>
+                                    <tr>
+                                        <td>tags</td>
+                                        <td>array</td>
+                                        <td>否</td>
+                                        <td>好友标签列表</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/auxiliary/new-friend/accept \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "friend_name": "张三",
+    "remark": "同事",
+    "tags": ["工作", "同事"]
+  }'</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "接受好友申请成功",
+  "data": {
+    "friend_name": "张三",
+    "remark": "同事",
+    "tags": ["工作", "同事"],
+    "result": "success"
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="accept-friend-tester" data-api-config="accept-friend"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 拒绝好友申请 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/auxiliary/new-friend/reject</code>
+                        <span class="version-badge version-plus">Plus版</span>
+                        - 拒绝好友申请
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>拒绝新好友申请。需要wxautox库支持。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>friend_name</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>申请人名称</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/auxiliary/new-friend/reject \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"friend_name": "张三"}'</pre>
+                            </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "拒绝好友申请成功",
+  "data": {
+    "friend_name": "张三",
+    "result": "rejected"
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="reject-friend-tester" data-api-config="reject-friend"></div>
+                        </div>
+                    </div>
+                </div>
             </div>

@@ -231,9 +231,67 @@
                         <!-- 右侧测试工具 -->
                         <div class="api-test-section">
                             <div id="message-tickle-tester" data-api-config="message-tickle"></div>
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 点击会话 API -->
+                <div class="api-endpoint-container">
+                    <div class="api-endpoint-header">
+                        <span class="method-badge method-post">POST</span>
+                        <code>/api/auxiliary/session/click</code>
+                        <span class="version-badge version-basic">基础版</span>
+                        - 点击会话
+                    </div>
+                    <div class="api-endpoint-content">
+                        <!-- 左侧文档说明 -->
+                        <div class="api-doc-section">
+                            <h5>接口说明</h5>
+                            <p>点击会话列表中的指定会话，用于切换到指定的聊天窗口。</p>
+
+                            <h6>请求参数</h6>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>session_name</td>
+                                        <td>string</td>
+                                        <td>是</td>
+                                        <td>要点击的会话名称</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h6>请求示例</h6>
+                            <div class="code-block">
+<pre>curl -X POST http://localhost:5000/api/auxiliary/session/click \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"session_name": "文件传输助手"}'</pre>
                             </div>
+
+                            <h6>响应格式</h6>
+                            <div class="code-block">
+<pre>{
+  "code": 0,
+  "message": "点击会话成功",
+  "data": {
+    "session_name": "文件传输助手"
+  }
+}</pre>
+                            </div>
+                        </div>
+
+                        <!-- 右侧测试工具 -->
+                        <div class="api-test-section">
+                            <div id="session-click-tester" data-api-config="session-click"></div>
                         </div>
                     </div>
                 </div>

@@ -34,6 +34,12 @@ def build_onefile():
         "--name", "wxauto_http_api",
         "--icon", "icons/wxauto_icon.ico",
     ]
+
+    # 添加版本信息
+    version_info = [
+        "--version-file", "build_tools/version_info.txt"
+    ]
+    cmd.extend(version_info)
     
     # 添加Flask和Web框架的隐藏导入
     flask_imports = [
@@ -112,7 +118,6 @@ def build_onefile():
     
     # 添加pywin32的DLL文件
     try:
-        import site
         import win32api
         
         # 获取pywin32的安装路径
