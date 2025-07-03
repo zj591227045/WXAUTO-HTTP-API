@@ -667,19 +667,80 @@ const API_TESTER_CONFIGS = {
         parameters: []
     },
 
-    // 朋友圈 - 获取朋友圈消息
-    'moments-get': {
-        endpoint: '/api/moments/get',
+    // 朋友圈 - 获取朋友圈内容
+    'moments-get-moments': {
+        endpoint: '/api/moments/get-moments',
         method: 'GET',
         parameters: [
             {
-                name: 'limit',
+                name: 'n',
                 label: '获取数量',
                 type: 'number',
                 required: false,
                 default: '10',
                 placeholder: '10',
-                description: '要获取的朋友圈消息数量'
+                description: '要获取的朋友圈内容数量'
+            },
+            {
+                name: 'timeout',
+                label: '超时时间',
+                type: 'number',
+                required: false,
+                default: '10',
+                placeholder: '10',
+                description: '获取超时时间（秒）'
+            }
+        ]
+    },
+
+    // 朋友圈 - 点赞
+    'moments-like': {
+        endpoint: '/api/moments/like',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'moment_index',
+                label: '朋友圈索引',
+                type: 'number',
+                required: true,
+                placeholder: '0',
+                description: '要点赞的朋友圈索引（从0开始）'
+            },
+            {
+                name: 'like',
+                label: '点赞操作',
+                type: 'select',
+                required: false,
+                default: 'true',
+                options: [
+                    { value: 'true', label: 'true (点赞)' },
+                    { value: 'false', label: 'false (取消点赞)' }
+                ],
+                description: '是否点赞，true为点赞，false为取消点赞'
+            }
+        ]
+    },
+
+    // 朋友圈 - 评论
+    'moments-comment': {
+        endpoint: '/api/moments/comment',
+        method: 'POST',
+        parameters: [
+            {
+                name: 'moment_index',
+                label: '朋友圈索引',
+                type: 'number',
+                required: true,
+                placeholder: '0',
+                description: '要评论的朋友圈索引（从0开始）'
+            },
+            {
+                name: 'text',
+                label: '评论内容',
+                type: 'textarea',
+                required: true,
+                placeholder: '评论内容',
+                description: '要发送的评论文字'
             }
         ]
     },
