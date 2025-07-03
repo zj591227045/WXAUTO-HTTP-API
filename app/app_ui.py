@@ -476,6 +476,10 @@ class WxAutoHttpUI:
     def check_wxautox_status(self):
         """检查wxautox库的可用状态（能否成功导入）"""
         try:
+            # 初始化日志标志
+            if not hasattr(self, '_wxautox_status_logged'):
+                self._wxautox_status_logged = {}
+
             # 在打包环境中，避免使用subprocess检查，防止冲突
             is_frozen = getattr(sys, 'frozen', False)
             if is_frozen:
@@ -484,21 +488,35 @@ class WxAutoHttpUI:
                     import importlib.util
                     spec = importlib.util.find_spec('wxautox')
                     if spec is not None:
-                        self.wxautox_status.config(text="已打包", style="Green.TLabel")
-                        self.add_log("wxautox库在打包环境中可用，准备检测激活状态")
-                        # 在打包环境中，延迟检测激活状态
-                        self.root.after(1000, self._check_wxautox_activation_once)
+                        # 检查状态是否已经更新，避免重复日志
+                        current_status = self.wxautox_status.cget("text")
+                        if current_status != "已打包":
+                            self.wxautox_status.config(text="已打包", style="Green.TLabel")
+                            if not self._wxautox_status_logged.get('packed_available', False):
+                                self.add_log("wxautox库在打包环境中可用，准备检测激活状态")
+                                self._wxautox_status_logged['packed_available'] = True
+                            # 在打包环境中，延迟检测激活状态
+                            self.root.after(1000, self._check_wxautox_activation_once)
                         return True
                     else:
-                        self.wxautox_status.config(text="未打包", style="Red.TLabel")
-                        if hasattr(self, 'wxautox_activation_status'):
-                            self.wxautox_activation_status.config(text="未打包", style="Red.TLabel")
+                        current_status = self.wxautox_status.cget("text")
+                        if current_status != "未打包":
+                            self.wxautox_status.config(text="未打包", style="Red.TLabel")
+                            if hasattr(self, 'wxautox_activation_status'):
+                                self.wxautox_activation_status.config(text="未打包", style="Red.TLabel")
+                            # 重置日志标志
+                            self._wxautox_status_logged = {}
                         return False
                 except Exception:
-                    self.wxautox_status.config(text="已打包", style="Green.TLabel")
-                    self.add_log("wxautox库在打包环境中假设可用，准备检测激活状态")
-                    # 在打包环境中，延迟检测激活状态
-                    self.root.after(1000, self._check_wxautox_activation_once)
+                    # 检查状态是否已经更新，避免重复日志
+                    current_status = self.wxautox_status.cget("text")
+                    if current_status != "已打包":
+                        self.wxautox_status.config(text="已打包", style="Green.TLabel")
+                        if not self._wxautox_status_logged.get('packed_assumed', False):
+                            self.add_log("wxautox库在打包环境中假设可用，准备检测激活状态")
+                            self._wxautox_status_logged['packed_assumed'] = True
+                        # 在打包环境中，延迟检测激活状态
+                        self.root.after(1000, self._check_wxautox_activation_once)
                     return True  # 假设可用，避免阻止启动
             else:
                 # 在开发环境中，使用subprocess来检查wxautox，避免影响主进程
@@ -513,19 +531,28 @@ class WxAutoHttpUI:
                 )
 
                 if result.returncode == 0 and "wxautox_available" in result.stdout:
-                    self.wxautox_status.config(text="可用", style="Green.TLabel")
-                    # 获取并显示版本号
-                    version = self.get_package_version('wxautox')
-                    self.wxautox_version.config(text=version)
-                    self.add_log("wxautox库检测为可用，将在微信初始化成功后检测激活状态")
+                    # 检查状态是否已经更新，避免重复日志
+                    current_status = self.wxautox_status.cget("text")
+                    if current_status != "可用":
+                        self.wxautox_status.config(text="可用", style="Green.TLabel")
+                        # 获取并显示版本号
+                        version = self.get_package_version('wxautox')
+                        self.wxautox_version.config(text=version)
+                        if not self._wxautox_status_logged.get('dev_available', False):
+                            self.add_log("wxautox库检测为可用，将在微信初始化成功后检测激活状态")
+                            self._wxautox_status_logged['dev_available'] = True
                     # 不立即检测激活状态，等待微信初始化成功后再检测
                     return True
                 else:
-                    self.wxautox_status.config(text="不可用", style="Red.TLabel")
-                    self.wxautox_version.config(text="")
-                    # 更新激活状态显示
-                    if hasattr(self, 'wxautox_activation_status'):
-                        self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
+                    current_status = self.wxautox_status.cget("text")
+                    if current_status != "不可用":
+                        self.wxautox_status.config(text="不可用", style="Red.TLabel")
+                        self.wxautox_version.config(text="")
+                        # 更新激活状态显示
+                        if hasattr(self, 'wxautox_activation_status'):
+                            self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
+                        # 重置日志标志
+                        self._wxautox_status_logged = {}
                     return False
         except subprocess.TimeoutExpired:
             self.wxautox_status.config(text="检查超时", style="Red.TLabel")

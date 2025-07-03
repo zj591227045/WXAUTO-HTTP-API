@@ -14,8 +14,8 @@ from app.auth import require_api_key
 from app import plugin_manager
 import config_manager
 
-# 配置日志
-logger = logging.getLogger(__name__)
+# 使用统一日志系统
+from app.unified_logger import logger
 
 # 创建蓝图
 plugin_bp = Blueprint('plugins', __name__)

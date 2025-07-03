@@ -5,7 +5,7 @@ Chat类相关API路由
 
 from flask import Blueprint, jsonify, request
 from app.auth import require_api_key
-from app.logs import logger
+from app.unified_logger import logger
 from app.wechat import wechat_manager
 import time
 
