@@ -576,6 +576,9 @@
                         for (let [key, value] of formData.entries()) {
                             if (key === 'at_list' && value) {
                                 data[key] = value.split(',').map(s => s.trim()).filter(s => s);
+                            } else if (key === 'members' && value) {
+                                // 处理members字段，支持逗号分隔的字符串转换为数组
+                                data[key] = value.split(',').map(s => s.trim()).filter(s => s);
                             } else if (value) {
                                 data[key] = value;
                             }

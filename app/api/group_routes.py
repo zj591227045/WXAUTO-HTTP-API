@@ -5,7 +5,7 @@
 
 from flask import Blueprint, jsonify, request
 from app.auth import require_api_key
-from app.logs import logger
+from app.unified_logger import logger
 from app.wechat import wechat_manager
 
 group_bp = Blueprint('group', __name__)
@@ -23,14 +23,19 @@ def add_group_members():
         }), 400
 
     data = request.get_json()
-    group = data.get('group')
+    # 支持两种参数格式：group 或 group_name
+    group = data.get('group') or data.get('group_name')
     members = data.get('members', [])
     reason = data.get('reason')
+
+    # 如果members是字符串，转换为列表
+    if isinstance(members, str):
+        members = [members]
 
     if not group or not members:
         return jsonify({
             'code': 1002,
-            'message': '缺少必要参数',
+            'message': '缺少必要参数：group/group_name 和 members',
             'data': None
         }), 400
 
@@ -121,7 +126,7 @@ def get_group_members():
             }
         })
     except Exception as e:
-        logger.error(f"获取群成员失败: {str(e)}")
+        logger.error("wxautox", f"获取群成员失败: {str(e)}")
         return jsonify({
             'code': 3001,
             'message': f'获取群成员失败: {str(e)}',
@@ -174,7 +179,7 @@ def remove_group_members():
             }
         })
     except Exception as e:
-        logger.error(f"移除群成员失败: {str(e)}")
+        logger.error("wxautox", f"移除群成员失败: {str(e)}")
         return jsonify({
             'code': 3001,
             'message': f'移除群成员失败: {str(e)}',
@@ -255,7 +260,7 @@ def manage_group():
             }
         })
     except Exception as e:
-        logger.error(f"群聊管理失败: {str(e)}")
+        logger.error("wxautox", f"群聊管理失败: {str(e)}")
         return jsonify({
             'code': 3001,
             'message': f'群聊管理失败: {str(e)}',
@@ -295,7 +300,7 @@ def get_recent_groups():
             }
         })
     except Exception as e:
-        logger.error(f"获取最近群聊失败: {str(e)}")
+        logger.error("wxautox", f"获取最近群聊失败: {str(e)}")
         return jsonify({
             'code': 3001,
             'message': f'获取最近群聊失败: {str(e)}',
@@ -339,7 +344,7 @@ def get_contact_groups():
             }
         })
     except Exception as e:
-        logger.error(f"获取通讯录群聊失败: {str(e)}")
+        logger.error("wxautox", f"获取通讯录群聊失败: {str(e)}")
         return jsonify({
             'code': 3001,
             'message': f'获取通讯录群聊失败: {str(e)}',

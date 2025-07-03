@@ -436,16 +436,24 @@ const API_TESTER_CONFIGS = {
                 label: '群组名称',
                 type: 'text',
                 required: true,
-                placeholder: '测试群',
-                description: '要添加成员的群组名称'
+                placeholder: '消息测试',
+                description: '要添加成员的群组名称（支持group或group_name参数）'
             },
             {
                 name: 'members',
                 label: '成员列表',
                 type: 'text',
                 required: true,
-                placeholder: '张三,李四,王五',
-                description: '要添加的成员名称，多个用逗号分隔'
+                placeholder: '客服',
+                description: '要添加的成员名称，支持单个成员或多个用逗号分隔'
+            },
+            {
+                name: 'reason',
+                label: '邀请理由',
+                type: 'text',
+                required: false,
+                placeholder: '邀请您加入群聊',
+                description: '添加成员时的邀请理由（可选）'
             }
         ]
     },

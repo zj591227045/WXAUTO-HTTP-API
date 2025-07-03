@@ -5,7 +5,7 @@
 
 from flask import Blueprint, jsonify, request
 from app.auth import require_api_key
-from app.logs import logger
+from app.unified_logger import logger
 from app.wechat import wechat_manager
 
 auxiliary_bp = Blueprint('auxiliary', __name__)
@@ -60,7 +60,7 @@ def click_session():
             }
         })
     except Exception as e:
-        logger.error(f"点击会话失败: {str(e)}")
+        logger.error("wxautox", f"点击会话失败: {str(e)}")
         return jsonify({
             'code': 3001,
             'message': f'点击会话失败: {str(e)}',
@@ -138,7 +138,7 @@ def accept_new_friend():
             }
         })
     except Exception as e:
-        logger.error(f"接受好友申请失败: {str(e)}")
+        logger.error("wxautox", f"接受好友申请失败: {str(e)}")
         return jsonify({
             'code': 3001,
             'message': f'接受好友申请失败: {str(e)}',
@@ -205,7 +205,7 @@ def reject_new_friend():
             }
         })
     except Exception as e:
-        logger.error(f"拒绝好友申请失败: {str(e)}")
+        logger.error("wxautox", f"拒绝好友申请失败: {str(e)}")
         return jsonify({
             'code': 3001,
             'message': f'拒绝好友申请失败: {str(e)}',

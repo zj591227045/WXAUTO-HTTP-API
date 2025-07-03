@@ -45,15 +45,16 @@ class WeChatAdapter:
         self._lazy_init = lazy_init
         self._initialized = False
 
-        logger.info(f"初始化WeChatAdapter，请求的库名称: {lib_name}，延迟初始化: {lazy_init}")
-        logger.info(f"当前工作目录: {os.getcwd()}")
-        logger.info(f"Python路径: {sys.path}")
+        # 暂时禁用初始化日志，避免递归调用
+        # logger.info(f"初始化WeChatAdapter，请求的库名称: {lib_name}，延迟初始化: {lazy_init}")
+        # logger.info(f"当前工作目录: {os.getcwd()}")
+        # logger.info(f"Python路径: {sys.path}")
 
         if not lazy_init:
             # 立即初始化
             self._perform_initialization()
-        else:
-            logger.info("使用延迟初始化模式，将在首次使用时导入库")
+        # else:
+            # logger.info("使用延迟初始化模式，将在首次使用时导入库")
 
     def _perform_initialization(self):
         """执行实际的库导入和初始化"""
@@ -103,8 +104,8 @@ class WeChatAdapter:
                 try:
                     import wxautox
                     self._lib_name = "wxautox"
-                    # 更新日志管理器中的库名称
-                    logger.set_lib_name("wxautox")
+                    # 暂时禁用日志管理器更新，避免递归调用
+                    # logger.set_lib_name("wxautox")
                     logger.info("成功导入wxautox库（打包环境直接导入）")
                     return True
                 except ImportError as e:
@@ -122,8 +123,8 @@ class WeChatAdapter:
                     # 实际导入库
                     import wxautox
                     self._lib_name = "wxautox"
-                    # 更新日志管理器中的库名称
-                    logger.set_lib_name("wxautox")
+                    # 暂时禁用日志管理器更新，避免递归调用
+                    # logger.set_lib_name("wxautox")
                     logger.info(f"成功导入wxautox库: {details}")
                     return True
                 else:
@@ -143,8 +144,8 @@ class WeChatAdapter:
                 try:
                     import wxauto
                     self._lib_name = "wxauto"
-                    # 更新日志管理器中的库名称
-                    logger.set_lib_name("wxauto")
+                    # 暂时禁用日志管理器更新，避免递归调用
+                    # logger.set_lib_name("wxauto")
                     logger.info("成功导入wxauto库（打包环境直接导入）")
                     return True
                 except ImportError as e:
@@ -162,8 +163,8 @@ class WeChatAdapter:
                     # 实际导入库
                     import wxauto
                     self._lib_name = "wxauto"
-                    # 更新日志管理器中的库名称
-                    logger.set_lib_name("wxauto")
+                    # 暂时禁用日志管理器更新，避免递归调用
+                    # logger.set_lib_name("wxauto")
                     logger.info(f"成功导入wxauto库: {details}")
                     return True
                 else:
@@ -471,32 +472,15 @@ class WeChatAdapter:
                 return False
 
     def __getattr__(self, name):
-        """代理到实际的微信实例"""
+        """代理到实际的微信实例 - 简化版本，避免递归调用"""
         if self._instance is None:
             raise AttributeError(f"微信实例未初始化，无法调用 {name} 方法")
 
-        # 明确排除已删除的方法，但GetNextNewMessage需要特殊处理
-        excluded_methods = ['AddListenChat', 'GetListenMessage', 'RemoveListenChat']
-        if name in excluded_methods:
-            logger.debug(f"直接代理{name}到原始实例（跳过适配器处理）")
+        # 直接代理到实际实例，暂时禁用所有特殊处理
+        try:
             return getattr(self._instance, name)
-
-        # GetNextNewMessage需要特殊处理参数兼容性
-        if name == 'GetNextNewMessage':
-            return self.GetNextNewMessage
-
-        # 检查是否需要特殊处理的方法
-        handler = getattr(self, f"_handle_{name}", None)
-        if handler:
-            logger.debug(f"使用特殊处理方法: _handle_{name}")
-            # 返回一个包装函数，避免直接返回handler导致的问题
-            def wrapper(*args, **kwargs):
-                return handler(*args, **kwargs)
-            return wrapper
-
-        # 直接代理到实际实例
-        logger.debug(f"直接代理{name}到原始实例")
-        return getattr(self._instance, name)
+        except AttributeError:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def _handle_ChatWith(self, *args, **kwargs):
         """处理ChatWith方法的差异"""
@@ -1585,15 +1569,8 @@ class WeChatAdapter:
 # 导入配置
 try:
     from app.config import Config
-    # 记录配置信息
-    logger.info(f"从app.config导入配置成功，WECHAT_LIB={Config.WECHAT_LIB}")
-
     # 创建全局适配器实例（使用延迟初始化避免库冲突）
     wechat_adapter = WeChatAdapter(lib_name=Config.WECHAT_LIB, lazy_init=True)
-    logger.info(f"成功创建全局适配器实例（延迟初始化），请求库: {Config.WECHAT_LIB}")
 except ImportError as e:
     # 如果无法导入配置，则使用默认值
-    logger.error(f"导入app.config失败: {str(e)}，将使用默认值'wxauto'")
     wechat_adapter = WeChatAdapter(lib_name='wxauto', lazy_init=True)
-
-    logger.info(f"成功创建全局适配器实例（延迟初始化），请求库: wxauto")

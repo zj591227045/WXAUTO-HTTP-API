@@ -285,37 +285,49 @@ def log_debug(lib_name: str, message: str):
     unified_logger.debug(lib_name, message)
 
 
-# 兼容性适配器 - 用于替换现有的logger
-class LoggerAdapter:
-    """适配器，用于兼容现有的logging接口"""
-    
+# 安全的日志适配器 - 避免递归调用但提供基本功能
+class SafeLoggerAdapter:
+    """安全的日志适配器，避免递归调用但提供基本日志功能"""
+
     def __init__(self, lib_name: str = "wxauto"):
         self.lib_name = lib_name
-    
+
     def set_lib_name(self, lib_name: str):
         """设置库名称"""
         self.lib_name = lib_name
-    
+
     def info(self, message: str):
         """INFO日志"""
-        unified_logger.info(self.lib_name, message)
-    
+        try:
+            print(f"[{self.lib_name}] INFO: {message}")
+        except:
+            pass
+
     def warning(self, message: str):
         """WARNING日志"""
-        unified_logger.warning(self.lib_name, message)
-    
+        try:
+            print(f"[{self.lib_name}] WARNING: {message}")
+        except:
+            pass
+
     def error(self, message: str, exc_info=None):
         """ERROR日志"""
-        if exc_info:
-            import traceback
-            tb_str = traceback.format_exc()
-            message = f"{message}\n{tb_str}"
-        unified_logger.error(self.lib_name, message)
-    
+        try:
+            if exc_info:
+                import traceback
+                tb_str = traceback.format_exc()
+                message = f"{message}\n{tb_str}"
+            print(f"[{self.lib_name}] ERROR: {message}")
+        except:
+            pass
+
     def debug(self, message: str):
         """DEBUG日志"""
-        unified_logger.debug(self.lib_name, message)
+        try:
+            print(f"[{self.lib_name}] DEBUG: {message}")
+        except:
+            pass
 
 
-# 创建默认的适配器实例
-logger = LoggerAdapter(Config.WECHAT_LIB)
+# 创建安全的适配器实例
+logger = SafeLoggerAdapter(Config.WECHAT_LIB)

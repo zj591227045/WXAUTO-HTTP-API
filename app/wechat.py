@@ -27,9 +27,9 @@ class WeChatManager:
                 if Config.WECHAT_AUTO_RECONNECT:
                     self._start_monitor()
                 self._retry_count = 0
-                # 更新日志管理器的库名称
+                # 暂时禁用日志管理器更新，避免递归调用
                 lib_name = self._adapter.get_lib_name()
-                logger.set_lib_name(lib_name)
+                # logger.set_lib_name(lib_name)
                 logger.info(f"微信初始化成功，使用库: {lib_name}")
             return success
 
