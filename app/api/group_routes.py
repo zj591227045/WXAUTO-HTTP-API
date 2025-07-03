@@ -72,7 +72,7 @@ def add_group_members():
             'data': None
         }), 500
 
-@group_bp.route('/get-members', methods=['GET'])
+@group_bp.route('/get-members', methods=['GET', 'POST'])
 @require_api_key
 def get_group_members():
     """获取群成员列表 (Plus版)"""
@@ -84,12 +84,26 @@ def get_group_members():
             'data': None
         }), 400
 
-    who = request.args.get('who')
+    # 支持GET和POST两种方法
+    if request.method == 'GET':
+        # GET方法：从查询参数获取
+        who = request.args.get('who')
+    else:
+        # POST方法：从JSON请求体获取
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'code': 1002,
+                'message': '请求体不能为空',
+                'data': None
+            }), 400
+        # 支持group_name或who参数
+        who = data.get('group_name') or data.get('who')
 
     if not who:
         return jsonify({
             'code': 1002,
-            'message': '缺少必要参数',
+            'message': '缺少必要参数：who 或 group_name',
             'data': None
         }), 400
 
@@ -103,19 +117,36 @@ def get_group_members():
                 'data': None
             }), 400
 
-        # 获取聊天窗口
-        listen = wx_instance.listen
-        if not listen or who not in listen:
+        # 使用正确的方法获取群成员
+        try:
+            # 先切换到群聊页面
+            logger.info(f"切换到群聊页面: {who}")
+            result = wx_instance.ChatWith(who)
+            logger.info(f"切换结果: {result}")
+
+            # 等待页面加载
+            import time
+            time.sleep(0.5)
+
+            # 直接调用GetGroupMembers
+            members = wx_instance.GetGroupMembers()
+            logger.info(f"获取群成员: {len(members) if members else 0}个")
+
+            # 检查结果
+            if members is None:
+                return jsonify({
+                    'code': 3001,
+                    'message': f'无法获取群 {who} 的成员列表，请确保群聊存在且可访问',
+                    'data': None
+                }), 404
+
+        except Exception as e:
+            logger.error(f"获取群成员失败: {str(e)}")
             return jsonify({
                 'code': 3001,
-                'message': f'聊天窗口 {who} 未在监听列表中',
+                'message': f'获取群成员失败: {str(e)}',
                 'data': None
-            }), 404
-
-        chat_wnd = listen[who]
-
-        # 获取群成员
-        members = chat_wnd.GetGroupMembers()
+            }), 500
 
         return jsonify({
             'code': 0,
@@ -306,6 +337,13 @@ def get_recent_groups():
             'message': f'获取最近群聊失败: {str(e)}',
             'data': None
         }), 500
+
+# 为了兼容性，添加简化的路由别名
+@group_bp.route('/get-recent', methods=['GET'])
+@require_api_key
+def get_recent_groups_alias():
+    """获取最近群聊名称列表 (Plus版) - 别名路由"""
+    return get_recent_groups()
 
 @group_bp.route('/get-contact-groups', methods=['GET'])
 @require_api_key

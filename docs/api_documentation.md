@@ -1460,6 +1460,18 @@ POST /api/group/add-members
 GET /api/group/get-members?who=测试群
 ```
 
+或者使用POST方法：
+```http
+POST /api/group/get-members
+```
+
+请求体：
+```json
+{
+    "group_name": "测试群"
+}
+```
+
 #### 移除群成员 (Plus版)
 ```http
 POST /api/group/remove-members
@@ -1495,6 +1507,11 @@ POST /api/group/manage
 GET /api/group/get-recent-groups
 ```
 
+别名路由（兼容性）：
+```http
+GET /api/group/get-recent?limit=10
+```
+
 #### 获取通讯录群聊列表 (Plus版)
 ```http
 GET /api/group/get-contact-groups?speed=1&interval=0.1
@@ -1507,9 +1524,28 @@ GET /api/group/get-contact-groups?speed=1&interval=0.1
 GET /api/friend/get-details?n=10&tag=标签&timeout=60000
 ```
 
+或者使用POST方法：
+```http
+POST /api/friend/get-details
+```
+
+请求体：
+```json
+{
+    "n": 10,
+    "tag": "标签",
+    "timeout": 60000
+}
+```
+
 #### 获取新好友申请 (Plus版)
 ```http
 GET /api/friend/get-new-friends?acceptable=true
+```
+
+别名路由（兼容性）：
+```http
+GET /api/friend/get-new-requests?acceptable=true
 ```
 
 #### 添加新好友 (Plus版)
@@ -1603,6 +1639,11 @@ GET /api/wechat/get-sub-window?nickname=好友名
 #### 获取所有子窗口
 ```http
 GET /api/wechat/get-all-sub-windows
+```
+
+别名路由（兼容性）：
+```http
+GET /api/wechat/get-sub-windows
 ```
 
 #### 开始监听

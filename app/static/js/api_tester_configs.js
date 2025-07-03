@@ -513,12 +513,28 @@ const API_TESTER_CONFIGS = {
         method: 'POST',
         parameters: [
             {
-                name: 'friend_name',
-                label: '好友名称',
+                name: 'n',
+                label: '获取数量',
+                type: 'number',
+                required: false,
+                placeholder: '10',
+                description: '要获取的好友数量（可选）'
+            },
+            {
+                name: 'tag',
+                label: '标签筛选',
                 type: 'text',
-                required: true,
-                placeholder: '张三',
-                description: '要获取详情的好友名称'
+                required: false,
+                placeholder: '同事',
+                description: '按标签筛选好友（可选）'
+            },
+            {
+                name: 'timeout',
+                label: '超时时间',
+                type: 'number',
+                required: false,
+                placeholder: '60000',
+                description: '超时时间（毫秒，可选）'
             }
         ]
     },

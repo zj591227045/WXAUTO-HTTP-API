@@ -10,7 +10,7 @@ from app.wechat import wechat_manager
 
 friend_bp = Blueprint('friend', __name__)
 
-@friend_bp.route('/get-details', methods=['GET'])
+@friend_bp.route('/get-details', methods=['GET', 'POST'])
 @require_api_key
 def get_friend_details():
     """获取好友详情信息 (Plus版)"""
@@ -32,10 +32,20 @@ def get_friend_details():
                 'data': None
             }), 400
 
-        # 获取参数
-        n = request.args.get('n', type=int)
-        tag = request.args.get('tag')
-        timeout = request.args.get('timeout', 0xFFFFF, type=int)
+        # 支持GET和POST两种方法获取参数
+        if request.method == 'GET':
+            # GET方法：从查询参数获取
+            n = request.args.get('n', type=int)
+            tag = request.args.get('tag')
+            timeout = request.args.get('timeout', 0xFFFFF, type=int)
+        else:
+            # POST方法：从JSON请求体获取
+            data = request.get_json()
+            if not data:
+                data = {}  # 允许空请求体，使用默认参数
+            n = data.get('n', type=int) if data.get('n') is not None else None
+            tag = data.get('tag')
+            timeout = data.get('timeout', 0xFFFFF)
 
         # 构建参数
         params = {'timeout': timeout}
@@ -114,6 +124,13 @@ def get_new_friends():
             'message': f'获取新好友申请失败: {str(e)}',
             'data': None
         }), 500
+
+# 为了兼容性，添加别名路由
+@friend_bp.route('/get-new-requests', methods=['GET'])
+@require_api_key
+def get_new_requests_alias():
+    """获取新的好友申请列表 (Plus版) - 别名路由"""
+    return get_new_friends()
 
 @friend_bp.route('/add-new-friend', methods=['POST'])
 @require_api_key

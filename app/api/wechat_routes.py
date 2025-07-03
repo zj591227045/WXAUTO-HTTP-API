@@ -233,6 +233,13 @@ def get_all_sub_windows():
             'data': None
         }), 500
 
+# 为了兼容性，添加别名路由
+@wechat_bp.route('/get-sub-windows', methods=['GET'])
+@require_api_key
+def get_sub_windows_alias():
+    """获取所有子窗口实例 - 别名路由"""
+    return get_all_sub_windows()
+
 @wechat_bp.route('/start-listening', methods=['POST'])
 @require_api_key
 def start_listening():
