@@ -1622,8 +1622,37 @@ def health_check():
 
     if wx_instance:
         wx_status = "connected" if wechat_manager.check_connection() else "disconnected"
-        # 获取当前使用的库名称
-        wx_lib = wx_instance.get_lib_name() if hasattr(wx_instance, 'get_lib_name') else 'wxauto'
+
+        # 获取当前使用的库名称 - 不依赖微信实例初始化
+        try:
+            # 方法1: 尝试从适配器获取库名称
+            if hasattr(wx_instance, 'get_lib_name'):
+                lib_name = wx_instance.get_lib_name()
+                if lib_name:
+                    wx_lib = lib_name
+                else:
+                    # 如果适配器还没初始化，从配置获取
+                    from app.config import Config
+                    wx_lib = Config.WECHAT_LIB
+            else:
+                # 如果没有get_lib_name方法，从配置获取
+                from app.config import Config
+                wx_lib = Config.WECHAT_LIB
+        except Exception:
+            # 如果所有方法都失败，尝试检测可用的库
+            try:
+                # 简单检测：尝试导入库来确定当前可用的库
+                try:
+                    import wxautox
+                    wx_lib = "wxautox"
+                except ImportError:
+                    try:
+                        import wxauto
+                        wx_lib = "wxauto"
+                    except ImportError:
+                        wx_lib = "unknown"
+            except Exception:
+                wx_lib = "unknown"
 
     return jsonify({
         'code': 0,

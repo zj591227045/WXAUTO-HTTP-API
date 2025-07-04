@@ -169,10 +169,59 @@ class WeChatLibDetector:
         try:
             import sys
             import io
+
+            logger.info("打包环境中使用安全策略检测wxautox")
+
+            # 在打包环境中使用更安全的检测策略，避免闪退
+            try:
+                # 保存原始的stdout和stderr
+                original_stdout = sys.stdout
+                original_stderr = sys.stderr
+
+                # 临时重定向输出，避免wxautox干扰
+                sys.stdout = io.StringIO()
+                sys.stderr = io.StringIO()
+
+                # 只尝试导入，不创建实例
+                import wxautox
+
+                # 恢复原始输出
+                sys.stdout = original_stdout
+                sys.stderr = original_stderr
+
+                # 检查关键类是否存在
+                if hasattr(wxautox, 'WeChat'):
+                    logger.info("打包环境中wxautox库导入成功，WeChat类存在")
+                    return (True, f"wxautox库可用，版本: {getattr(wxautox, '__version__', '未知')}")
+                else:
+                    logger.warning("打包环境中wxautox库导入成功但WeChat类不存在")
+                    return (False, "wxautox库不完整，WeChat类不存在")
+
+            except ImportError as e:
+                logger.info(f"打包环境中wxautox库导入失败: {str(e)}")
+                return (False, f"wxautox库导入失败: {str(e)}")
+            except Exception as e:
+                # 确保恢复原始输出
+                try:
+                    sys.stdout = original_stdout
+                    sys.stderr = original_stderr
+                except:
+                    pass
+
+                logger.warning(f"打包环境中wxautox检测出错: {str(e)}")
+                return (False, f"wxautox库检测出错: {str(e)}")
+
+        except Exception as e:
+            logger.error(f"打包环境中wxautox安全检测策略失败: {str(e)}")
+            return (False, f"wxautox库检测失败: {str(e)}")
+
+    def _detect_wxautox_frozen_environment_with_timeout(self) -> Tuple[bool, str]:
+        """在打包环境中使用超时保护的检测策略"""
+        try:
             import threading
             import time
 
-            logger.info("打包环境中使用特殊策略检测wxautox")
+            logger.info("打包环境中使用超时保护策略检测wxautox")
 
             # 使用线程和超时机制来避免卡住
             result_container = {'result': None, 'error': None}
@@ -180,6 +229,7 @@ class WeChatLibDetector:
             def import_wxautox_with_timeout():
                 """在单独线程中导入wxautox，避免主线程卡住"""
                 try:
+                    import io
                     # 保存原始的stdout和stderr
                     original_stdout = sys.stdout
                     original_stderr = sys.stderr

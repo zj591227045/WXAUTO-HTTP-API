@@ -13,6 +13,7 @@ from tkinter import ttk, messagebox
 import signal
 import psutil
 import requests
+import traceback
 
 # 导入配置管理模块
 try:
@@ -143,6 +144,18 @@ class WxAutoHttpUI:
                                  padding=8,
                                  font=("TkDefaultFont", 10, "bold"))
 
+        # 初始化状态变量（必须在创建UI之前）
+        self.api_running = False
+        self.current_lib = "wxauto"  # 默认使用wxauto
+        self.current_port = 5000  # 默认端口号
+        self._ui_closing = False  # 添加关闭标志
+
+        # 初始化自动启动相关变量（必须在创建UI之前）
+        self.auto_start_enabled = tk.BooleanVar(value=False)  # 默认不自动启动
+        self.auto_start_countdown = tk.IntVar(value=5)  # 默认5秒倒计时
+        self.countdown_seconds = 0
+        self.countdown_timer = None
+
         # 创建主框架（减少padding以获得更紧凑的布局）
         self.main_frame = ttk.Frame(self.root, padding="5")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
@@ -155,15 +168,6 @@ class WxAutoHttpUI:
 
         # 创建底部按钮区域
         self.create_bottom_panel()
-
-        # 初始化状态
-        self.api_running = False
-        self.current_lib = "wxauto"  # 默认使用wxauto
-        self.current_port = 5000  # 默认端口号
-        self._ui_closing = False  # 添加关闭标志
-        self._wxautox_activation_checked = False  # 激活状态是否已检查
-
-
 
         # 启动状态更新定时器
         self.update_status()
@@ -178,11 +182,45 @@ class WxAutoHttpUI:
         # 调整窗口大小以适应内容
         self.root.after(100, self.adjust_window_size)
 
-        # 设置自动启动服务的倒计时
-        self.countdown_seconds = 5
-        self.add_log("===== 自动启动服务 =====")
-        self.add_log(f"将在 {self.countdown_seconds} 秒后自动启动服务...")
-        self.start_countdown()
+        # 检查是否启用自动启动（在UI创建完成后）
+        self.root.after(200, self.check_auto_start)
+
+    def check_auto_start(self):
+        """检查是否需要自动启动"""
+        if self.auto_start_enabled.get():
+            self.countdown_seconds = self.auto_start_countdown.get()
+            self.add_log("===== 自动启动服务 =====")
+            self.add_log(f"将在 {self.countdown_seconds} 秒后自动启动服务...")
+            self.start_countdown()
+        else:
+            self.add_log("自动启动已禁用，请手动启动服务")
+
+    def on_auto_start_toggle(self):
+        """自动启动复选框切换事件"""
+        if self.auto_start_enabled.get():
+            # 启用自动启动
+            if not self.api_running:  # 只有在服务未运行时才启动倒计时
+                self.countdown_seconds = self.auto_start_countdown.get()
+                self.add_log(f"已启用自动启动，将在 {self.countdown_seconds} 秒后启动服务")
+                self.start_countdown()
+        else:
+            # 禁用自动启动
+            if self.countdown_timer:
+                self.root.after_cancel(self.countdown_timer)
+                self.countdown_timer = None
+            self.add_log("已禁用自动启动")
+            # 恢复按钮文本
+            self.start_button.config(text="启动服务")
+
+    def on_countdown_change(self):
+        """倒计时时间改变事件"""
+        # 如果正在倒计时，重新开始
+        if self.auto_start_enabled.get() and self.countdown_seconds > 0:
+            if self.countdown_timer:
+                self.root.after_cancel(self.countdown_timer)
+            self.countdown_seconds = self.auto_start_countdown.get()
+            self.add_log(f"倒计时时间已更改为 {self.countdown_seconds} 秒")
+            self.start_countdown()
 
 
     def create_control_panel(self):
@@ -266,10 +304,8 @@ class WxAutoHttpUI:
             command=self.show_wxautox_activation
         )
         self.activate_wxautox_button.pack(side=tk.LEFT, padx=5)
-        # 添加激活状态显示
-        ttk.Label(wxautox_frame, text="激活状态:").pack(side=tk.LEFT, padx=5)
-        self.wxautox_activation_status = ttk.Label(wxautox_frame, text="检测中...", style="Bold.TLabel")
-        self.wxautox_activation_status.pack(side=tk.LEFT, padx=5)
+        # 添加激活提示
+        ttk.Label(wxautox_frame, text="请手动激活，重启软件生效", foreground="orange").pack(side=tk.LEFT, padx=5)
 
 
     def create_status_panel(self):
@@ -354,6 +390,32 @@ class WxAutoHttpUI:
         # 查看日志按钮（增加间距）
         self.view_logs_button = ttk.Button(button_frame, text="查看日志", command=self.show_logs_page)
         self.view_logs_button.pack(side=tk.LEFT, padx=15)  # 增加左边距，拉开距离
+
+        # 自动启动控制区域
+        auto_start_frame = ttk.Frame(bottom_frame)
+        auto_start_frame.pack(side=tk.RIGHT, padx=10)
+
+        # 自动启动复选框
+        self.auto_start_checkbox = ttk.Checkbutton(
+            auto_start_frame,
+            text="自动启动服务",
+            variable=self.auto_start_enabled,
+            command=self.on_auto_start_toggle
+        )
+        self.auto_start_checkbox.pack(side=tk.LEFT, padx=5)
+
+        # 倒计时时间设置
+        ttk.Label(auto_start_frame, text="倒计时:").pack(side=tk.LEFT, padx=(10, 2))
+        self.countdown_spinbox = ttk.Spinbox(
+            auto_start_frame,
+            from_=1,
+            to=30,
+            width=5,
+            textvariable=self.auto_start_countdown,
+            command=self.on_countdown_change
+        )
+        self.countdown_spinbox.pack(side=tk.LEFT, padx=2)
+        ttk.Label(auto_start_frame, text="秒").pack(side=tk.LEFT, padx=(2, 5))
 
 
     def adjust_window_size(self):
@@ -534,10 +596,8 @@ class WxAutoHttpUI:
                             version = self.get_package_version('wxautox')
                             self.wxautox_version.config(text=version)
                             if not self._wxautox_status_logged.get('packed_available', False):
-                                self.add_log("wxautox库在打包环境中可用，准备检测激活状态")
+                                self.add_log("wxautox库在打包环境中可用")
                                 self._wxautox_status_logged['packed_available'] = True
-                            # 在打包环境中，延迟检测激活状态
-                            self.root.after(1000, self._check_wxautox_activation_once)
                         return True
                     else:
                         current_status = self.wxautox_status.cget("text")
@@ -558,10 +618,8 @@ class WxAutoHttpUI:
                         version = self.get_package_version('wxautox')
                         self.wxautox_version.config(text=version)
                         if not self._wxautox_status_logged.get('packed_assumed', False):
-                            self.add_log("wxautox库在打包环境中假设可用，准备检测激活状态")
+                            self.add_log("wxautox库在打包环境中假设可用")
                             self._wxautox_status_logged['packed_assumed'] = True
-                        # 在打包环境中，延迟检测激活状态
-                        self.root.after(1000, self._check_wxautox_activation_once)
                     return True  # 假设可用，避免阻止启动
             else:
                 # 在开发环境中，使用subprocess来检查wxautox，避免影响主进程
@@ -584,18 +642,14 @@ class WxAutoHttpUI:
                         version = self.get_package_version('wxautox')
                         self.wxautox_version.config(text=version)
                         if not self._wxautox_status_logged.get('dev_available', False):
-                            self.add_log("wxautox库检测为可用，将在微信初始化成功后检测激活状态")
+                            self.add_log("wxautox库检测为可用")
                             self._wxautox_status_logged['dev_available'] = True
-                    # 不立即检测激活状态，等待微信初始化成功后再检测
                     return True
                 else:
                     current_status = self.wxautox_status.cget("text")
                     if current_status != "不可用":
                         self.wxautox_status.config(text="不可用", style="Red.TLabel")
                         self.wxautox_version.config(text="")
-                        # 更新激活状态显示
-                        if hasattr(self, 'wxautox_activation_status'):
-                            self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
                         # 重置日志标志
                         self._wxautox_status_logged = {}
                     return False
@@ -615,106 +669,16 @@ class WxAutoHttpUI:
         except Exception as e:
             self.wxautox_status.config(text="检查失败", style="Red.TLabel")
             self.wxautox_version.config(text="")
-            if hasattr(self, 'wxautox_activation_status'):
-                self.wxautox_activation_status.config(text="未知", style="Red.TLabel")
             # 只在调试模式下记录详细错误
             if hasattr(self, '_debug_mode') and self._debug_mode:
                 self.add_log(f"检查wxautox状态时出错: {str(e)}")
             return False
 
-    def _check_wxautox_activation_once(self):
-        """简单检查wxautox激活状态"""
-        if not hasattr(self, 'wxautox_activation_status'):
-            return
 
-        # 检查是否正在关闭
-        if getattr(self, '_ui_closing', False):
-            return
 
-        # 如果已经检查过，不重复检查
-        if getattr(self, '_wxautox_activation_checked', False):
-            return
 
-        try:
-            # 导入简单的激活状态检测模块
-            from app.wxautox_activation import check_wxautox_activation_status
 
-            # 简单检测激活状态
-            self.add_log("开始简单检测wxautox激活状态...")
-            activation_status = check_wxautox_activation_status()
-            self._wxautox_activation_checked = True  # 标记已检查
 
-            # 根据检测结果更新UI
-            if activation_status == "已激活":
-                self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
-                self.add_log("wxautox激活状态检测完成：已激活")
-            elif activation_status == "未激活":
-                self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
-                self.add_log("wxautox激活状态检测完成：未激活")
-            else:  # "未知"
-                self.wxautox_activation_status.config(text="未知", style="Orange.TLabel")
-                self.add_log("wxautox激活状态检测完成：未知")
-
-        except Exception as e:
-            # 使用安全的日志记录，避免在UI关闭时出错
-            try:
-                self.add_log(f"检测wxautox激活状态时出错: {str(e)}")
-            except:
-                pass  # 如果日志记录也失败，静默忽略
-
-            try:
-                self.wxautox_activation_status.config(text="检测失败", style="Red.TLabel")
-            except:
-                pass  # 如果UI更新失败，静默忽略
-
-    def _force_check_wxautox_activation(self):
-        """强制重新检查wxautox激活状态（用于激活成功后）"""
-        if not hasattr(self, 'wxautox_activation_status'):
-            return
-
-        # 检查是否正在关闭
-        if getattr(self, '_ui_closing', False):
-            return
-
-        try:
-            # 重置检查标志，强制重新检查
-            self._wxautox_activation_checked = False
-
-            # 导入激活状态检测模块
-            from app.wxautox_activation import check_wxautox_activation_status
-
-            # 强制检查激活状态
-            self.add_log("强制重新检测wxautox激活状态...")
-            activation_status = check_wxautox_activation_status()
-            self._wxautox_activation_checked = True
-
-            # 根据检测结果更新UI
-            if activation_status == "已激活":
-                self.wxautox_activation_status.config(text="已激活", style="Green.TLabel")
-                self.add_log("wxautox激活状态更新：已激活")
-            elif activation_status == "未激活":
-                self.wxautox_activation_status.config(text="未激活", style="Red.TLabel")
-                self.add_log("wxautox激活状态更新：未激活")
-            else:  # "未知"
-                self.wxautox_activation_status.config(text="未知", style="Orange.TLabel")
-                self.add_log("wxautox激活状态更新：未知")
-
-        except Exception as e:
-            try:
-                self.add_log(f"强制检测wxautox激活状态时出错: {str(e)}")
-            except:
-                pass
-
-            try:
-                self.wxautox_activation_status.config(text="检测失败", style="Red.TLabel")
-            except:
-                pass
-
-    def _update_wxautox_activation_status(self):
-        """更新wxautox激活状态显示（保留兼容性）"""
-        # 如果还没有检查过，则进行一次检查
-        if not getattr(self, '_wxautox_activation_checked', False):
-            self._check_wxautox_activation_once()
 
     def check_wxauto_installation(self):
         """检查wxauto安装状态并提供安装选项"""
@@ -802,7 +766,19 @@ class WxAutoHttpUI:
         title_label.pack(pady=(0, 15))
 
         # 添加说明
-        info_text = """请输入您的wxautox激活码。激活码将被保存，
+        import sys
+        is_frozen = getattr(sys, 'frozen', False)
+
+        if is_frozen:
+            info_text = """请输入您的wxautox激活码。激活码将被保存。
+
+✅ 打包环境激活支持：
+- 当前版本支持在打包环境中直接激活
+- 点击激活按钮即可完成激活
+- 激活码将被安全保存在本地配置文件中
+- 激活成功后无需重复输入"""
+        else:
+            info_text = """请输入您的wxautox激活码。激活码将被保存，
 在每次启动服务时自动激活wxautox。
 
 注意：
@@ -875,8 +851,6 @@ class WxAutoHttpUI:
                         self.root.after(0, lambda: self.add_log(f"wxautox激活成功: {message}"))
                         self.root.after(0, lambda: messagebox.showinfo("激活成功", "wxautox激活成功！"))
                         self.root.after(0, lambda: activation_dialog.destroy())
-                        # 激活成功后，重新检查状态（强制检查）
-                        self.root.after(0, lambda: self._force_check_wxautox_activation())
                     else:
                         self.root.after(0, lambda: self.add_log(f"wxautox激活失败: {message}"))
                         self.root.after(0, lambda: messagebox.showerror("激活失败", f"wxautox激活失败:\n{message}"))
@@ -1590,9 +1564,7 @@ class WxAutoHttpUI:
                         # 窗口名称为空，设置为空字符串
                         self.root.after(0, lambda: self.wechat_window_name.config(text=""))
 
-                    # 微信初始化成功后，检测wxautox激活状态
-                    if self.current_lib == "wxautox" and not getattr(self, '_wxautox_activation_checked', False):
-                        self.root.after(2000, self._check_wxautox_activation_once)  # 延迟2秒检测
+
 
                     # 初始化成功，退出重试循环
                     # 不要立即检查微信连接状态，等待下一个定时检查周期
@@ -1785,9 +1757,12 @@ class WxAutoHttpUI:
     def start_countdown(self):
         """开始倒计时"""
         if self.countdown_seconds > 0:
+            # 更新启动按钮文本显示倒计时
+            self.start_button.config(text=f"启动服务 ({self.countdown_seconds})")
+
             # 根据剩余秒数显示不同的提示
-            if self.countdown_seconds == 5:
-                self.add_log("【自动启动】5 秒后启动服务...")
+            if self.countdown_seconds == self.auto_start_countdown.get():
+                self.add_log(f"【自动启动】{self.countdown_seconds} 秒后启动服务...")
             elif self.countdown_seconds == 3:
                 self.add_log("【自动启动】3 秒后启动服务...")
             elif self.countdown_seconds == 2:
@@ -1796,8 +1771,10 @@ class WxAutoHttpUI:
                 self.add_log("【自动启动】1 秒后启动服务...")
 
             self.countdown_seconds -= 1
-            self.root.after(1000, self.start_countdown)
+            self.countdown_timer = self.root.after(1000, self.start_countdown)
         else:
+            # 恢复按钮文本
+            self.start_button.config(text="启动服务")
             self.add_log("【自动启动】倒计时结束，准备启动服务...")
             self.auto_start_service()
 
@@ -1831,7 +1808,15 @@ class WxAutoHttpUI:
         # 设置关闭标志，停止定时器
         self._ui_closing = True
 
-        # 取消定时器
+        # 取消倒计时定时器
+        if self.countdown_timer:
+            try:
+                self.root.after_cancel(self.countdown_timer)
+                self.countdown_timer = None
+            except:
+                pass
+
+        # 取消状态更新定时器
         if hasattr(self, '_status_timer_id'):
             try:
                 self.root.after_cancel(self._status_timer_id)
@@ -1855,9 +1840,94 @@ class WxAutoHttpUI:
 
 # 主函数
 def main():
-    root = tk.Tk()
-    app = WxAutoHttpUI(root)
-    root.mainloop()
+    """主函数，启动UI界面"""
+    try:
+        # 检查tkinter是否可用
+        try:
+            import tkinter as tk
+            from tkinter import ttk, messagebox
+            logger.info("tkinter模块导入成功")
+        except ImportError as e:
+            error_msg = f"无法导入tkinter模块: {str(e)}"
+            logger.error(error_msg)
+            print(error_msg)
+            return
+
+        # 创建根窗口
+        try:
+            root = tk.Tk()
+            logger.info("tkinter根窗口创建成功")
+        except Exception as e:
+            error_msg = f"无法创建tkinter根窗口: {str(e)}"
+            logger.error(error_msg)
+            logger.error(f"详细错误: {traceback.format_exc()}")
+            print(error_msg)
+            return
+
+        # 设置窗口属性
+        try:
+            root.title("wxauto_http_api 管理界面")
+            root.geometry("1000x700")
+            root.minsize(800, 600)
+            logger.info("窗口属性设置成功")
+        except Exception as e:
+            logger.warning(f"设置窗口属性时出错: {str(e)}")
+
+        # 创建应用实例
+        try:
+            app = WxAutoHttpUI(root)
+            logger.info("应用实例创建成功")
+        except Exception as e:
+            error_msg = f"创建应用实例失败: {str(e)}"
+            logger.error(error_msg)
+            logger.error(f"详细错误: {traceback.format_exc()}")
+
+            # 显示错误对话框
+            try:
+                messagebox.showerror("初始化错误", f"{error_msg}\n\n程序将退出")
+            except:
+                pass
+
+            try:
+                root.destroy()
+            except:
+                pass
+
+            return
+
+        # 启动主循环
+        try:
+            logger.info("开始启动UI主循环")
+            root.mainloop()
+            logger.info("UI主循环已结束")
+        except Exception as e:
+            error_msg = f"UI主循环出错: {str(e)}"
+            logger.error(error_msg)
+            logger.error(f"详细错误: {traceback.format_exc()}")
+
+            # 尝试显示错误对话框
+            try:
+                messagebox.showerror("运行时错误", f"{error_msg}")
+            except:
+                pass
+
+    except Exception as e:
+        error_msg = f"主函数发生未知错误: {str(e)}"
+        logger.error(error_msg)
+        logger.error(f"详细错误: {traceback.format_exc()}")
+        print(error_msg)
+
+        # 在打包环境中，尝试显示错误对话框
+        if getattr(sys, 'frozen', False):
+            try:
+                import tkinter as tk
+                from tkinter import messagebox
+                root = tk.Tk()
+                root.withdraw()
+                messagebox.showerror("严重错误", f"{error_msg}\n\n程序无法继续运行")
+                root.destroy()
+            except:
+                pass
 
 
 if __name__ == "__main__":

@@ -92,43 +92,73 @@ def setup_environment():
 
 def main():
     """主函数，解析命令行参数并启动相应的服务"""
-    # 设置环境
-    setup_environment()
+    try:
+        # 设置环境
+        setup_environment()
 
-    # 记录命令行参数
-    logger.info(f"命令行参数: {sys.argv}")
+        # 记录命令行参数
+        logger.info(f"命令行参数: {sys.argv}")
 
-    # 解析命令行参数
-    parser = argparse.ArgumentParser(description="wxauto_http_api")
-    parser.add_argument("--service", choices=["ui", "api", "both"], default="ui",
-                      help="指定要启动的服务类型: ui, api 或 both")
-    parser.add_argument("--debug", action="store_true", help="启用调试模式")
-    parser.add_argument("--no-mutex-check", action="store_true", help="禁用互斥锁检查")
+        # 解析命令行参数
+        parser = argparse.ArgumentParser(description="wxauto_http_api")
+        parser.add_argument("--service", choices=["ui", "api", "both"], default="ui",
+                          help="指定要启动的服务类型: ui, api 或 both")
+        parser.add_argument("--debug", action="store_true", help="启用调试模式")
+        parser.add_argument("--no-mutex-check", action="store_true", help="禁用互斥锁检查")
+        parser.add_argument("--console", action="store_true", help="在打包环境中显示控制台")
 
-    # 在打包环境中，可能会有额外的参数，如main.py
-    if getattr(sys, 'frozen', False) and len(sys.argv) > 1 and sys.argv[1].endswith('.py'):
-        # 移除第一个参数（可能是main.py）
-        logger.info(f"检测到打包环境中的脚本参数: {sys.argv[1]}，将移除")
-        args = parser.parse_args(sys.argv[2:])
-    else:
-        args = parser.parse_args()
+        # 在打包环境中，可能会有额外的参数，如main.py
+        if getattr(sys, 'frozen', False) and len(sys.argv) > 1 and sys.argv[1].endswith('.py'):
+            # 移除第一个参数（可能是main.py）
+            logger.info(f"检测到打包环境中的脚本参数: {sys.argv[1]}，将移除")
+            args = parser.parse_args(sys.argv[2:])
+        else:
+            args = parser.parse_args()
 
-    # 记录解析后的参数
-    logger.info(f"解析后的参数: service={args.service}, debug={args.debug}, no_mutex_check={args.no_mutex_check}")
+        # 记录解析后的参数
+        logger.info(f"解析后的参数: service={args.service}, debug={args.debug}, no_mutex_check={args.no_mutex_check}")
 
-    # 设置环境变量，标记服务类型
-    os.environ["WXAUTO_SERVICE_TYPE"] = args.service
+        # 在打包环境中，如果指定了console参数，分配控制台
+        if getattr(sys, 'frozen', False) and args.console:
+            try:
+                import win32console
+                win32console.AllocConsole()
+                logger.info("已为打包环境分配控制台")
+            except Exception as e:
+                logger.warning(f"无法分配控制台: {str(e)}")
 
-    # 设置调试模式
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-        os.environ["WXAUTO_DEBUG"] = "1"
-        logger.debug("已启用调试模式")
+        # 设置环境变量，标记服务类型
+        os.environ["WXAUTO_SERVICE_TYPE"] = args.service
 
-    # 设置互斥锁检查
-    if args.no_mutex_check:
-        os.environ["WXAUTO_NO_MUTEX_CHECK"] = "1"
-        logger.info("已禁用互斥锁检查")
+        # 设置调试模式
+        if args.debug:
+            logging.getLogger().setLevel(logging.DEBUG)
+            os.environ["WXAUTO_DEBUG"] = "1"
+            logger.debug("已启用调试模式")
+
+        # 设置互斥锁检查
+        if args.no_mutex_check:
+            os.environ["WXAUTO_NO_MUTEX_CHECK"] = "1"
+            logger.info("已禁用互斥锁检查")
+
+    except Exception as e:
+        error_msg = f"主函数初始化失败: {str(e)}"
+        logger.error(error_msg)
+        logger.error(traceback.format_exc())
+
+        # 在打包环境中显示错误对话框
+        if getattr(sys, 'frozen', False):
+            try:
+                import tkinter as tk
+                from tkinter import messagebox
+                root = tk.Tk()
+                root.withdraw()
+                messagebox.showerror("启动错误", f"{error_msg}\n\n详细信息请查看日志文件")
+                root.destroy()
+            except:
+                pass
+
+        sys.exit(1)
 
     # 简单的路径设置
     try:
@@ -190,12 +220,40 @@ def main():
             from app.ui_service import start_ui
             start_ui()
         except ImportError as e:
-            logger.error(f"导入UI服务模块失败: {str(e)}")
+            error_msg = f"导入UI服务模块失败: {str(e)}"
+            logger.error(error_msg)
             logger.error(traceback.format_exc())
+
+            # 在打包环境中显示错误对话框
+            if getattr(sys, 'frozen', False):
+                try:
+                    import tkinter as tk
+                    from tkinter import messagebox
+                    root = tk.Tk()
+                    root.withdraw()
+                    messagebox.showerror("模块导入错误", f"{error_msg}\n\n请检查应用是否正确打包")
+                    root.destroy()
+                except:
+                    pass
+
             sys.exit(1)
         except Exception as e:
-            logger.error(f"启动UI服务时出错: {str(e)}")
+            error_msg = f"启动UI服务时出错: {str(e)}"
+            logger.error(error_msg)
             logger.error(traceback.format_exc())
+
+            # 在打包环境中显示错误对话框
+            if getattr(sys, 'frozen', False):
+                try:
+                    import tkinter as tk
+                    from tkinter import messagebox
+                    root = tk.Tk()
+                    root.withdraw()
+                    messagebox.showerror("UI启动错误", f"{error_msg}\n\n详细信息请查看日志文件")
+                    root.destroy()
+                except:
+                    pass
+
             sys.exit(1)
     elif args.service == "api":
         logger.info("正在启动API服务...")

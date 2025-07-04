@@ -140,55 +140,95 @@ def activate_wxautox(activation_code=None):
         return False, "未提供激活码", ""
     
     try:
-        # 执行wxautox激活命令
-        result = subprocess.run(
-            [sys.executable, "-m", "wxautox", "-a", activation_code],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            errors='ignore',  # 忽略编码错误
-            timeout=30  # 30秒超时
-        )
+        # 检查是否在打包环境中
+        is_frozen = getattr(sys, 'frozen', False)
 
-        # 安全地处理输出，防止None值
-        stdout = result.stdout or ""
-        stderr = result.stderr or ""
-        output = stdout + stderr
-        safe_log("info", f"wxautox激活命令输出: {output}")
+        if is_frozen:
+            # 在打包环境中，直接调用wxautox的激活API
+            safe_log("info", "打包环境中尝试直接调用wxautox激活API")
+            try:
+                # 直接导入并调用wxautox的激活功能
+                from wxautox.utils.useful import authenticate
+                safe_log("info", f"开始激活wxautox，激活码: {activation_code[:8]}...")
 
-        # 检查是否激活成功 - 支持多种成功标识
-        success_indicators = [">>>激活成功！<<<", "激活成功", "activation successful"]
-        failure_indicators = [">>>激活失败：forbidden<<<", "激活失败", "forbidden", "expired"]
+                # 直接调用激活函数
+                authenticate(activation_code)
 
-        is_success = any(indicator in output for indicator in success_indicators)
-        is_failure = any(indicator in output for indicator in failure_indicators)
+                # 更新激活状态
+                config = load_activation_config()
+                config["activation_code"] = activation_code
+                config["activation_status"] = True
+                config["last_activation_time"] = str(datetime.now())
+                save_activation_config(config)
 
-        if is_success:
-            # 更新激活状态
-            config = load_activation_config()
-            config["activation_code"] = activation_code
-            config["activation_status"] = True
-            config["last_activation_time"] = str(datetime.now())
-            save_activation_config(config)
+                safe_log("info", "wxautox激活成功（打包环境）")
+                return True, "wxautox激活成功", "打包环境中直接调用激活API成功"
 
-            safe_log("info", "wxautox激活成功")
-            return True, "wxautox激活成功", output
-        elif is_failure:
-            # 激活失败，更新状态
-            config = load_activation_config()
-            config["activation_status"] = False
-            save_activation_config(config)
+            except ImportError:
+                safe_log("error", "wxautox库未安装")
+                return False, "wxautox库未安装", ""
+            except Exception as e:
+                error_msg = str(e)
+                safe_log("error", f"打包环境中激活wxautox失败: {error_msg}")
 
-            if "forbidden" in output:
-                error_msg = "激活码可能已过期或有使用限制"
-            else:
-                error_msg = "激活失败"
-
-            safe_log("warning", f"wxautox激活失败: {error_msg}")
-            return False, error_msg, output
+                # 检查常见的错误类型
+                if "forbidden" in error_msg.lower() or "过期" in error_msg:
+                    return False, "激活码可能已过期或有使用限制", error_msg
+                elif "网络" in error_msg or "network" in error_msg.lower():
+                    return False, "网络连接失败，请检查网络连接", error_msg
+                else:
+                    return False, f"激活失败: {error_msg}", error_msg
         else:
-            safe_log("warning", f"wxautox激活结果未知: {output}")
-            return False, f"激活结果未知: {output}", output
+            # 在开发环境中，使用命令行激活
+            safe_log("info", "开发环境中使用命令行激活wxautox")
+            result = subprocess.run(
+                [sys.executable, "-m", "wxautox", "-a", activation_code],
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='ignore',  # 忽略编码错误
+                timeout=30  # 30秒超时
+            )
+
+            # 安全地处理输出，防止None值
+            stdout = result.stdout or ""
+            stderr = result.stderr or ""
+            output = stdout + stderr
+            safe_log("info", f"wxautox激活命令输出: {output}")
+
+            # 检查是否激活成功 - 支持多种成功标识
+            success_indicators = [">>>激活成功！<<<", "激活成功", "activation successful"]
+            failure_indicators = [">>>激活失败：forbidden<<<", "激活失败", "forbidden", "expired"]
+
+            is_success = any(indicator in output for indicator in success_indicators)
+            is_failure = any(indicator in output for indicator in failure_indicators)
+
+            if is_success:
+                # 更新激活状态
+                config = load_activation_config()
+                config["activation_code"] = activation_code
+                config["activation_status"] = True
+                config["last_activation_time"] = str(datetime.now())
+                save_activation_config(config)
+
+                safe_log("info", "wxautox激活成功")
+                return True, "wxautox激活成功", output
+            elif is_failure:
+                # 激活失败，更新状态
+                config = load_activation_config()
+                config["activation_status"] = False
+                save_activation_config(config)
+
+                if "forbidden" in output:
+                    error_msg = "激活码可能已过期或有使用限制"
+                else:
+                    error_msg = "激活失败"
+
+                safe_log("warning", f"wxautox激活失败: {error_msg}")
+                return False, error_msg, output
+            else:
+                safe_log("warning", f"wxautox激活结果未知: {output}")
+                return False, f"激活结果未知: {output}", output
 
     except subprocess.TimeoutExpired:
         safe_log("error", "wxautox激活命令超时")
@@ -204,31 +244,62 @@ def activate_wxautox(activation_code=None):
 def simple_check_wxautox_activation():
     """
     简单检查wxautox激活状态
-    能够导入库并执行基本操作即认为激活成功
+    在打包环境中使用更安全的检测策略，避免闪退
 
     Returns:
         str: "已激活" | "未激活" | "未知"
     """
     try:
-        # 尝试导入wxautox库
-        import wxautox
-        safe_log("info", "wxautox库导入成功")
+        # 检查是否在打包环境中
+        import sys
+        is_frozen = getattr(sys, 'frozen', False)
 
-        # 尝试创建WeChat实例并初始化（更准确的激活检测）
-        try:
-            # 尝试实际初始化微信实例
-            wechat = wxautox.WeChat()
-            safe_log("info", "wxautox.WeChat实例创建并初始化成功，认为激活成功")
-            return "已激活"
-        except Exception as e:
-            error_msg = str(e)
-            # 如果是因为微信未运行等原因导致的错误，仍然认为激活成功
-            if any(keyword in error_msg.lower() for keyword in ["微信", "wechat", "not found", "无法找到"]):
-                safe_log("info", f"wxautox库可用但微信未运行: {error_msg}，仍认为激活成功")
-                return "已激活"
-            else:
-                safe_log("warning", f"wxautox初始化失败，可能未激活: {error_msg}")
+        if is_frozen:
+            # 在打包环境中，使用更保守的检测策略
+            safe_log("info", "打包环境中检测wxautox激活状态")
+
+            try:
+                # 只尝试导入，不创建实例
+                import wxautox
+                safe_log("info", "wxautox库导入成功")
+
+                # 检查关键类是否存在
+                if hasattr(wxautox, 'WeChat'):
+                    safe_log("info", "wxautox.WeChat类存在，认为激活成功")
+                    return "已激活"
+                else:
+                    safe_log("warning", "wxautox.WeChat类不存在，可能未激活")
+                    return "未激活"
+
+            except ImportError as e:
+                safe_log("info", f"wxautox库导入失败: {str(e)}")
                 return "未激活"
+            except Exception as e:
+                safe_log("warning", f"打包环境中检查wxautox时出错: {str(e)}")
+                return "未知"
+        else:
+            # 在开发环境中，使用原有的检测策略
+            safe_log("info", "开发环境中检测wxautox激活状态")
+
+            # 尝试导入wxautox库
+            import wxautox
+            safe_log("info", "wxautox库导入成功")
+
+            # 尝试创建WeChat实例并初始化（更准确的激活检测）
+            try:
+                # 尝试实际初始化微信实例
+                wechat = wxautox.WeChat()
+                safe_log("info", "wxautox.WeChat实例创建并初始化成功，认为激活成功")
+                return "已激活"
+            except Exception as e:
+                error_msg = str(e)
+                # 如果是因为微信未运行等原因导致的错误，仍然认为激活成功
+                if any(keyword in error_msg.lower() for keyword in ["微信", "wechat", "not found", "无法找到"]):
+                    safe_log("info", f"wxautox库可用但微信未运行: {error_msg}，仍认为激活成功")
+                    return "已激活"
+                else:
+                    safe_log("warning", f"wxautox初始化失败，可能未激活: {error_msg}")
+                    return "未激活"
 
     except ImportError as e:
         safe_log("info", f"wxautox库导入失败: {str(e)}")

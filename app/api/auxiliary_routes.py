@@ -221,16 +221,17 @@ def reject_new_friend():
 def auto_login():
     """自动登录微信 (Plus版)"""
     try:
-        # 检查当前是否使用wxautox库
-        wx_instance = wechat_manager.get_instance()
-        if wx_instance:
-            lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
-            if lib_name != 'wxautox':
-                return jsonify({
-                    'code': 3001,
-                    'message': '自动登录功能需要wxautox库支持',
-                    'data': None
-                }), 400
+        # 检查wxautox库是否可用（直接尝试导入，不依赖当前实例）
+        try:
+            from wxautox import LoginWnd
+            import pythoncom
+            # 如果能成功导入，说明wxautox库可用
+        except ImportError:
+            return jsonify({
+                'code': 3001,
+                'message': '自动登录功能需要wxautox库支持',
+                'data': None
+            }), 400
 
         # 获取请求参数
         data = request.get_json() or {}
@@ -260,16 +261,7 @@ def auto_login():
                 'data': None
             }), 400
 
-        # 导入wxautox库
-        try:
-            from wxautox import LoginWnd
-            import pythoncom
-        except ImportError:
-            return jsonify({
-                'code': 3001,
-                'message': 'wxautox库未安装或不可用',
-                'data': None
-            }), 400
+        # wxautox库已在前面检查并导入
 
         # 初始化COM环境
         try:
@@ -315,16 +307,17 @@ def auto_login():
 def get_login_qrcode():
     """获取登录二维码 (Plus版)"""
     try:
-        # 检查当前是否使用wxautox库
-        wx_instance = wechat_manager.get_instance()
-        if wx_instance:
-            lib_name = getattr(wx_instance, '_lib_name', 'wxauto')
-            if lib_name != 'wxautox':
-                return jsonify({
-                    'code': 3001,
-                    'message': '获取登录二维码功能需要wxautox库支持',
-                    'data': None
-                }), 400
+        # 检查wxautox库是否可用（直接尝试导入，不依赖当前实例）
+        try:
+            from wxautox import LoginWnd
+            import pythoncom
+            # 如果能成功导入，说明wxautox库可用
+        except ImportError:
+            return jsonify({
+                'code': 3001,
+                'message': '获取登录二维码功能需要wxautox库支持',
+                'data': None
+            }), 400
 
         # 获取请求参数
         data = request.get_json() or {}

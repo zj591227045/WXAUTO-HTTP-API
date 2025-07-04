@@ -6,6 +6,29 @@
         <strong>WxAuto HTTP API</strong> 是基于 wxauto/wxautox 库开发的微信自动化HTTP接口服务，提供简单易用的RESTful API来控制微信客户端。
     </div>
 
+    <div class="alert alert-primary">
+        <h5><i class="bi bi-diagram-3"></i> 项目关系说明</h5>
+        <p><strong>wxauto-http-api</strong> 是基于 wxauto/wxautox 进行二次开发的HTTP接口项目，<strong>本人非wxauto原作者，不销售wxautox</strong>！</p>
+
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h6><i class="bi bi-github"></i> wxauto 原项目</h6>
+                <ul class="list-unstyled">
+                    <li><strong>项目地址：</strong><a href="https://github.com/cluic/wxauto" target="_blank">https://github.com/cluic/wxauto</a></li>
+                    <li><strong>联系方式：</strong><a href="http://plus.wxauto.org/plus/" target="_blank">http://plus.wxauto.org/plus/</a></li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="bi bi-code-square"></i> 本项目（二次开发）</h6>
+                <ul class="list-unstyled">
+                    <li><strong>WXAUTO-MGT：</strong><a href="https://github.com/zj591227045/WXAUTO-MGT" target="_blank">https://github.com/zj591227045/WXAUTO-MGT</a></li>
+                    <li><strong>WXAUTO-HTTP-API：</strong><a href="https://github.com/zj591227045/WXAUTO-HTTP-API" target="_blank">https://github.com/zj591227045/WXAUTO-HTTP-API</a></li>
+                    <li><strong>交流群：</strong>955097147</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
             <h4><i class="bi bi-check-circle text-success"></i> 主要特性</h4>
@@ -100,6 +123,40 @@
                 <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                     <div class="accordion-body">
                         API密钥在配置文件 <code>data/api/config/app_config.json</code> 中设置，默认为 <code>test-key-2</code>。
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                        如何选择wxauto还是wxautox？
+                    </button>
+                </h2>
+                <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        <ul>
+                            <li><strong>wxauto：</strong>开源免费使用，满足日常消息收发需求</li>
+                            <li><strong>wxautox：</strong>如果有复杂需求请联系原作者进行购买wxautox</li>
+                            <li><strong>注意：</strong>本项目为基于wxauto/x进行二次开发，本人非原作者！</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                        出现"另一个UI实例已经启动"怎么办？
+                    </button>
+                </h2>
+                <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body">
+                        <p>如果出现"另一个UI实例已经启动，请不要重复启动"错误：</p>
+                        <ol>
+                            <li>按 <kbd>Win + R</kbd> 打开运行对话框</li>
+                            <li>输入 <code>%temp%</code> 并按回车</li>
+                            <li>在打开的临时文件夹中找到并删除 <code>wxauto_http_api_ui.lock</code> 文件</li>
+                            <li>重新启动程序</li>
+                        </ol>
                     </div>
                 </div>
             </div>

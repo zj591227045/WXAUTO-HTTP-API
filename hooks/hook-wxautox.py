@@ -8,10 +8,20 @@ import glob
 from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules
 
 # 收集wxautox的所有内容
-datas, binaries, hiddenimports = collect_all('wxautox')
+try:
+    datas, binaries, hiddenimports = collect_all('wxautox')
+    print(f"wxautox hook: collect_all成功，找到 {len(datas)} 个数据文件，{len(binaries)} 个二进制文件，{len(hiddenimports)} 个隐藏导入")
+except Exception as e:
+    print(f"wxautox hook: collect_all失败: {e}")
+    datas, binaries, hiddenimports = [], [], []
 
 # 确保包含所有子模块
-hiddenimports += collect_submodules('wxautox')
+try:
+    submodules = collect_submodules('wxautox')
+    hiddenimports += submodules
+    print(f"wxautox hook: collect_submodules成功，找到 {len(submodules)} 个子模块")
+except Exception as e:
+    print(f"wxautox hook: collect_submodules失败: {e}")
 
 # 手动添加wxautox的.pyd文件
 try:
@@ -41,7 +51,7 @@ except:
     pass
 
 # 确保包含核心模块和.pyd模块
-hiddenimports += [
+core_modules = [
     'wxautox',
     'wxautox.wx',
     'wxautox.utils',
@@ -51,6 +61,12 @@ hiddenimports += [
     'wxautox.uia',
     'wxautox.uia.uiplug',   # 关键的.pyd模块
     'wxautox.ui',
+    'wxautox.ui.chatbox',
+    'wxautox.ui.component',
+    'wxautox.ui.main',
+    'wxautox.ui.moment',
+    'wxautox.ui.navigationbox',
+    'wxautox.ui.sessionbox',
     'wxautox.msgs',
     'wxautox.msgs.base',    # 关键的.pyd模块
     'wxautox.msgs.friend',  # 关键的.pyd模块
@@ -59,6 +75,9 @@ hiddenimports += [
     'wxautox.msgs.self',    # 关键的.pyd模块
     'wxautox.msgs.type',    # 关键的.pyd模块
 ]
+
+hiddenimports += core_modules
+print(f"wxautox hook: 添加了 {len(core_modules)} 个核心模块")
 
 # 尝试手动处理wxautox.utils的星号导入问题
 try:
@@ -77,6 +96,16 @@ try:
 except Exception as e:
     print(f"wxautox hook: 处理win32模块时出错: {e}")
 
-print(f"wxautox hook: 找到 {len(hiddenimports)} 个隐藏导入")
-print(f"wxautox hook: 找到 {len(datas)} 个数据文件")
-print(f"wxautox hook: 找到 {len(binaries)} 个二进制文件")
+# 强制包含整个wxautox包目录
+try:
+    import wxautox
+    wxautox_path = os.path.dirname(wxautox.__file__)
+    # 将整个wxautox目录作为数据文件包含
+    datas.append((wxautox_path, 'wxautox'))
+    print(f"wxautox hook: 强制包含整个wxautox目录: {wxautox_path}")
+except Exception as e:
+    print(f"wxautox hook: 强制包含wxautox目录失败: {e}")
+
+print(f"wxautox hook: 最终统计 - {len(hiddenimports)} 个隐藏导入")
+print(f"wxautox hook: 最终统计 - {len(datas)} 个数据文件")
+print(f"wxautox hook: 最终统计 - {len(binaries)} 个二进制文件")
