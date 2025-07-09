@@ -36,7 +36,9 @@ DEFAULT_LOG_FILTER = {
 DEFAULT_APP_CONFIG = {
     "api_keys": ["test-key-2"],
     "port": 5000,
-    "wechat_lib": "wxauto"
+    "wechat_lib": "wxauto",
+    "auto_start_enabled": False,
+    "auto_start_countdown": 5
 }
 
 def load_log_filter_config(force_defaults=False):

@@ -197,6 +197,9 @@ class WxAutoHttpUI:
 
     def on_auto_start_toggle(self):
         """自动启动复选框切换事件"""
+        # 保存配置到文件
+        self.save_auto_start_config()
+
         if self.auto_start_enabled.get():
             # 启用自动启动
             if not self.api_running:  # 只有在服务未运行时才启动倒计时
@@ -214,6 +217,9 @@ class WxAutoHttpUI:
 
     def on_countdown_change(self):
         """倒计时时间改变事件"""
+        # 保存配置到文件
+        self.save_auto_start_config()
+
         # 如果正在倒计时，重新开始
         if self.auto_start_enabled.get() and self.countdown_seconds > 0:
             if self.countdown_timer:
@@ -222,6 +228,22 @@ class WxAutoHttpUI:
             self.add_log(f"倒计时时间已更改为 {self.countdown_seconds} 秒")
             self.start_countdown()
 
+    def save_auto_start_config(self):
+        """保存自动启动配置到文件"""
+        try:
+            # 加载当前配置
+            config = config_manager.load_app_config()
+
+            # 更新自动启动配置
+            config['auto_start_enabled'] = self.auto_start_enabled.get()
+            config['auto_start_countdown'] = self.auto_start_countdown.get()
+
+            # 保存配置
+            config_manager.save_app_config(config)
+
+            self.add_log(f"自动启动配置已保存: 启用={self.auto_start_enabled.get()}, 倒计时={self.auto_start_countdown.get()}秒")
+        except Exception as e:
+            self.add_log(f"保存自动启动配置失败: {str(e)}")
 
     def create_control_panel(self):
         """创建顶部控制面板"""
@@ -415,6 +437,10 @@ class WxAutoHttpUI:
             command=self.on_countdown_change
         )
         self.countdown_spinbox.pack(side=tk.LEFT, padx=2)
+
+        # 绑定键盘事件，当用户直接输入数字时也能保存配置
+        self.countdown_spinbox.bind('<KeyRelease>', lambda e: self.root.after(500, self.on_countdown_change))
+        self.countdown_spinbox.bind('<FocusOut>', lambda e: self.on_countdown_change())
         ttk.Label(auto_start_frame, text="秒").pack(side=tk.LEFT, padx=(2, 5))
 
 
@@ -1714,6 +1740,13 @@ class WxAutoHttpUI:
             api_keys = config.get('api_keys', ['test-key-2'])
             if api_keys:
                 self.apikey_var.set(api_keys[0])
+
+            # 设置自动启动配置
+            auto_start_enabled = config.get('auto_start_enabled', False)
+            auto_start_countdown = config.get('auto_start_countdown', 5)
+            self.auto_start_enabled.set(auto_start_enabled)
+            self.auto_start_countdown.set(auto_start_countdown)
+            self.add_log(f"自动启动配置: 启用={auto_start_enabled}, 倒计时={auto_start_countdown}秒")
 
             self.add_log("从配置文件加载配置成功")
         except Exception as e:
