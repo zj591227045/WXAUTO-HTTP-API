@@ -601,9 +601,114 @@ def get_next_new_message():
             else:
                 logger.warning(f"wxautox返回了意外的消息格式: {type(messages)}")
         else:
-            # wxauto处理
-            if isinstance(messages, list):
-                # wxauto返回列表格式
+            # wxauto处理 - 根据日志分析，wxauto实际返回字典格式，不是列表格式
+            if isinstance(messages, dict):
+                # wxauto返回字典格式: {'chat_name': '消息测试', 'chat_type': 'group', 'msg': [...]}
+                if 'msg' in messages and isinstance(messages['msg'], list):
+                    # 使用正确的chat_name，而不是硬编码的"新消息"
+                    chat_name = messages.get('chat_name', '未知聊天')
+                    clean_name = clean_group_name(chat_name)
+                    formatted_messages[clean_name] = []
+
+                    for msg in messages['msg']:
+                        try:
+                            # 检查msg是否已经是字典格式（适配器已转换）
+                            if isinstance(msg, dict):
+                                # 已经是字典格式，直接使用
+                                msg_data = {
+                                    'type': msg.get('type', 'unknown'),
+                                    'content': msg.get('content', str(msg)),
+                                    'sender': msg.get('sender', ''),
+                                    'time': msg.get('time', ''),
+                                    'id': msg.get('id', ''),
+                                    'mtype': msg.get('mtype', None),
+                                    'sender_remark': msg.get('sender_remark', None),
+                                    'file_path': msg.get('file_path', None)
+                                }
+                            else:
+                                # 原始消息对象，需要转换
+                                # 检查消息类型
+                                if hasattr(msg, 'type') and getattr(msg, 'type', '') in ['image', 'file', 'video', 'voice']:
+                                    # 检查文件是否存在且大小大于0
+                                    if hasattr(msg, 'file_path') and getattr(msg, 'file_path', ''):
+                                        try:
+                                            file_path = getattr(msg, 'file_path', '')
+                                            if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                                                logger.warning(f"文件不存在或大小为0: {file_path}")
+                                        except Exception as e:
+                                            logger.error(f"检查文件失败: {str(e)}")
+
+                                msg_data = {
+                                    'type': getattr(msg, 'type', 'unknown'),
+                                    'content': getattr(msg, 'content', str(msg)),
+                                    'sender': getattr(msg, 'sender', ''),
+                                    'time': getattr(msg, 'time', ''),
+                                    'id': getattr(msg, 'id', ''),
+                                    'mtype': getattr(msg, 'mtype', None),
+                                    'sender_remark': getattr(msg, 'sender_remark', None),
+                                    'file_path': getattr(msg, 'file_path', None)
+                                }
+
+                            formatted_messages[clean_name].append(msg_data)
+                        except Exception as e:
+                            logger.error(f"处理wxauto消息时出错: {str(e)}")
+                            # 添加错误消息
+                            formatted_messages[clean_name].append({
+                                'type': 'error',
+                                'content': f'消息处理错误: {str(e)}',
+                                'sender': '',
+                                'time': '',
+                                'id': '',
+                                'mtype': None,
+                                'sender_remark': None,
+                                'file_path': None
+                            })
+                else:
+                    # 可能是其他字典格式: {chat_name: [messages]}
+                    for chat_name, msg_list in messages.items():
+                        if isinstance(msg_list, list):
+                            # 清理群名中的人数信息
+                            clean_name = clean_group_name(chat_name)
+                            formatted_messages[clean_name] = []
+
+                            for msg in msg_list:
+                                try:
+                                    # 检查消息类型
+                                    if hasattr(msg, 'type') and getattr(msg, 'type', '') in ['image', 'file', 'video', 'voice']:
+                                        # 检查文件是否存在且大小大于0
+                                        if hasattr(msg, 'file_path') and getattr(msg, 'file_path', ''):
+                                            try:
+                                                file_path = getattr(msg, 'file_path', '')
+                                                if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                                                    logger.warning(f"文件不存在或大小为0: {file_path}")
+                                            except Exception as e:
+                                                logger.error(f"检查文件失败: {str(e)}")
+
+                                    formatted_messages[clean_name].append({
+                                        'type': getattr(msg, 'type', 'unknown'),
+                                        'content': getattr(msg, 'content', str(msg)),
+                                        'sender': getattr(msg, 'sender', ''),
+                                        'time': getattr(msg, 'time', ''),
+                                        'id': getattr(msg, 'id', ''),
+                                        'mtype': getattr(msg, 'mtype', None),
+                                        'sender_remark': getattr(msg, 'sender_remark', None),
+                                        'file_path': getattr(msg, 'file_path', None)
+                                    })
+                                except Exception as e:
+                                    logger.error(f"处理wxauto消息时出错: {str(e)}")
+                                    # 添加错误消息
+                                    formatted_messages[clean_name].append({
+                                        'type': 'error',
+                                        'content': f'消息处理错误: {str(e)}',
+                                        'sender': '',
+                                        'time': '',
+                                        'id': '',
+                                        'mtype': None,
+                                        'sender_remark': None,
+                                        'file_path': None
+                                    })
+            elif isinstance(messages, list):
+                # 如果wxauto确实返回列表格式（向后兼容）
                 formatted_messages["新消息"] = []
 
                 for msg in messages:
@@ -659,95 +764,7 @@ def get_next_new_message():
                             'sender_remark': None,
                             'file_path': None
                         })
-            elif isinstance(messages, dict):
-                # 处理字典格式
-                # 检查是否是wxautox格式 {chat_name: str, chat_type: str, msg: [messages]}
-                if 'msg' in messages and isinstance(messages['msg'], list):
-                    # 这是wxautox格式
-                    chat_name = messages.get('chat_name', '未知聊天')
-                    clean_name = clean_group_name(chat_name)
-                    formatted_messages[clean_name] = []
 
-                    for msg in messages['msg']:
-                        try:
-                            # 检查消息类型
-                            if hasattr(msg, 'type') and getattr(msg, 'type', '') in ['image', 'file', 'video', 'voice']:
-                                # 检查文件是否存在且大小大于0
-                                if hasattr(msg, 'file_path') and getattr(msg, 'file_path', ''):
-                                    try:
-                                        file_path = getattr(msg, 'file_path', '')
-                                        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-                                            logger.warning(f"文件不存在或大小为0: {file_path}")
-                                    except Exception as e:
-                                        logger.error(f"检查文件失败: {str(e)}")
-
-                            formatted_messages[clean_name].append({
-                                'type': getattr(msg, 'type', 'unknown'),
-                                'content': getattr(msg, 'content', str(msg)),
-                                'sender': getattr(msg, 'sender', ''),
-                                'time': getattr(msg, 'time', ''),
-                                'id': getattr(msg, 'id', ''),
-                                'mtype': getattr(msg, 'mtype', None),
-                                'sender_remark': getattr(msg, 'sender_remark', None),
-                                'file_path': getattr(msg, 'file_path', None)
-                            })
-                        except Exception as e:
-                            logger.error(f"处理wxautox消息时出错: {str(e)}")
-                            # 添加错误消息
-                            formatted_messages[clean_name].append({
-                                'type': 'error',
-                                'content': f'消息处理错误: {str(e)}',
-                                'sender': '',
-                                'time': '',
-                                'id': '',
-                                'mtype': None,
-                                'sender_remark': None,
-                                'file_path': None
-                            })
-                else:
-                    # 可能是其他字典格式: {chat_name: [messages]}
-                    for chat_name, msg_list in messages.items():
-                        if isinstance(msg_list, list):
-                            # 清理群名中的人数信息
-                            clean_name = clean_group_name(chat_name)
-                            formatted_messages[clean_name] = []
-
-                            for msg in msg_list:
-                                try:
-                                    # 检查消息类型
-                                    if hasattr(msg, 'type') and getattr(msg, 'type', '') in ['image', 'file', 'video', 'voice']:
-                                        # 检查文件是否存在且大小大于0
-                                        if hasattr(msg, 'file_path') and getattr(msg, 'file_path', ''):
-                                            try:
-                                                file_path = getattr(msg, 'file_path', '')
-                                                if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
-                                                    logger.warning(f"文件不存在或大小为0: {file_path}")
-                                            except Exception as e:
-                                                logger.error(f"检查文件失败: {str(e)}")
-
-                                    formatted_messages[clean_name].append({
-                                        'type': getattr(msg, 'type', 'unknown'),
-                                        'content': getattr(msg, 'content', str(msg)),
-                                        'sender': getattr(msg, 'sender', ''),
-                                        'time': getattr(msg, 'time', ''),
-                                        'id': getattr(msg, 'id', ''),
-                                        'mtype': getattr(msg, 'mtype', None),
-                                        'sender_remark': getattr(msg, 'sender_remark', None),
-                                        'file_path': getattr(msg, 'file_path', None)
-                                    })
-                                except Exception as e:
-                                    logger.error(f"处理wxauto字典消息时出错: {str(e)}")
-                                    # 添加错误消息
-                                    formatted_messages[clean_name].append({
-                                        'type': 'error',
-                                        'content': f'消息处理错误: {str(e)}',
-                                        'sender': '',
-                                        'time': '',
-                                        'id': '',
-                                        'mtype': None,
-                                        'sender_remark': None,
-                                        'file_path': None
-                                    })
             else:
                 # 其他格式，转换为字符串
                 formatted_messages = {"消息": [{"type": "text", "content": str(messages)}]}

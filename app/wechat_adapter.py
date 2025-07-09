@@ -1480,14 +1480,14 @@ class WeChatAdapter:
                             logger.debug("检测到wxautox格式，直接返回")
                             return result
                         else:
-                            # 可能是wxauto的特殊格式，需要进一步处理
-                            logger.debug("检测到wxauto字典格式，转换为列表")
+                            # 可能是wxauto的特殊格式，保持字典格式并转换消息对象
+                            logger.debug("检测到wxauto字典格式，保持字典结构并转换消息对象")
                             # 如果字典包含消息相关的键，尝试提取消息
                             if 'msg' in result:
                                 # 假设msg键包含消息列表
                                 messages = result.get('msg', [])
                                 if isinstance(messages, list):
-                                    # 转换消息对象为可序列化格式
+                                    # 转换消息对象为可序列化格式，但保持字典结构
                                     serializable_messages = []
                                     for msg in messages:
                                         try:
@@ -1504,7 +1504,12 @@ class WeChatAdapter:
                                             serializable_messages.append(msg_dict)
                                         except Exception as e:
                                             logger.error(f"转换字典中的消息对象失败: {str(e)}")
-                                    return serializable_messages
+
+                                    # 保持字典格式，只替换msg部分
+                                    serializable_result = result.copy()
+                                    serializable_result['msg'] = serializable_messages
+                                    logger.debug(f"wxauto字典格式转换完成，保持chat_name: {result.get('chat_name', '未知')}")
+                                    return serializable_result
                             # 否则直接返回字典让API层处理
                             return result
 
