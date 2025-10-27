@@ -537,22 +537,28 @@ def send_message():
         at_list = data.get('at_list', [])
         clear = data.get('clear', True)
 
-        if not who or not message:
+        if not message:
             return jsonify({
                 'code': 4001,
                 'message': '缺少必要参数: who, message',
                 'data': None
             }), 400
 
-        # 显示聊天窗口
-        wx_instance.ChatWith(who)
+        chat_wnd = wx_instance.GetSubWindow(who)
         time.sleep(0.5)  # 等待窗口加载
-
-        # 发送消息
-        if at_list:
-            wx_instance.SendMsg(message, clear=clear, at=at_list)
+        if chat_wnd:
+            chat_wnd.SendMsg(message, at=at_list)
         else:
-            wx_instance.SendMsg(message, clear=clear)
+            # 显示聊天窗口
+            wx_instance.ChatWith(who)
+            time.sleep(0.5)  # 等待窗口加载
+
+            # 发送消息
+            if at_list:
+                wx_instance.SendMsg(message, clear=clear, at=at_list)
+            else:
+                wx_instance.SendMsg(message, clear=clear)
+
 
         return jsonify({
             'code': 0,
